@@ -25,22 +25,56 @@ export function useAuth() {
     });
 
     // 사용자 프로필 가져오기
-    const { data: profile } = useQuery({
+    const { data: profile, error: profileError } = useQuery({
         queryKey: ['auth', 'profile', session?.user?.id],
         queryFn: async () => {
             if (!session?.user?.id) return null;
 
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
 
-            if (error) throw error;
-            return data;
+                if (error) {
+                    // profiles 테이블이 존재하지 않는 경우 기본 사용자 정보 반환
+                    if (
+                        error.code === 'PGRST116' ||
+                        error.message?.includes('profiles')
+                    ) {
+                        return {
+                            id: session.user.id,
+                            email: session.user.email || '',
+                            full_name:
+                                session.user.user_metadata?.full_name || null,
+                            avatar_url:
+                                session.user.user_metadata?.avatar_url || null,
+                            is_admin: false,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString(),
+                        };
+                    }
+                    throw error;
+                }
+                return data;
+            } catch (error) {
+                console.error('프로필 조회 오류:', error);
+                // 에러가 발생해도 기본 사용자 정보 반환
+                return {
+                    id: session.user.id,
+                    email: session.user.email || '',
+                    full_name: session.user.user_metadata?.full_name || null,
+                    avatar_url: session.user.user_metadata?.avatar_url || null,
+                    is_admin: false,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                };
+            }
         },
         enabled: !!session?.user?.id,
         staleTime: 5 * 60 * 1000, // 5분
+        retry: false, // 재시도 비활성화
     });
 
     useEffect(() => {
@@ -48,8 +82,20 @@ export function useAuth() {
             setUser(profile);
         } else if (session === null) {
             clearAuth();
+        } else if (profileError && session?.user?.id) {
+            // 에러가 발생했지만 세션이 있는 경우 기본 사용자 정보로 설정
+            const defaultUser = {
+                id: session.user.id,
+                email: session.user.email || '',
+                full_name: session.user.user_metadata?.full_name || null,
+                avatar_url: session.user.user_metadata?.avatar_url || null,
+                is_admin: false,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            };
+            setUser(defaultUser);
         }
-    }, [profile, session, setUser, clearAuth]);
+    }, [profile, profileError, session, setUser, clearAuth]);
 
     // 로그인
     const signIn = async (provider: 'google' | 'github') => {

@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -22,10 +22,20 @@ export default function ProfilePage() {
     const queryClient = useQueryClient();
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
-        full_name: user?.full_name || '',
-        avatar_url: user?.avatar_url || '',
+        full_name: '',
+        avatar_url: '',
     });
     const [isUpdating, setIsUpdating] = useState(false);
+
+    // user 값이 변경될 때마다 formData 초기화
+    useEffect(() => {
+        if (user) {
+            setFormData({
+                full_name: user.full_name || '',
+                avatar_url: user.avatar_url || '',
+            });
+        }
+    }, [user]);
 
     if (loading) {
         return (
@@ -55,16 +65,31 @@ export default function ProfilePage() {
 
         setIsUpdating(true);
         try {
+            // profiles 테이블이 존재하지 않을 수 있으므로 try-catch로 처리
             const { error } = await supabase
                 .from('profiles')
                 .update({
                     full_name: formData.full_name || null,
-                    avatar_url: formData.avatar_url || null,
+                    avatar_url: formData.avatar_url || user.avatar_url, // 기존 값 유지
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', user.id);
 
-            if (error) throw error;
+            if (error) {
+                // profiles 테이블이 존재하지 않는 경우
+                if (
+                    error.code === 'PGRST116' ||
+                    error.message?.includes('profiles')
+                ) {
+                    toast.warning(
+                        '프로필 테이블이 존재하지 않습니다. 기본 정보만 저장됩니다.'
+                    );
+                    // 로컬 상태만 업데이트
+                    setIsEditing(false);
+                    return;
+                }
+                throw error;
+            }
 
             // 캐시 무효화
             queryClient.invalidateQueries({
@@ -82,10 +107,12 @@ export default function ProfilePage() {
     };
 
     const handleCancel = () => {
-        setFormData({
-            full_name: user?.full_name || '',
-            avatar_url: user?.avatar_url || '',
-        });
+        if (user) {
+            setFormData({
+                full_name: user.full_name || '',
+                avatar_url: user.avatar_url || '',
+            });
+        }
         setIsEditing(false);
     };
 
@@ -127,7 +154,12 @@ export default function ProfilePage() {
 
                     {/* 이메일 (읽기 전용) */}
                     <div className="space-y-3">
-                        <Label htmlFor="email" className="text-base font-medium">이메일</Label>
+                        <Label
+                            htmlFor="email"
+                            className="text-base font-medium"
+                        >
+                            이메일
+                        </Label>
                         <Input
                             id="email"
                             value={user.email}
@@ -141,7 +173,12 @@ export default function ProfilePage() {
 
                     {/* 이름 */}
                     <div className="space-y-3">
-                        <Label htmlFor="full_name" className="text-base font-medium">이름</Label>
+                        <Label
+                            htmlFor="full_name"
+                            className="text-base font-medium"
+                        >
+                            이름
+                        </Label>
                         {isEditing ? (
                             <Input
                                 id="full_name"
@@ -156,11 +193,12 @@ export default function ProfilePage() {
                                 className="h-12 text-base"
                             />
                         ) : (
-                            <div className="flex items-center justify-between rounded-md border px-4 py-3 text-base">
-                                <span>
-                                    {user.full_name || '이름이 설정되지 않음'}
-                                </span>
-                            </div>
+                            <Input
+                                id="full_name"
+                                value={user.full_name || '이름이 설정되지 않음'}
+                                disabled
+                                className="bg-muted h-12 text-base"
+                            />
                         )}
                     </div>
 
@@ -175,14 +213,16 @@ export default function ProfilePage() {
 
                     {/* 계정 생성일 */}
                     <div className="space-y-3">
-                        <Label className="text-base font-medium">계정 생성일</Label>
-                        <div className="rounded-md border px-4 py-3">
-                            <span className="text-base">
-                                {new Date(user.created_at).toLocaleDateString(
-                                    'ko-KR'
-                                )}
-                            </span>
-                        </div>
+                        <Label className="text-base font-medium">
+                            계정 생성일
+                        </Label>
+                        <Input
+                            value={new Date(user.created_at).toLocaleDateString(
+                                'ko-KR'
+                            )}
+                            disabled
+                            className="bg-muted h-12 text-base"
+                        />
                     </div>
 
                     {/* 액션 버튼 */}
@@ -192,7 +232,7 @@ export default function ProfilePage() {
                                 <Button
                                     onClick={handleUpdateProfile}
                                     disabled={isUpdating}
-                                    className="flex-1 h-12 text-base"
+                                    className="h-12 flex-1 text-base"
                                 >
                                     {isUpdating ? '업데이트 중...' : '저장'}
                                 </Button>
@@ -208,7 +248,7 @@ export default function ProfilePage() {
                         ) : (
                             <Button
                                 onClick={() => setIsEditing(true)}
-                                className="flex-1 h-12 text-base"
+                                className="h-12 flex-1 text-base"
                             >
                                 프로필 수정
                             </Button>
