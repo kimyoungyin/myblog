@@ -5,7 +5,7 @@
 - 글마다 해시태그 N개 저장 후 검색 및 분류에 사용
 - admin(나)만 글 작성 가능
 - 관련 단계를 하나씩 거쳐나갈 때마다 최종 확인 요청 받고, 이후 실행
-- 구현해나갈 때마다, 단계별 학습 내용을 `학습정리.md`에 정리하여 추후 참고 가능하도록 함
+- 구현해나갈 때마다, Phase 별로 추가하거나, 내가 직접 구현했다면 학습했어야 하는 것들에 대해 `학습정리.md`에 정리하여 추후 참고 가능하도록 함
 
 ## 기술 스택
 - **개발 환경**: Vite
@@ -105,13 +105,13 @@ CREATE TABLE likes (
 - [x] Git 설정 및 초기 커밋
 
 ### Phase 2: Supabase 설정 및 인증
-- [ ] Supabase 프로젝트 생성
-- [ ] 환경 변수 설정 (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY)
-- [ ] Supabase 클라이언트 설정
-- [ ] 데이터베이스 스키마 생성 (위의 SQL 실행)
-- [ ] RLS (Row Level Security) 정책 설정
-- [ ] 인증 관련 타입 정의
-- [ ] 기본 인증 훅 생성 (useAuth)
+- [x] Supabase 프로젝트 생성
+- [x] 환경 변수 설정 (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY)
+- [x] Supabase 클라이언트 설정
+- [x] 데이터베이스 스키마 생성 (위의 SQL 실행)
+- [x] RLS (Row Level Security) 정책 설정
+- [x] 인증 관련 타입 정의
+- [x] 기본 인증 훅 생성 (useAuth)
 
 ### Phase 3: 기본 UI 컴포넌트
 - [ ] 레이아웃 컴포넌트 (Layout, Header, Footer)
@@ -120,7 +120,7 @@ CREATE TABLE likes (
 - [ ] 테마 설정 (다크/라이트 모드)
 
 ### Phase 4: 사용자 인증 및 권한 관리
-- [ ] 소셜 로그인 구현 (Google, GitHub, Apple, 카카오)
+- [ ] 소셜 로그인 구현 (Google, GitHub)
 - [ ] 로그인/로그아웃 상태 관리 (Zustand)
 - [ ] 인증 상태 유지 (새로고침, 페이지 이동)
 - [ ] Admin 권한 확인 로직
