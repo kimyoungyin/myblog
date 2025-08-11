@@ -12,9 +12,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import Link from 'next/link';
+import { useCallback } from 'react';
 
 export default function Header() {
     const { user, loading, isAdmin, signIn, signOut } = useAuth();
+
+    const handleSignOut = useCallback(() => {
+        signOut();
+    }, [signOut]);
 
     return (
         <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur">
@@ -125,7 +130,7 @@ export default function Header() {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     className="cursor-pointer text-red-600 focus:text-red-600"
-                                    onClick={signOut}
+                                    onClick={handleSignOut}
                                 >
                                     로그아웃
                                 </DropdownMenuItem>
