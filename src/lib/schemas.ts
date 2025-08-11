@@ -1,0 +1,90 @@
+import { z } from 'zod';
+
+// 해시태그 검증 스키마
+export const HashtagSchema = z.object({
+    name: z
+        .string()
+        .min(2, '해시태그는 2글자 이상이어야 합니다.')
+        .max(20, '해시태그는 20글자 이하여야 합니다.')
+        .regex(/^[^#\s]+$/, '해시태그에 #, 공백을 포함할 수 없습니다.')
+        .transform((val) => val.toLowerCase().trim()),
+});
+
+// 글 생성 스키마
+export const CreatePostSchema = z.object({
+    title: z
+        .string()
+        .min(1, '제목을 입력해주세요.')
+        .max(100, '제목은 100글자 이하여야 합니다.')
+        .transform((val) => val.trim()),
+    content: z
+        .string()
+        .min(1, '내용을 입력해주세요.')
+        .max(50000, '내용은 50,000글자 이하여야 합니다.')
+        .transform((val) => val.trim()),
+    hashtags: z
+        .array(z.string().min(2).max(20))
+        .min(1, '최소 하나의 해시태그가 필요합니다.')
+        .max(10, '해시태그는 최대 10개까지 입력할 수 있습니다.')
+        .transform((val) => val.map((tag) => tag.toLowerCase().trim())),
+});
+
+// 글 수정 스키마 (모든 필드가 선택적)
+export const UpdatePostSchema = CreatePostSchema.partial();
+
+// 해시태그 검색 스키마
+export const SearchHashtagSchema = z.object({
+    query: z
+        .string()
+        .min(2, '검색어는 2글자 이상이어야 합니다.')
+        .max(50, '검색어는 50글자 이하여야 합니다.')
+        .transform((val) => val.toLowerCase().trim()),
+});
+
+// 글 ID 검증 스키마
+export const PostIdSchema = z.object({
+    id: z
+        .string()
+        .regex(/^\d+$/, '올바른 글 ID가 아닙니다.')
+        .transform((val) => parseInt(val, 10))
+        .refine((val) => val > 0, '글 ID는 1 이상이어야 합니다.'),
+});
+
+// 페이지네이션 스키마
+export const PaginationSchema = z.object({
+    page: z
+        .string()
+        .optional()
+        .transform((val) => (val ? parseInt(val, 10) : 1))
+        .refine((val) => val > 0, '페이지는 1 이상이어야 합니다.'),
+    limit: z
+        .string()
+        .optional()
+        .transform((val) => (val ? parseInt(val, 10) : 10))
+        .refine(
+            (val) => val >= 1 && val <= 100,
+            '페이지 크기는 1-100 사이여야 합니다.'
+        ),
+});
+
+// 타입 추론
+export type CreatePostData = z.infer<typeof CreatePostSchema>;
+export type UpdatePostData = z.infer<typeof UpdatePostSchema>;
+export type HashtagData = z.infer<typeof HashtagSchema>;
+export type SearchHashtagData = z.infer<typeof SearchHashtagSchema>;
+export type PostIdData = z.infer<typeof PostIdSchema>;
+export type PaginationData = z.infer<typeof PaginationSchema>;
+
+// 검증 에러 타입
+export type ValidationError = {
+    field: string;
+    message: string;
+};
+
+// 검증 에러 변환 함수
+export function formatZodError(error: z.ZodError): ValidationError[] {
+    return error.issues.map((err) => ({
+        field: err.path.join('.'),
+        message: err.message,
+    }));
+}
