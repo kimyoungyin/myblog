@@ -4,7 +4,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -52,7 +58,10 @@ export function ProtectedRoute({
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Button onClick={() => router.push('/auth/login')} className="w-full">
+                            <Button
+                                onClick={() => router.push('/auth/login')}
+                                className="w-full"
+                            >
                                 로그인하기
                             </Button>
                         </CardContent>
@@ -74,7 +83,10 @@ export function ProtectedRoute({
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Button onClick={() => router.push('/')} className="w-full">
+                            <Button
+                                onClick={() => router.push('/')}
+                                className="w-full"
+                            >
                                 홈으로 돌아가기
                             </Button>
                         </CardContent>

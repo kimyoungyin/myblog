@@ -2,7 +2,13 @@
 
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { Github, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -30,10 +36,12 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="bg-background flex min-h-screen items-center justify-center p-4">
             <Card className="w-full max-w-md">
                 <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl text-center">로그인</CardTitle>
+                    <CardTitle className="text-center text-2xl">
+                        로그인
+                    </CardTitle>
                     <CardDescription className="text-center">
                         계정에 로그인하여 블로그를 이용하세요
                     </CardDescription>
@@ -55,7 +63,7 @@ export default function LoginPage() {
                         <Github className="mr-2 h-4 w-4" />
                         GitHub로 로그인
                     </Button>
-                    <div className="text-center text-sm text-muted-foreground">
+                    <div className="text-muted-foreground text-center text-sm">
                         로그인하면 댓글 작성과 좋아요가 가능합니다
                     </div>
                 </CardContent>
