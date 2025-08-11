@@ -114,10 +114,10 @@ CREATE TABLE likes (
 - [x] 기본 인증 훅 생성 (useAuth)
 
 ### Phase 3: 기본 UI 컴포넌트
-- [ ] 레이아웃 컴포넌트 (Layout, Header, Footer)
-- [ ] 공통 UI 컴포넌트 (Button, Input, Dialog 등)
-- [ ] 반응형 디자인 기본 설정
-- [ ] 테마 설정 (다크/라이트 모드)
+- [x] 레이아웃 컴포넌트 (Layout, Header, Footer)
+- [x] 공통 UI 컴포넌트 (Button, Input, Dialog 등)
+- [x] 반응형 디자인 기본 설정
+- [x] 테마 설정 (다크/라이트 모드)
 
 ### Phase 4: 사용자 인증 및 권한 관리
 - [ ] 소셜 로그인 구현 (Google, GitHub)
