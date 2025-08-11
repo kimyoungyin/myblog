@@ -1,4 +1,4 @@
-// 기본 사용자 타입
+// 기본 사용자 타입 (Supabase Auth 확장)
 export interface User {
     id: string;
     email: string;
@@ -7,6 +7,22 @@ export interface User {
     is_admin: boolean;
     created_at: string;
     updated_at: string;
+}
+
+// Supabase Auth 세션 타입
+export interface AuthSession {
+    access_token: string;
+    refresh_token: string;
+    expires_in: number;
+    token_type: string;
+    user: {
+        id: string;
+        email: string;
+        user_metadata: {
+            full_name?: string;
+            avatar_url?: string;
+        };
+    };
 }
 
 // 해시태그 타입
