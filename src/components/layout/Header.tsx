@@ -133,8 +133,8 @@ export default function Header() {
                         </DropdownMenu>
                     ) : (
                         <div className="flex items-center space-x-2">
-                            <Button onClick={() => signIn('google')}>
-                                로그인
+                            <Button asChild>
+                                <Link href="/auth/login">로그인</Link>
                             </Button>
                         </div>
                     )}
