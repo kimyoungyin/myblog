@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -28,15 +28,31 @@ export function ProtectedRoute({
     const { user, loading, isAdmin, isAuthenticated } = useAuth();
     const router = useRouter();
 
+    const redirectToLogin = useCallback(() => {
+        router.push('/auth/login');
+    }, [router]);
+
+    const redirectToHome = useCallback(() => {
+        router.push('/');
+    }, [router]);
+
     useEffect(() => {
         if (!loading) {
             if (requireAuth && !isAuthenticated) {
-                router.push('/auth/login');
+                redirectToLogin();
             } else if (requireAdmin && (!isAuthenticated || !isAdmin)) {
-                router.push('/');
+                redirectToHome();
             }
         }
-    }, [loading, isAuthenticated, isAdmin, requireAuth, requireAdmin, router]);
+    }, [
+        loading,
+        isAuthenticated,
+        isAdmin,
+        requireAuth,
+        requireAdmin,
+        redirectToLogin,
+        redirectToHome,
+    ]);
 
     if (loading) {
         return (

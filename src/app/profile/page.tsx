@@ -99,7 +99,6 @@ export default function ProfilePage() {
             toast.success('프로필이 업데이트되었습니다.');
             setIsEditing(false);
         } catch (error) {
-            console.error('프로필 업데이트 오류:', error);
             toast.error('프로필 업데이트에 실패했습니다.');
         } finally {
             setIsUpdating(false);
