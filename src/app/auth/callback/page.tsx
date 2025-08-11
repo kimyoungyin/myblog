@@ -14,7 +14,7 @@ export default function AuthCallbackPage() {
     useEffect(() => {
         const handleAuthCallback = async () => {
             try {
-                // URL의 hash fragment에서 access_token 추출
+                // URL hash에서 토큰 추출
                 const hash = window.location.hash.substring(1);
                 const params = new URLSearchParams(hash);
                 const accessToken = params.get('access_token');
@@ -32,6 +32,31 @@ export default function AuthCallbackPage() {
                     }
 
                     if (data.session) {
+                        // 서버로 세션 정보 전송하여 쿠키 설정
+                        try {
+                            const response = await fetch(
+                                '/api/auth/set-session',
+                                {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        accessToken: data.session.access_token,
+                                        refreshToken:
+                                            data.session.refresh_token,
+                                    }),
+                                }
+                            );
+
+                            // 응답 상태 확인 (로깅 없이)
+                            if (!response.ok) {
+                                // 쿠키 설정 실패 시에도 계속 진행
+                            }
+                        } catch (error) {
+                            // 쿠키 설정 중 오류 발생 시에도 계속 진행
+                        }
+
                         setStatus('success');
                         setMessage('로그인 성공! 메인 페이지로 이동합니다...');
 
@@ -40,19 +65,18 @@ export default function AuthCallbackPage() {
                             router.push('/');
                         }, 2000);
                     } else {
-                        throw new Error('세션을 설정할 수 없습니다.');
+                        throw new Error('세션이 생성되지 않았습니다.');
                     }
                 } else {
                     throw new Error('인증 토큰을 찾을 수 없습니다.');
                 }
             } catch (error) {
-                console.error('Auth callback error:', error);
                 setStatus('error');
                 setMessage('로그인 처리 중 오류가 발생했습니다.');
 
                 // 오류 발생 시 로그인 페이지로 리디렉션
                 setTimeout(() => {
-                    router.push('/test-auth');
+                    router.push('/auth/login');
                 }, 3000);
             }
         };

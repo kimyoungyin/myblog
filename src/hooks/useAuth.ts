@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/auth-store';
-import type { User } from '@/types';
 
 export function useAuth() {
     const { user, isAuthenticated, isLoading, setUser, setLoading, clearAuth } =
@@ -59,7 +58,6 @@ export function useAuth() {
                 }
                 return data;
             } catch (error) {
-                console.error('프로필 조회 오류:', error);
                 // 에러가 발생해도 기본 사용자 정보 반환
                 return {
                     id: session.user.id,
@@ -124,7 +122,7 @@ export function useAuth() {
             // 모든 인증 관련 캐시 무효화
             queryClient.removeQueries({ queryKey: ['auth'] });
         } catch (error) {
-            console.error('로그아웃 오류:', error);
+            // 에러 무시 (로그아웃 실패 시에도 로컬 상태 정리)
         }
     };
 
