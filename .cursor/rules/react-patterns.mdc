@@ -1,0 +1,63 @@
+# React Patterns & Functional Programming (MANDATORY)
+
+## ⚛️ **Component Structure (MUST FOLLOW)**
+
+- **ALWAYS** use functional components with hooks
+- **NEVER** use class components
+- **MUST** use `React.FC<Props>` type annotation for components
+- **ALWAYS** destructure props in function parameters
+
+```typescript
+// ✅ CORRECT - Functional component with proper typing
+export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
+    initialTitle = '',
+    initialContent = '',
+    action,
+    ...props
+}) => {
+    // Component logic
+};
+
+// ❌ WRONG - Class component or improper typing
+export class MarkdownEditor extends React.Component { ... }
+```
+
+## 🎯 **State Management (CRITICAL)**
+
+- **ALWAYS** use `useState` for local component state
+- **ALWAYS** use `useCallback` for functions passed as props
+- **ALWAYS** use `useMemo` for expensive calculations
+- **NEVER** mutate state directly - always use setter functions
+
+```typescript
+// ✅ CORRECT - Proper state management
+const [title, setTitle] = useState(initialTitle);
+const handleTitleChange = useCallback((value: string) => {
+    setTitle(value);
+}, []);
+
+// ❌ WRONG - Direct mutation or missing dependencies
+const handleTitleChange = (value: string) => {
+    title = value; // Direct mutation
+};
+```
+
+## 🚫 **FORBIDDEN React Practices**
+
+- **NEVER** use class components
+- **NEVER** mutate state or props directly
+- **NEVER** create functions inside render without useCallback
+- **NEVER** use useEffect without proper dependency arrays
+- **NEVER** use refs for imperative DOM manipulation unless absolutely necessary
+
+## ✅ **REQUIRED Functional Programming Practices**
+
+- **ALWAYS** use pure functions when possible
+- **ALWAYS** prefer `map`, `filter`, `reduce` over loops
+- **ALWAYS** use immutable data patterns
+- **ALWAYS** handle side effects in useEffect or event handlers only
+  description:
+  globs:
+  alwaysApply: true
+
+---
