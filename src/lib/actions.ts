@@ -245,7 +245,6 @@ async function updateThumbnailUrl(
         const imagePaths = extractImagePathsFromMarkdown(content);
 
         if (imagePaths.length === 0) {
-            console.log('이미지가 없음: 썸네일 제거');
             await supabase
                 .from('posts')
                 .update({ thumbnail_url: null })
@@ -264,12 +263,6 @@ async function updateThumbnailUrl(
 
         // 3. 썸네일 URL 생성
         const thumbnailUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/files/${thumbnailPath}`;
-
-        console.log('썸네일 업데이트:', {
-            firstImage: firstImagePath,
-            thumbnailPath,
-            thumbnailUrl,
-        });
 
         return thumbnailUrl;
     } catch (error) {

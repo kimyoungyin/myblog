@@ -67,6 +67,17 @@ export const PaginationSchema = z.object({
         ),
 });
 
+// 사용자 프로필 검증 스키마
+export const UserProfileSchema = z.object({
+    id: z.string().min(1, '사용자 ID가 필요합니다.'),
+    email: z.string().email('올바른 이메일 형식이 아닙니다.'),
+    full_name: z.string().nullable().optional(),
+    avatar_url: z.string().nullable().optional(),
+    is_admin: z.boolean().default(false),
+    created_at: z.string().datetime(),
+    updated_at: z.string().datetime(),
+});
+
 // 타입 추론
 export type CreatePostData = z.infer<typeof CreatePostSchema>;
 export type UpdatePostData = z.infer<typeof UpdatePostSchema>;
@@ -74,6 +85,7 @@ export type HashtagData = z.infer<typeof HashtagSchema>;
 export type SearchHashtagData = z.infer<typeof SearchHashtagSchema>;
 export type PostIdData = z.infer<typeof PostIdSchema>;
 export type PaginationData = z.infer<typeof PaginationSchema>;
+export type UserProfileData = z.infer<typeof UserProfileSchema>;
 
 // 검증 에러 타입
 export type ValidationError = {

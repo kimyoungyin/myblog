@@ -1,4 +1,4 @@
-import { createServiceRoleClient } from '@/lib/supabase-server';
+import { createServiceRoleClient } from '@/utils/supabase/server';
 
 export interface Hashtag {
     id: number;
