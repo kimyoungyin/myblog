@@ -1,6 +1,6 @@
 # Supabase Client Management & Authentication (MANDATORY)
 
-## 🔐 **Supabase Client Singleton Pattern (CRITICAL)**
+## 🔐 **Supabase Client Pattern (CRITICAL, SSR-aware)**
 
 Based on [src/utils/supabase/client.ts](mdc:src/utils/supabase/client.ts):
 
@@ -10,22 +10,17 @@ Based on [src/utils/supabase/client.ts](mdc:src/utils/supabase/client.ts):
 - **ALWAYS** use `createClient()` function to get the singleton instance
 
 ```typescript
-// ✅ CORRECT - Singleton pattern implementation
-import { createClient as _createClient } from '@supabase/supabase-js';
-
-// Module-level singleton instance
-const supabase = _createClient(
+// ✅ CORRECT - Browser (SSR) client singleton
+import { createBrowserClient } from '@supabase/ssr';
+const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
-
-// Export function that returns the same instance
 export const createClient = () => supabase;
 
-// ❌ WRONG - Multiple instances creation
-export const createClient = () => {
-    return _createClient(/* ... */); // Creates new instance every time!
-};
+// ✅ CORRECT - Server/Edge client per-request
+// Use createServerClient from '@supabase/ssr' inside handlers/middleware
+// with cookies.getAll() and cookies.setAll() implementations.
 ```
 
 ## 🚫 **FORBIDDEN Supabase Practices**
@@ -34,6 +29,7 @@ export const createClient = () => {
 - **NEVER** create new client instances in useEffect or event handlers
 - **NEVER** import `createClient` from `@supabase/supabase-js` directly in components
 - **NEVER** create multiple GoTrueClient instances in the same browser context
+- **NEVER** send access/refresh tokens in API bodies for "session sync"
 
 ## ✅ **REQUIRED Authentication Patterns**
 
@@ -53,7 +49,7 @@ export function useAuth() {
     const { data: session } = useQuery({
         queryKey: ['auth', 'session'],
         queryFn: async () => {
-            const supabase = createClient(); // Use singleton
+            const supabase = createClient(); // Browser SSR singleton
             const {
                 data: { session },
             } = await supabase.auth.getSession();
@@ -147,12 +143,14 @@ const config = { bucket: 'files' }; // In component file
 
 ## 📚 **Best Practices Summary**
 
-1. **Singleton Pattern**: Use single Supabase client instance
-2. **Centralized Configuration**: Keep all Supabase config in one place
-3. **Proper Imports**: Always import from [src/utils/supabase/client.ts](mdc:src/utils/supabase/client.ts)
-4. **Authentication Separation**: Use React Query for server state, Zustand for local state
-5. **Provider Management**: Keep SupabaseProvider disabled until authentication system is complete
-6. **Error Handling**: Implement proper error boundaries and user feedback
+1. **Browser Client**: Use `createBrowserClient` singleton in `src/utils/supabase/client.ts`
+2. **Server/Edge Client**: Use `createServerClient` per-request with cookies getAll/setAll
+3. **Callback Handling**: Use Route Handler + `exchangeCodeForSession` (httpOnly cookies)
+4. **Middleware Rule**: Always call `auth.getUser()` to trigger auto-refresh and sync cookies
+5. **Protected Routes**: Gate `/admin`, `/profile` in middleware; redirect unauthenticated users
+6. **No Token Sync API**: Do not send tokens via body/headers to sync sessions
+7. **Authentication Separation**: React Query for server state, Zustand for local state
+8. **Error Handling**: Implement proper error boundaries and user feedback
 
 description: Supabase client management and authentication patterns to prevent Multiple GoTrueClient instances
 globs: ["**/*.ts", "**/*.tsx"]
