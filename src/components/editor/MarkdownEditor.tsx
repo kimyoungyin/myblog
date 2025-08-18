@@ -12,17 +12,22 @@ import { MarkdownRenderer } from './MarkdownRenderer';
 import { useDebounce } from '@/hooks/useDebounce';
 import { searchHashtagsAction } from '@/lib/actions';
 import { Hashtag } from '@/lib/hashtags';
+import { uploadFile } from '@/lib/file-upload';
+import { toast } from 'sonner';
+import type { UploadedFile } from '@/types';
 
 interface MarkdownEditorProps {
     initialTitle?: string;
     initialContent?: string;
     initialHashtags?: string[];
-    onSave?: (data: {
+    initialFiles?: UploadedFile[];
+    initialData?: {
         title: string;
         content: string;
         hashtags: string[];
-    }) => void;
-    action?: (formData: FormData) => Promise<void>;
+        files?: UploadedFile[];
+    };
+    action: (formData: FormData) => Promise<void>;
     submitButtonText?: string;
     isEditing?: boolean;
 }
@@ -31,17 +36,25 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     initialTitle = '',
     initialContent = '',
     initialHashtags = [],
-    onSave,
+    initialFiles = [],
+    initialData,
     action,
     submitButtonText = '저장',
     isEditing = false,
 }) => {
-    const [title, setTitle] = useState(initialTitle);
-    const [content, setContent] = useState(initialContent);
-    const [hashtags, setHashtags] = useState<string[]>(initialHashtags);
+    // initialData가 있으면 우선 사용, 없으면 개별 props 사용
+    const [title, setTitle] = useState(initialData?.title || initialTitle);
+    const [content, setContent] = useState(
+        initialData?.content || initialContent
+    );
+    const [hashtags, setHashtags] = useState<string[]>(
+        initialData?.hashtags || initialHashtags
+    );
+    const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>(
+        initialData?.files || initialFiles
+    );
     const [newHashtag, setNewHashtag] = useState('');
     const [showPreview, setShowPreview] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
     const [isDesktop, setIsDesktop] = useState(false);
 
     // 해시태그 자동완성 관련 상태
@@ -56,6 +69,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     const [titleError, setTitleError] = useState(false);
     const [contentError, setContentError] = useState(false);
     const [hashtagError, setHashtagError] = useState(false);
+    const [authError, setAuthError] = useState(false);
 
     // 화면 크기 감지
     useEffect(() => {
@@ -172,49 +186,148 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         [addHashtag]
     );
 
-    // 저장 가능 여부 확인
-    const canSave = title.trim() && content.trim() && hashtags.length > 0;
-
     // 에러 상태 확인 (개별 상태 사용)
     const hasTitleError = titleError;
     const hasContentError = contentError;
     const hasHashtagError = hashtagError;
+    // 클라이언트에서 인증 상태 확인하지 않음 - 서버에서 처리
 
-    // 저장 처리
-    const handleSave = useCallback(async () => {
-        if (!canSave) {
-            // 개별 에러 상태 활성화
-            setTitleError(!title.trim());
-            setContentError(!content.trim());
-            setHashtagError(hashtags.length === 0);
+    // 폼 제출 핸들러
+    const handleSubmit = useCallback(
+        (e: React.FormEvent<HTMLFormElement>) => {
+            // 유효성 검사
+            const titleValid = title.trim();
+            const contentValid = content.trim();
+            const hashtagsValid = hashtags.length > 0;
+            // 인증 검사는 서버에서 처리하므로 클라이언트에서는 검사하지 않음
 
-            // 첫 번째 비어있는 필드로 포커스 이동
-            if (!title.trim()) {
+            // 에러 상태 설정
+            setTitleError(!titleValid);
+            setContentError(!contentValid);
+            setHashtagError(!hashtagsValid);
+
+            // 유효하지 않은 경우 첫 번째 필드로 포커스 이동하고 제출 방지
+            if (!titleValid) {
+                e.preventDefault();
                 document.getElementById('title')?.focus();
-            } else if (hashtags.length === 0) {
+                return;
+            }
+            if (!hashtagsValid) {
+                e.preventDefault();
                 document.getElementById('hashtag-input')?.focus();
-            } else if (!content.trim()) {
+                return;
+            }
+            if (!contentValid) {
+                e.preventDefault();
                 document.getElementById('content')?.focus();
+                return;
             }
 
-            return;
-        }
+            // 모든 유효성 검사 통과 시 form 제출 진행 (Next.js가 자동 처리)
+        },
+        [title, content, hashtags]
+    );
 
-        if (onSave) {
-            setIsSaving(true);
-            try {
-                await onSave({
-                    title: title.trim(),
-                    content: content.trim(),
-                    hashtags,
-                });
-            } catch (error) {
-                alert('저장 중 오류가 발생했습니다.');
-            } finally {
-                setIsSaving(false);
+    // 컴포넌트 언마운트 시 임시 파일 정리
+
+    const onDrop = useCallback(
+        async (e: React.DragEvent<HTMLTextAreaElement>) => {
+            e.preventDefault();
+
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length === 0) return;
+
+            // 파일 개수 제한
+            if (files.length > 20) {
+                toast.error('최대 20개까지 업로드 가능합니다.');
+                return;
             }
-        }
-    }, [title, content, hashtags, onSave, canSave]);
+
+            for (const file of files) {
+                try {
+                    // 이미지 파일인 경우만 허용
+                    if (!file.type.startsWith('image/')) {
+                        toast.error(
+                            `${file.name}: 이미지 파일만 업로드 가능합니다.`
+                        );
+                        continue;
+                    }
+
+                    // 파일 크기가 0인지 확인
+                    if (file.size === 0) {
+                        toast.error(`${file.name}: 파일이 비어있습니다.`);
+                        continue;
+                    }
+
+                    // 파일 크기가 너무 작은지 확인 (이미지는 최소 1KB 이상)
+                    if (file.size < 1024) {
+                        toast.error(`${file.name}: 파일이 너무 작습니다.`);
+                        continue;
+                    }
+
+                    const result = await uploadFile(file, true); // temp 폴더에 업로드
+
+                    if (result.success && result.url) {
+                        // 새로운 UploadedFile 객체 생성
+                        const uploadedFile: UploadedFile = {
+                            id: crypto.randomUUID(),
+                            name: file.name,
+                            url: result.url,
+                            type: 'image',
+                            size: file.size,
+                            path: result.path,
+                            uploaded_at: new Date().toISOString(),
+                            is_temporary: true,
+                        };
+
+                        setUploadedFiles((prev) => [...prev, uploadedFile]);
+
+                        // 마크다운 링크 생성 및 삽입 (이미지만)
+                        const markdownLink = `![${file.name}](${result.url})`;
+
+                        // 커서 위치에 링크 삽입
+                        const textarea = document.getElementById(
+                            'content'
+                        ) as HTMLTextAreaElement;
+                        if (!textarea) {
+                            continue;
+                        }
+
+                        const start = textarea.selectionStart || 0;
+                        const end = textarea.selectionEnd || 0;
+                        const text = textarea.value || '';
+                        const before = text.substring(0, start);
+                        const after = text.substring(end);
+                        const newText = before + markdownLink + after;
+
+                        setContent(newText);
+
+                        // content 상태 업데이트 확인
+
+                        // 커서 위치 조정
+                        setTimeout(() => {
+                            if (textarea) {
+                                textarea.focus();
+                                textarea.setSelectionRange(
+                                    start + markdownLink.length,
+                                    start + markdownLink.length
+                                );
+                            }
+                        }, 0);
+
+                        toast.success(`${file.name}이(가) 업로드되었습니다.`);
+                    } else {
+                        toast.error(
+                            result.error || '알 수 없는 오류가 발생했습니다.'
+                        );
+                    }
+                } catch (error) {
+                    toast.error(`${file.name} 업로드 중 오류가 발생했습니다.`);
+                }
+            }
+        },
+        [uploadedFiles, setContent]
+    );
 
     return (
         <div className="bg-background min-h-screen p-6">
@@ -240,44 +353,29 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                                 {showPreview ? '편집' : '미리보기'}
                             </Button>
                         </div>
-                        {action ? (
-                            <form action={action}>
-                                <input
-                                    type="hidden"
-                                    name="title"
-                                    value={title}
-                                />
-                                <input
-                                    type="hidden"
-                                    name="content"
-                                    value={content}
-                                />
-                                <input
-                                    type="hidden"
-                                    name="hashtags"
-                                    value={hashtags.join(',')}
-                                />
-                                <Button
-                                    type="submit"
-                                    disabled={isSaving || !canSave}
-                                    className="flex items-center gap-2"
-                                    title="글을 저장합니다"
-                                >
-                                    <Save className="h-4 w-4" />
-                                    {isSaving ? '저장 중...' : submitButtonText}
-                                </Button>
-                            </form>
-                        ) : (
+
+                        <form action={action} onSubmit={handleSubmit}>
+                            {/* userId hidden input 제거 - 보안상 위험 */}
+                            <input type="hidden" name="title" value={title} />
+                            <input
+                                type="hidden"
+                                name="content"
+                                value={content}
+                            />
+                            <input
+                                type="hidden"
+                                name="hashtags"
+                                value={hashtags.join(',')}
+                            />
                             <Button
-                                onClick={handleSave}
-                                disabled={isSaving}
+                                type="submit"
                                 className="flex items-center gap-2"
                                 title="글을 저장합니다"
                             >
                                 <Save className="h-4 w-4" />
-                                {isSaving ? '저장 중...' : submitButtonText}
+                                {submitButtonText}
                             </Button>
-                        )}
+                        </form>
                     </div>
                 </div>
 
@@ -443,6 +541,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                                         최소 하나의 해시태그를 입력해주세요
                                     </p>
                                 )}
+                                {/* 인증 에러는 서버에서 처리하므로 클라이언트에서는 표시하지 않음 */}
                             </CardContent>
                         </Card>
 
@@ -455,23 +554,39 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                                 >
                                     내용
                                 </Label>
-                                <Textarea
-                                    id="content"
-                                    value={content}
-                                    onChange={(e) => {
-                                        setContent(e.target.value);
-                                        // 내용이 입력되면 해당 에러 상태만 해제
-                                        if (e.target.value.trim()) {
-                                            setContentError(false);
-                                        }
-                                    }}
-                                    placeholder="마크다운으로 글을 작성하세요..."
-                                    className={`min-h-[400px] resize-none font-sans text-sm ${
-                                        hasContentError
-                                            ? '!border-destructive focus:!border-destructive'
-                                            : ''
-                                    }`}
-                                />
+                                <div className="relative">
+                                    <Textarea
+                                        id="content"
+                                        value={content}
+                                        onChange={(e) => {
+                                            setContent(e.target.value);
+                                            // 내용이 입력되면 해당 에러 상태만 해제
+                                            if (e.target.value.trim()) {
+                                                setContentError(false);
+                                            }
+                                        }}
+                                        placeholder="마크다운으로 글을 작성하세요...&#10;&#10;이미지 파일을 드래그 앤 드롭하면 자동으로 업로드됩니다."
+                                        className={`min-h-[400px] resize-none font-sans text-sm transition-all duration-200 ${
+                                            hasContentError
+                                                ? '!border-destructive focus:!border-destructive'
+                                                : ''
+                                        }`}
+                                        onDragOver={(e) => {
+                                            e.preventDefault();
+                                            e.currentTarget.classList.add(
+                                                'border-primary',
+                                                'bg-primary/5'
+                                            );
+                                        }}
+                                        onDragLeave={(e) => {
+                                            e.currentTarget.classList.remove(
+                                                'border-primary',
+                                                'bg-primary/5'
+                                            );
+                                        }}
+                                        onDrop={onDrop}
+                                    />
+                                </div>
                                 {hasContentError && (
                                     <p className="text-destructive mt-2 pl-1 text-sm">
                                         내용을 입력해주세요
