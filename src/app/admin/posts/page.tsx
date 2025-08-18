@@ -107,107 +107,102 @@ export default function PostsPage() {
                     </Card>
                 )}
 
-                    {/* 글 목록 */}
-                    <div className="space-y-4">
-                        {posts.length === 0 ? (
-                            <Card>
-                                <CardContent className="p-8 text-center">
-                                    <p className="text-muted-foreground mb-4">
-                                        아직 작성된 글이 없습니다.
-                                    </p>
-                                    <Button asChild>
-                                        <Link
-                                            href="/admin/posts/new"
-                                            className="flex items-center gap-2"
-                                        >
-                                            <Plus className="h-4 w-4" />첫 번째
-                                            글 작성하기
-                                        </Link>
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        ) : (
-                            <div className="grid gap-4">
-                                {posts.map((post) => (
-                                    <Card
-                                        key={post.id}
-                                        className="transition-shadow hover:shadow-md"
+                {/* 글 목록 */}
+                <div className="space-y-4">
+                    {posts.length === 0 ? (
+                        <Card>
+                            <CardContent className="p-8 text-center">
+                                <p className="text-muted-foreground mb-4">
+                                    아직 작성된 글이 없습니다.
+                                </p>
+                                <Button asChild>
+                                    <Link
+                                        href="/admin/posts/new"
+                                        className="flex items-center gap-2"
                                     >
-                                        <CardHeader>
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex-1">
-                                                    <CardTitle className="mb-2 text-xl">
-                                                        {post.title}
-                                                    </CardTitle>
-                                                    <div className="text-muted-foreground flex items-center gap-4 text-sm">
-                                                        <span>
-                                                            조회수:{' '}
-                                                            {post.view_count}
-                                                        </span>
-                                                        <span>
-                                                            좋아요:{' '}
-                                                            {post.likes_count}
-                                                        </span>
-                                                        <span>
-                                                            댓글:{' '}
-                                                            {
-                                                                post.comments_count
-                                                            }
-                                                        </span>
-                                                        <span>
-                                                            작성일:{' '}
-                                                            {new Date(
-                                                                post.created_at
-                                                            ).toLocaleDateString(
-                                                                'ko-KR'
-                                                            )}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            handleView(post.id)
-                                                        }
-                                                        className="flex items-center gap-1"
-                                                    >
-                                                        <Eye className="h-4 w-4" />
-                                                        보기
-                                                    </Button>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            handleEdit(post.id)
-                                                        }
-                                                        className="flex items-center gap-1"
-                                                    >
-                                                        <Edit className="h-4 w-4" />
-                                                        수정
-                                                    </Button>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            handleDelete(
-                                                                post.id
-                                                            )
-                                                        }
-                                                        className="text-destructive hover:text-destructive flex items-center gap-1"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                        삭제
-                                                    </Button>
+                                        <Plus className="h-4 w-4" />첫 번째 글
+                                        작성하기
+                                    </Link>
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <div className="grid gap-4">
+                            {posts.map((post) => (
+                                <Card
+                                    key={post.id}
+                                    className="transition-shadow hover:shadow-md"
+                                >
+                                    <CardHeader>
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                                <CardTitle className="mb-2 text-xl">
+                                                    {post.title}
+                                                </CardTitle>
+                                                <div className="text-muted-foreground flex items-center gap-4 text-sm">
+                                                    <span>
+                                                        조회수:{' '}
+                                                        {post.view_count}
+                                                    </span>
+                                                    <span>
+                                                        좋아요:{' '}
+                                                        {post.likes_count}
+                                                    </span>
+                                                    <span>
+                                                        댓글:{' '}
+                                                        {post.comments_count}
+                                                    </span>
+                                                    <span>
+                                                        작성일:{' '}
+                                                        {new Date(
+                                                            post.created_at
+                                                        ).toLocaleDateString(
+                                                            'ko-KR'
+                                                        )}
+                                                    </span>
                                                 </div>
                                             </div>
-                                        </CardHeader>
-                                    </Card>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        handleView(post.id)
+                                                    }
+                                                    className="flex items-center gap-1"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                    보기
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        handleEdit(post.id)
+                                                    }
+                                                    className="flex items-center gap-1"
+                                                >
+                                                    <Edit className="h-4 w-4" />
+                                                    수정
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        handleDelete(post.id)
+                                                    }
+                                                    className="text-destructive hover:text-destructive flex items-center gap-1"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                    삭제
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </CardHeader>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
