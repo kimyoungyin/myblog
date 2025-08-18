@@ -38,7 +38,7 @@ export interface Post {
     title: string;
     content: string;
     content_markdown: string;
-    thumbnail_url?: string;
+    thumbnail_url: string | null;
     view_count: number;
     likes_count: number;
     comments_count: number;
@@ -75,4 +75,37 @@ export interface SearchParams {
     page?: number;
     limit?: number;
     sort?: 'latest' | 'popular';
+}
+
+// 파일 업로드 관련 타입
+export interface UploadedFile {
+    id: string;
+    name: string;
+    url: string;
+    type: 'image'; // 이미지만 허용
+    size: number;
+    path: string;
+    uploaded_at: string;
+    is_temporary: boolean;
+}
+
+export interface FileUploadConfig {
+    maxFileSize: number; // 5MB in bytes
+    allowedTypes: string[]; // 이미지 타입만
+    storageBucket: string;
+    maxFiles: number; // 최대 파일 개수
+}
+
+export interface FileUploadResult {
+    success: boolean;
+    error?: string;
+    url: string;
+    path: string;
+    file?: UploadedFile; // 업로드된 파일 정보 (성공 시에만)
+}
+
+export interface FileUploadProgress {
+    fileId: string;
+    progress: number;
+    status: 'uploading' | 'completed' | 'error';
 }
