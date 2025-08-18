@@ -104,7 +104,6 @@ export async function updateSession(request: NextRequest) {
             .select('is_admin')
             .eq('id', user.id)
             .single();
-        console.log('profile', profile);
         if (error || !profile?.is_admin) {
             const url = request.nextUrl.clone();
             url.pathname = '/';
