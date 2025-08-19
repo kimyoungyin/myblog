@@ -154,3 +154,11 @@
 - 존재하는 ID: 정상 조회 및 해시태그 매핑
 - 존재하지 않는 ID: `null` 반환 → 페이지에서 `notFound()` 호출
 - DB 오류(권한 문제 등): 의미있는 에러 throw, 로깅 가능
+
+### 입력 검증과 에러 네이밍 규약
+
+- 입력 검증: `PostIdSchema.safeParse({ id: String(postId) })`로 숫자 ID 보장
+- 실패 시 단일 에러 네이밍 사용: `error.name = 'VIEW_COUNT_ERROR'`
+    - 호출부에서 `if (error.name === 'VIEW_COUNT_ERROR')`로 일관 분기 가능
+    - 메시지는 사용자 친화적으로, cause에는 원본 오류 첨부(디버깅 용)
+- 결과 검증: RPC가 `false` 반환 시 "대상 없음"으로 간주하여 동일 네임으로 throw

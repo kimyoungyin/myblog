@@ -298,6 +298,8 @@ CREATE TABLE likes (
     - [x] Server Action으로 조회수 증가
     - [x] 원자적 업데이트를 위한 PostgreSQL RPC 함수 구현
     - [x] 경쟁 조건 방지 및 동시성 안전성 확보
+    - [x] PostIdSchema로 입력 ID 검증(safeParse)
+    - [x] 실패 시 단일 에러 네임 'VIEW_COUNT_ERROR'로 전파하여 호출부 분기 용이
 - [ ] React Query 캐싱 구현
     - [ ] 글 목록 캐싱 (페이지네이션)
     - [ ] 글 상세 캐싱

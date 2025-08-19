@@ -12,6 +12,7 @@ import {
     CreatePostSchema,
     UpdatePostSchema,
     SearchHashtagSchema,
+    PostIdSchema,
 } from './schemas';
 import {
     updateImageUrlsInMarkdown,
@@ -354,32 +355,46 @@ export async function searchHashtagsAction(query: string) {
 // 조회수 증가 Server Action (읽기 전용, 원자적 업데이트)
 export async function incrementViewCountAction(postId: number) {
     try {
-        // 읽기 전용이므로 인증 불필요
-        // 일반 사용자도 조회수 증가 가능하도록 Service Role 클라이언트 사용
+        // Service Role 클라이언트 사용 (비로그인 사용자도 증가 가능)
         const supabase = await createServiceRoleClient();
 
-        // PostgreSQL RPC 함수를 호출하여 원자적 업데이트 수행
+        // postId 검증 (문자열 스키마이므로 문자열로 변환해 검증 후 숫자 획득)
+        const validation = PostIdSchema.safeParse({ id: String(postId) });
+        if (!validation.success) {
+            const err = new Error('잘못된 글 ID 입니다.');
+            err.name = 'VIEW_COUNT_ERROR';
+            throw err;
+        }
+        const validPostId = validation.data.id; // number
+
+        // PostgreSQL RPC 함수 호출로 원자적 증가 수행
         const { data, error } = await supabase.rpc('increment_view_count', {
-            post_id: postId,
+            post_id: validPostId,
         });
 
         if (error) {
-            console.error('조회수 증가 RPC 호출 실패:', error);
-            throw new Error('조회수 증가 실패');
+            const err = new Error('조회수 증가 RPC 호출에 실패했습니다.');
+            err.name = 'VIEW_COUNT_ERROR';
+            err.cause = error;
+            throw err;
         }
 
-        // RPC 함수가 false를 반환하면 해당 post_id를 찾을 수 없음
+        // RPC가 false 반환 → 해당 글을 찾지 못함
         if (data === false) {
-            throw new Error('해당 글을 찾을 수 없습니다');
+            const err = new Error('해당 글을 찾을 수 없습니다.');
+            err.name = 'VIEW_COUNT_ERROR';
+            throw err;
         }
 
         return { success: true };
     } catch (error) {
-        // 기존 에러 처리 로직 유지
-        if (error instanceof Error) {
-            throw error; // 의미있는 에러 메시지 전파
-        } else {
-            throw new Error('조회수 증가 중 오류가 발생했습니다');
+        // 상위에서 error.name === 'VIEW_COUNT_ERROR'로 분기 가능하도록 통일
+        if (error instanceof Error && error.name === 'VIEW_COUNT_ERROR') {
+            throw error;
         }
+        const err = new Error('조회수 증가 중 알 수 없는 오류가 발생했습니다.');
+        err.name = 'VIEW_COUNT_ERROR';
+        err.cause = error;
+        throw err;
     }
 }
