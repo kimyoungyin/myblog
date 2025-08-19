@@ -20,7 +20,7 @@ export default function PostsPage() {
     const fetchPosts = useCallback(async () => {
         try {
             setLoading(true);
-            const result = await getPostsAction(1, 50); // 최대 50개 글 조회
+            const result = await getPostsAction(1); // 최대 50개 글 조회
             setPosts(result.posts);
             setError(null);
         } catch {

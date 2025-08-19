@@ -9,7 +9,7 @@ import { PostCard } from '@/components/post-card';
 export default async function HomePage() {
     try {
         // 최신 글 10개 조회
-        const result = await getPostsAction(1, 10);
+        const result = await getPostsAction(1);
         const posts = result.posts;
 
         return (

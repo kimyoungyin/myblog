@@ -19,6 +19,7 @@ import {
     updateImageUrlsInMarkdown,
     extractImagePathsFromMarkdown,
 } from './file-upload';
+import { PAGE_SIZE } from '@/constants';
 
 // 글 생성 Server Action
 export async function createPostAction(formData: FormData) {
@@ -300,13 +301,12 @@ export async function deletePostAction(postId: number) {
 // 글 목록 조회 Server Action (읽기 전용, 정렬 기능 포함)
 export async function getPostsAction(
     page: number = 1,
-    limit: number = 10,
     sortBy: PostSort = 'latest',
     hashtag?: string
 ) {
     try {
         // 읽기 전용이므로 인증 불필요
-        return await getPosts(page, limit, sortBy, hashtag);
+        return await getPosts(page, PAGE_SIZE, sortBy, hashtag);
     } catch (error) {
         throw error;
     }
