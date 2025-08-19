@@ -8,11 +8,13 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ChevronDown, Clock, Eye, Heart, TrendingUp } from 'lucide-react';
+import type { PostSort } from '@/types';
 
-export type SortOption = 'latest' | 'popular' | 'likes' | 'oldest';
+export type SortOption = PostSort;
 
 interface SortSelectorProps {
     currentSort: SortOption;
+    currentTag?: string;
     className?: string;
 }
 
@@ -45,6 +47,7 @@ const sortOptions = [
 
 export const SortSelector: React.FC<SortSelectorProps> = ({
     currentSort,
+    currentTag,
     className = '',
 }) => {
     const currentOption = sortOptions.find(
@@ -70,10 +73,14 @@ export const SortSelector: React.FC<SortSelectorProps> = ({
             <DropdownMenuContent align="end" className="w-48">
                 {sortOptions.map((option) => {
                     const Icon = option.icon;
+                    const params = new URLSearchParams();
+                    params.set('sort', option.value);
+                    if (currentTag) params.set('tag', currentTag);
+                    const href = `?${params.toString()}`;
                     return (
                         <DropdownMenuItem key={option.value} asChild>
                             <Link
-                                href={`?sort=${option.value}`}
+                                href={href}
                                 className={`flex items-center gap-2 ${
                                     currentSort === option.value
                                         ? 'bg-accent text-accent-foreground'

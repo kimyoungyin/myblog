@@ -8,6 +8,7 @@ import {
     createServiceRoleClient,
     checkIsAdmin,
 } from '@/utils/supabase/server';
+import { type PostSort } from '@/types';
 import {
     CreatePostSchema,
     UpdatePostSchema,
@@ -300,11 +301,12 @@ export async function deletePostAction(postId: number) {
 export async function getPostsAction(
     page: number = 1,
     limit: number = 10,
-    sortBy: 'latest' | 'popular' | 'likes' | 'oldest' = 'latest'
+    sortBy: PostSort = 'latest',
+    hashtag?: string
 ) {
     try {
         // 읽기 전용이므로 인증 불필요
-        return await getPosts(page, limit, sortBy);
+        return await getPosts(page, limit, sortBy, hashtag);
     } catch (error) {
         throw error;
     }

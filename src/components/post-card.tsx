@@ -20,10 +20,13 @@ export const PostCard: React.FC<PostCardProps> = ({
 }) => {
     return (
         <Card
-            className={`group cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${className}`}
+            className={`transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${className}`}
         >
-            <Link href={`/posts/${post.id}`}>
-                <CardHeader className="pb-3">
+            <CardHeader className="pb-3">
+                <Link
+                    href={`/posts/${post.id}`}
+                    className="group block cursor-pointer"
+                >
                     {/* 썸네일 - 항상 표시 */}
                     <div className="relative mb-4 h-48 w-full overflow-hidden rounded-lg">
                         {post.thumbnail_url ? (
@@ -43,50 +46,54 @@ export const PostCard: React.FC<PostCardProps> = ({
                     <CardTitle className="group-hover:text-primary line-clamp-2 text-lg transition-colors">
                         {post.title}
                     </CardTitle>
-                </CardHeader>
+                </Link>
+            </CardHeader>
 
-                <CardContent className="pt-0">
-                    {/* 메타 정보 */}
-                    <div className="text-muted-foreground mb-3 flex items-center gap-4 text-sm">
-                        <div className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            <span>{formatDate(post.created_at)}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <Eye className="h-3 w-3" />
-                            <span>{post.view_count}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <Heart className="h-3 w-3" />
-                            <span>{post.likes_count}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <MessageSquare className="h-3 w-3" />
-                            <span>{post.comments_count}</span>
-                        </div>
+            <CardContent className="pt-0">
+                {/* 메타 정보 */}
+                <div className="text-muted-foreground mb-3 flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>{formatDate(post.created_at)}</span>
                     </div>
+                    <div className="flex items-center gap-1">
+                        <Eye className="h-3 w-3" />
+                        <span>{post.view_count}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <Heart className="h-3 w-3" />
+                        <span>{post.likes_count}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <MessageSquare className="h-3 w-3" />
+                        <span>{post.comments_count}</span>
+                    </div>
+                </div>
 
-                    {/* 해시태그 */}
-                    {post.hashtags && post.hashtags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                            {post.hashtags.slice(0, 3).map((hashtag) => (
-                                <Badge
-                                    key={hashtag.id}
-                                    variant="secondary"
-                                    className="text-xs"
-                                >
+                {/* 해시태그 */}
+                {post.hashtags && post.hashtags.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                        {post.hashtags.slice(0, 3).map((hashtag) => (
+                            <Link
+                                key={hashtag.id}
+                                href={`/posts?tag=${encodeURIComponent(
+                                    hashtag.name
+                                )}`}
+                                className="cursor-pointer"
+                            >
+                                <Badge variant="secondary" className="text-xs">
                                     #{hashtag.name}
                                 </Badge>
-                            ))}
-                            {post.hashtags.length > 3 && (
-                                <Badge variant="outline" className="text-xs">
-                                    +{post.hashtags.length - 3}
-                                </Badge>
-                            )}
-                        </div>
-                    )}
-                </CardContent>
-            </Link>
+                            </Link>
+                        ))}
+                        {post.hashtags.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                                +{post.hashtags.length - 3}
+                            </Badge>
+                        )}
+                    </div>
+                )}
+            </CardContent>
         </Card>
     );
 };

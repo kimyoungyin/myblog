@@ -10,7 +10,7 @@ import {
     clearTempFolder,
 } from './file-upload-server';
 import { CreatePostData, UpdatePostData } from './schemas';
-import { Post } from '@/types';
+import { Post, type PostSort } from '@/types';
 import type { PostgrestError } from '@supabase/supabase-js';
 
 /**
@@ -221,14 +221,15 @@ export async function deletePost(postId: number): Promise<boolean> {
 export async function getPosts(
     page: number = 1,
     limit: number = 10,
-    sortBy: 'latest' | 'popular' | 'likes' | 'oldest' = 'latest'
+    sortBy: PostSort = 'latest',
+    hashtag?: string
 ): Promise<{ posts: Post[]; total: number }> {
     try {
         // Service Role Supabase 클라이언트 생성 (RLS 우회)
         const supabase = await createServiceRoleClient();
 
         // 글과 해시태그 정보를 함께 조회
-        const query = supabase.from('posts').select(
+        let query = supabase.from('posts').select(
             `
                 *,
                 post_hashtags!inner(
@@ -242,17 +243,10 @@ export async function getPosts(
             { count: 'exact' }
         );
 
-        // 해시태그 필터링 (현재는 기본 조회만 구현, 추후 확장)
-        // if (hashtag) {
-        //   query = query
-        //     .select(`
-        //       *,
-        //       post_hashtags!inner(
-        //         hashtags!inner(name)
-        //       )
-        //     `)
-        //     .eq('post_hashtags.hashtags.name', hashtag);
-        // }
+        // 해시태그 필터링
+        if (hashtag && hashtag.trim().length > 0) {
+            query = query.eq('post_hashtags.hashtags.name', hashtag.trim());
+        }
 
         // 정렬 기준에 따른 쿼리 구성
         let sortedQuery = query;
