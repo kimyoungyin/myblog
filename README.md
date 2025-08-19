@@ -292,6 +292,9 @@ CREATE TABLE likes (
 - [ ] 해시태그별 필터링
 - [x] 글 상세 페이지
 - [x] 조회수 증가 로직
+    - [x] Server Action으로 조회수 증가
+    - [x] 원자적 업데이트를 위한 PostgreSQL RPC 함수 구현
+    - [x] 경쟁 조건 방지 및 동시성 안전성 확보
 - [ ] React Query 캐싱 구현
     - [ ] 글 목록 캐싱 (페이지네이션)
     - [ ] 글 상세 캐싱

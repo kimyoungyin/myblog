@@ -295,11 +295,15 @@ export async function deletePostAction(postId: number) {
     }
 }
 
-// 글 목록 조회 Server Action (읽기 전용)
-export async function getPostsAction(page: number = 1, limit: number = 10) {
+// 글 목록 조회 Server Action (읽기 전용, 정렬 기능 포함)
+export async function getPostsAction(
+    page: number = 1,
+    limit: number = 10,
+    sortBy: 'latest' | 'popular' | 'likes' | 'oldest' = 'latest'
+) {
     try {
         // 읽기 전용이므로 인증 불필요
-        return await getPosts(page, limit);
+        return await getPosts(page, limit, sortBy);
     } catch (error) {
         throw error;
     }
@@ -347,35 +351,35 @@ export async function searchHashtagsAction(query: string) {
     }
 }
 
-// 조회수 증가 Server Action (읽기 전용)
+// 조회수 증가 Server Action (읽기 전용, 원자적 업데이트)
 export async function incrementViewCountAction(postId: number) {
     try {
         // 읽기 전용이므로 인증 불필요
+        // 일반 사용자도 조회수 증가 가능하도록 Service Role 클라이언트 사용
         const supabase = await createServiceRoleClient();
 
-        // 먼저 현재 조회수를 가져옴
-        const { data: currentPost, error: fetchError } = await supabase
-            .from('posts')
-            .select('view_count')
-            .eq('id', postId)
-            .single();
+        // PostgreSQL RPC 함수를 호출하여 원자적 업데이트 수행
+        const { data, error } = await supabase.rpc('increment_view_count', {
+            post_id: postId,
+        });
 
-        if (fetchError) {
-            throw new Error('현재 조회수 조회 실패');
+        if (error) {
+            console.error('조회수 증가 RPC 호출 실패:', error);
+            throw new Error('조회수 증가 실패');
         }
 
-        // 조회수 증가
-        const { error: updateError } = await supabase
-            .from('posts')
-            .update({ view_count: (currentPost.view_count || 0) + 1 })
-            .eq('id', postId);
-
-        if (updateError) {
-            throw new Error('조회수 증가 실패');
+        // RPC 함수가 false를 반환하면 해당 post_id를 찾을 수 없음
+        if (data === false) {
+            throw new Error('해당 글을 찾을 수 없습니다');
         }
 
         return { success: true };
     } catch (error) {
-        throw error;
+        // 기존 에러 처리 로직 유지
+        if (error instanceof Error) {
+            throw error; // 의미있는 에러 메시지 전파
+        } else {
+            throw new Error('조회수 증가 중 오류가 발생했습니다');
+        }
     }
 }

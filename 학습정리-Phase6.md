@@ -52,3 +52,76 @@
 - 증가 실패 시 경고 배너 표시 및 본문 정상 렌더링
 - 심각 오류 시 `posts/[id]/error.tsx`에서 우아한 처리
 - 목록/카드/상세의 조회수 UI 일관성 유지
+
+## 원자적 증가(Atomic Increment)와 동시성
+
+### 문제: Lost Update와 경쟁 조건
+
+- read-modify-write(읽고-증가-쓰기) 패턴은 동시 요청 시 마지막 쓰기만 반영될 수 있음.
+- 두 요청이 같은 `view_count`를 읽고 각자 `+1` 후 업데이트하면 1회만 증가하는 “lost update”가 발생.
+
+### 해결: DB-side RPC로 원자적 증가
+
+- Postgres 단일 UPDATE: `SET view_count = COALESCE(view_count, 0) + 1`
+- DB 함수(`increment_view_count`) + RPC로 한 번의 호출에 원자 수행
+- 장점:
+    - 경쟁 조건 제거(단일 UPDATE는 원자적)
+    - 네트워크 호출 1회로 단축(성능 및 지연시간 감소)
+    - 서버에 로직 집중(보안·유지보수 유리)
+
+### PostgreSQL 함수 설계 포인트
+
+- `SECURITY DEFINER`: 함수 소유자 권한으로 실행되어 RLS 우회 가능
+- 반환값: `RETURN FOUND;`로 대상 행 존재 여부(true/false) 전달
+- 권한: `GRANT EXECUTE ON FUNCTION increment_view_count(INTEGER) TO anon, authenticated, service_role`
+- 안전성:
+    - 입력은 단일 정수 `post_id`만 허용(주입 위험 낮음)
+    - 본문은 단일 UPDATE로 최소 권한 원칙에 부합
+- 성능:
+    - `posts.id` 기본키/인덱스 존재 → O(1) 수준 탐색
+    - 동시성: MVCC + row-level lock으로 충돌 없이 누적 증가
+
+### Supabase RPC 호출과 에러 전파
+
+- 호출 흐름(서버 액션):
+    - `supabase.rpc('increment_view_count', { post_id })` 호출
+    - `error` 발생 시 의미있는 메시지(`'조회수 증가 실패'`, `'해당 글을 찾을 수 없습니다'`)로 throw
+    - `page.tsx`의 기존 try/catch 및 `viewCountErrorMessage` 경고 배너와 자연스럽게 연동
+- 왜 Service Role인가?
+    - 비로그인 사용자도 증가 가능해야 함
+    - RLS 우회를 안전하게 허용(서버에서만 사용)
+
+### 대안 및 선택 기준
+
+- 대안 1: 클라이언트에서 단일 UPDATE 직접 실행
+    - RLS, 권한, 보안 고려 필요 → 서버-사이드에 집중하는 편이 안전
+- 대안 2: Trigger/Materialized View
+    - 과도한 복잡도. 단순 카운트 증가는 RPC가 적합
+- 대안 3: Advisory Lock
+    - 불필요(단일 UPDATE 원자성으로 충분)
+
+### 트랜잭션/격리 레벨 이해
+
+- Postgres는 UPDATE 시 해당 행에 대한 row-level lock 확보
+- 동시 요청이 와도 각 요청은 순차적으로 증가 → 누락 없음
+- 추가적인 명시적 잠금은 불필요
+
+### 테스트 체크리스트(동시성)
+
+- 단일 요청: 1 증가 확인
+- N개의 동시 요청: 정확히 N 증가
+- 존재하지 않는 `post_id`: false 반환 → 에러 메시지 매핑 확인
+- 비로그인 상태: 정상 증가
+- 에러 시 `page.tsx` 경고 배너 표시 유지
+
+### 운영·배포/마이그레이션
+
+- SQL 마이그레이션 파일을 저장/버전관리(재현성, 롤백)
+- `CREATE OR REPLACE FUNCTION` + `GRANT`는 안전하게 재실행 가능
+- 프리뷰/프로덕션/팀원 로컬 환경에 동일하게 배포
+
+### 보안 유의점
+
+- `SECURITY DEFINER` 사용 시 함수 본문은 최소 작업만 수행(UPDATE 1문)
+- 함수 소유자/스키마 권한을 관리하고 불필요한 권한 부여 금지
+- 서비스 키는 서버에서만 사용(클라이언트 번들 포함 금지)
