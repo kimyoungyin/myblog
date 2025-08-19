@@ -1,9 +1,14 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
 # UI Components & Design System (MANDATORY)
 
 ## 🎨 **Component Architecture (MUST FOLLOW)**
 
-- **ALWAYS** use shadcn/ui components from [src/components/ui/](mdc:src/components/ui/)
-- **ALWAYS** follow the existing component patterns in [src/components/](mdc:src/components/)
+- **ALWAYS** use shadcn/ui components from [src/components/ui/](mdc:src/components/ui)
+- **ALWAYS** follow the existing component patterns in [src/components/](mdc:src/components)
 - **NEVER** create custom UI components without following the design system
 - **MUST** use `class-variance-authority (cva)` for component variants
 

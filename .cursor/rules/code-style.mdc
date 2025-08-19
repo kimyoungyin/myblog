@@ -1,3 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
 # Code Style & Formatting (MANDATORY)
 
 ## 🎨 **Prettier Configuration (MUST FOLLOW)**

@@ -1,3 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
 # Security & Data Validation (CRITICAL)
 
 ## 🔒 **Data Validation (MUST ENFORCE)**

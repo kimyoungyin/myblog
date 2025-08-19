@@ -1,3 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
 # Performance Optimization & Caching (MANDATORY)
 
 ## ⚡ **React Performance (MUST OPTIMIZE)**

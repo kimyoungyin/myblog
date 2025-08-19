@@ -1,3 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
 # Supabase Client Management & Authentication (MANDATORY)
 
 ## 🔐 **Supabase Client Pattern (CRITICAL, SSR-aware)**
