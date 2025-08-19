@@ -238,7 +238,14 @@ CREATE TABLE likes (
     - [x] 사용되지 않는 이미지 자동 제거
     - [x] 썸네일 자동 생성 (첫 번째 이미지)
     - [x] 이미지 URL 자동 업데이트 (temp → permanent 경로 변경)
-    - [ ] 이미지 최적화 (Next.js Image)
+    - [x] 이미지 최적화 (Next.js Image)
+        - [x] 홈페이지 썸네일 최적화
+        - [x] 글 목록 썸네일 최적화
+        - [x] 글 내용 이미지 최적화 (MarkdownRenderer)
+        - [x] 파일 미리보기 이미지 최적화 (FileUploadZone)
+        - [x] 우선순위 로딩 (첫 3개 이미지)
+        - [x] 자동 이미지 포맷 최적화 (WebP, AVIF)
+        - [x] 반응형 이미지 및 lazy loading
 - [x] 썸네일 업로드 기능
     - [x] 글 작성 시 썸네일 이미지 자동 선정
     - [x] 썸네일 URL 자동 저장

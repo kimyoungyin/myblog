@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useState, useCallback, useRef } from 'react';
 import { Upload, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { uploadFile, deleteFile, validateFile } from '@/lib/file-upload';
 import { useAuth } from '@/hooks/useAuth';
 import type { UploadedFile, FileUploadProgress } from '@/types';
+import Image from 'next/image';
 
 interface FileUploadZoneProps {
     onFilesUploaded: (files: UploadedFile[]) => void;
@@ -183,18 +182,17 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
         // 이미지인 경우 실제 이미지 표시
         return (
             <div className="relative">
-                <img
+                <Image
                     src={file.url}
                     alt={file.name}
                     className="h-6 w-6 rounded object-cover"
-                    onError={(e) => {
-                        // 이미지 로드 실패 시 기본 아이콘 표시
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        target.nextElementSibling?.classList.remove('hidden');
-                    }}
+                    width={24}
+                    height={24}
                 />
-                <div className="hidden h-6 w-6 text-blue-500" />
+                {/* 이미지 로드 실패 시 표시할 기본 아이콘 */}
+                <div className="absolute inset-0 flex h-6 w-6 items-center justify-center rounded bg-gray-100 text-blue-500">
+                    <span className="text-xs">IMG</span>
+                </div>
             </div>
         );
     };
