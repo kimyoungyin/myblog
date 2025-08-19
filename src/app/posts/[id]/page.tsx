@@ -5,9 +5,10 @@ import { MarkdownRenderer } from '@/components/editor/MarkdownRenderer';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
+import ToEditButton from '@/components/ui/toEditButton';
 
 interface PostPageProps {
     params: Promise<{
@@ -45,16 +46,7 @@ export default async function PostPage({ params }: PostPageProps) {
                         </Button>
 
                         {/* Admin 수정 버튼 */}
-                        <Button
-                            variant="outline"
-                            asChild
-                            className="flex items-center gap-2"
-                        >
-                            <Link href={`/admin/posts/${postId}/edit`}>
-                                <Edit className="h-4 w-4" />
-                                수정
-                            </Link>
-                        </Button>
+                        <ToEditButton postId={postId} />
                     </div>
 
                     <article className="space-y-6">
