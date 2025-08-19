@@ -6,12 +6,28 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, X } from 'lucide-react';
 import { PostCard } from '@/components/post-card';
 import { SortSelector, type SortOption } from '@/components/ui/sort-selector';
+import { AdminCreateHint } from '@/components/AdminCreateHint';
 
 interface PostsPageProps {
     searchParams: Promise<{
         sort?: string;
         tag?: string;
     }>;
+}
+
+function EmptyHint({ activeTag }: { activeTag?: string }) {
+    return (
+        <Card>
+            <CardContent className="p-12 text-center">
+                <p className="text-muted-foreground mb-4 text-lg">
+                    {activeTag
+                        ? `해시태그 #${activeTag}에 해당하는 글이 없습니다.`
+                        : '아직 작성된 글이 없습니다.'}
+                </p>
+                <AdminCreateHint />
+            </CardContent>
+        </Card>
+    );
 }
 
 export default async function PostsPage({ searchParams }: PostsPageProps) {
@@ -94,20 +110,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
 
                     {/* 글 목록 */}
                     {posts.length === 0 ? (
-                        <Card>
-                            <CardContent className="p-12 text-center">
-                                <p className="text-muted-foreground mb-4 text-lg">
-                                    {activeTag
-                                        ? `해시태그 #${activeTag}에 해당하는 글이 없습니다.`
-                                        : '아직 작성된 글이 없습니다.'}
-                                </p>
-                                {!activeTag && (
-                                    <p className="text-muted-foreground">
-                                        첫 번째 글을 작성해보세요!
-                                    </p>
-                                )}
-                            </CardContent>
-                        </Card>
+                        <EmptyHint activeTag={activeTag} />
                     ) : (
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                             {posts.map((post) => (
