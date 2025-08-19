@@ -346,3 +346,36 @@ export async function searchHashtagsAction(query: string) {
         return [];
     }
 }
+
+// 조회수 증가 Server Action (읽기 전용)
+export async function incrementViewCountAction(postId: number) {
+    try {
+        // 읽기 전용이므로 인증 불필요
+        const supabase = await createServiceRoleClient();
+
+        // 먼저 현재 조회수를 가져옴
+        const { data: currentPost, error: fetchError } = await supabase
+            .from('posts')
+            .select('view_count')
+            .eq('id', postId)
+            .single();
+
+        if (fetchError) {
+            throw new Error('현재 조회수 조회 실패');
+        }
+
+        // 조회수 증가
+        const { error: updateError } = await supabase
+            .from('posts')
+            .update({ view_count: (currentPost.view_count || 0) + 1 })
+            .eq('id', postId);
+
+        if (updateError) {
+            throw new Error('조회수 증가 실패');
+        }
+
+        return { success: true };
+    } catch (error) {
+        throw error;
+    }
+}
