@@ -314,7 +314,7 @@ export async function getPost(postId: number): Promise<Post | null> {
             .single();
 
         if (error) {
-            return null;
+            throw new Error('글 상세 조회에 실패했습니다.');
         }
 
         // 해시태그 정보를 Post 객체에 추가
@@ -329,7 +329,7 @@ export async function getPost(postId: number): Promise<Post | null> {
         }
 
         return post;
-    } catch {
-        return null;
+    } catch (error) {
+        throw error;
     }
 }
