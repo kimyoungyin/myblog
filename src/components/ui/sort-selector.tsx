@@ -18,7 +18,7 @@ interface SortSelectorProps {
     className?: string;
 }
 
-const sortOptions = [
+const SORT_OPTIONS = [
     {
         value: 'latest' as const,
         label: '최신순',
@@ -50,7 +50,7 @@ export const SortSelector: React.FC<SortSelectorProps> = ({
     currentTag,
     className = '',
 }) => {
-    const currentOption = sortOptions.find(
+    const currentOption = SORT_OPTIONS.find(
         (option) => option.value === currentSort
     );
 
@@ -71,7 +71,7 @@ export const SortSelector: React.FC<SortSelectorProps> = ({
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-                {sortOptions.map((option) => {
+                {SORT_OPTIONS.map((option) => {
                     const Icon = option.icon;
                     const params = new URLSearchParams();
                     params.set('sort', option.value);
