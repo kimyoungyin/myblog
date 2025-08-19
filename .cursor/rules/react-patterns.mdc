@@ -1,3 +1,13 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# React Patterns & Functional Programming (MANDATORY)
+
+## ⚛️ **Component Structure (MUST FOLLOW)**
+
+- **ALWAYS** use functional components with hooks
 # React Patterns & Functional Programming (MANDATORY)
 
 ## ⚛️ **Component Structure (MUST FOLLOW)**
@@ -59,5 +69,78 @@ const handleTitleChange = (value: string) => {
   description:
   globs:
   alwaysApply: true
+
+## 🖥️ **Server/Client Component Patterns (CRITICAL)**
+
+- **ALWAYS** prefer server components by default
+- **ONLY** use client components when absolutely necessary (interactivity, browser APIs, state management)
+- **ALWAYS** isolate client-side logic to the smallest possible component
+- **NEVER** make entire pages client components unless required
+
+### **Server Component Best Practices**
+
+```typescript
+// ✅ CORRECT - Server component with async data fetching
+export default async function PostPage({ params }: PostPageProps) {
+    const post = await getPostAction(postId);
+    
+    return (
+        <div>
+            <h1>{post.title}</h1>
+            <MarkdownRenderer content={post.content} />
+            <ToEditButton postId={postId} /> {/* Client component */}
+        </div>
+    );
+}
+```
+
+### **Client Component Isolation**
+
+```typescript
+// ✅ CORRECT - Minimal client component for interactive features only
+'use client';
+
+export default function ToEditButton({ postId }: { postId: number }) {
+    const { user } = useAuthStore(); // Client-side state only
+    
+    if (!user?.is_admin) return null;
+    
+    return (
+        <Button asChild>
+            <Link href={`/admin/posts/${postId}/edit`}>
+                <Edit className="h-4 w-4" />
+                수정
+            </Link>
+        </Button>
+    );
+}
+```
+
+### **When to Use Client Components**
+
+- **✅ USE** for interactive elements (buttons, forms, dropdowns)
+- **✅ USE** for browser APIs (localStorage, window, document)
+- **✅ USE** for state management (useState, useReducer)
+- **✅ USE** for event handlers (onClick, onChange)
+- **❌ DON'T USE** for static content rendering
+- **❌ DON'T USE** for data fetching (use server actions instead)
+
+### **Component Composition Pattern**
+
+```typescript
+// ✅ CORRECT - Server component with embedded client components
+export default function PostPage() {
+    return (
+        <div>
+            {/* Server-rendered content */}
+            <PostContent post={post} />
+            
+            {/* Client-side interactivity only */}
+            <LikeButton postId={post.id} />
+            <CommentSection postId={post.id} />
+        </div>
+    );
+}
+```
 
 ---
