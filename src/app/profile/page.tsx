@@ -13,13 +13,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+// deprecated: SupabaseProvider 제거됨
 
 export default function ProfilePage() {
-    const { user, loading } = useAuth();
-    const queryClient = useQueryClient();
+    const { user, isLoading } = useAuth();
+
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
         full_name: '',
@@ -37,7 +35,7 @@ export default function ProfilePage() {
         }
     }, [user]);
 
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center">
                 <div className="border-primary h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"></div>
@@ -52,55 +50,36 @@ export default function ProfilePage() {
                     <CardHeader>
                         <CardTitle>로그인이 필요합니다</CardTitle>
                         <CardDescription>
-                            프로필을 보려면 로그인이 필요합니다.
+                            로그인 후 프로필을 확인하세요.
                         </CardDescription>
                     </CardHeader>
+                    <CardContent>
+                        <div className="rounded bg-yellow-50 p-4 dark:bg-yellow-950">
+                            <p className="text-base font-medium text-yellow-700 dark:text-yellow-300">
+                                로그인이 필요합니다.
+                            </p>
+                        </div>
+                    </CardContent>
                 </Card>
             </div>
         );
     }
 
     const handleUpdateProfile = async () => {
-        if (!user?.id) return;
-
-        setIsUpdating(true);
         try {
-            // profiles 테이블이 존재하지 않을 수 있으므로 try-catch로 처리
-            const { error } = await supabase
-                .from('profiles')
-                .update({
-                    full_name: formData.full_name || null,
-                    avatar_url: formData.avatar_url || user.avatar_url, // 기존 값 유지
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('id', user.id);
-
-            if (error) {
-                // profiles 테이블이 존재하지 않는 경우
-                if (
-                    error.code === 'PGRST116' ||
-                    error.message?.includes('profiles')
-                ) {
-                    toast.warning(
-                        '프로필 테이블이 존재하지 않습니다. 기본 정보만 저장됩니다.'
-                    );
-                    // 로컬 상태만 업데이트
-                    setIsEditing(false);
-                    return;
-                }
-                throw error;
-            }
-
-            // 캐시 무효화
-            queryClient.invalidateQueries({
-                queryKey: ['auth', 'profile', user.id],
+            setIsUpdating(true);
+            const res = await fetch('/api/profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    full_name: formData.full_name,
+                    avatar_url: formData.avatar_url,
+                }),
             });
-
-            toast.success('프로필이 업데이트되었습니다.');
+            if (!res.ok) throw new Error('프로필 업데이트 실패');
             setIsEditing(false);
-        } catch (error) {
-            console.error('프로필 업데이트 오류:', error);
-            toast.error('프로필 업데이트에 실패했습니다.');
+        } catch (e) {
+            console.error(e);
         } finally {
             setIsUpdating(false);
         }
@@ -130,16 +109,17 @@ export default function ProfilePage() {
                     <div className="flex items-center space-x-6">
                         <Avatar className="h-24 w-24">
                             <AvatarImage
-                                src={user.avatar_url || ''}
-                                alt={user.full_name || user.email}
+                                src={user?.avatar_url || ''}
+                                alt={user?.full_name || user?.email || ''}
                             />
                             <AvatarFallback className="text-2xl">
-                                {user.full_name
+                                {user?.full_name
                                     ? user.full_name
                                           .split(' ')
-                                          .map((n) => n[0])
+                                          .map((n: string) => n[0])
                                           .join('')
-                                    : user.email.charAt(0).toUpperCase()}
+                                    : user?.email?.charAt(0).toUpperCase() ||
+                                      'U'}
                             </AvatarFallback>
                         </Avatar>
                         <div>
@@ -147,7 +127,7 @@ export default function ProfilePage() {
                                 프로필 이미지
                             </p>
                             <p className="text-muted-foreground text-sm">
-                                소셜 로그인을 통해 자동으로 설정됩니다.
+                                이미지를 변경하려면 URL을 입력하세요.
                             </p>
                         </div>
                     </div>
@@ -162,7 +142,7 @@ export default function ProfilePage() {
                         </Label>
                         <Input
                             id="email"
-                            value={user.email}
+                            value={user?.email || ''}
                             disabled
                             className="bg-muted h-12 text-base"
                         />
@@ -195,7 +175,9 @@ export default function ProfilePage() {
                         ) : (
                             <Input
                                 id="full_name"
-                                value={user.full_name || '이름이 설정되지 않음'}
+                                value={
+                                    user?.full_name || '이름이 설정되지 않음'
+                                }
                                 disabled
                                 className="bg-muted h-12 text-base"
                             />
@@ -203,7 +185,7 @@ export default function ProfilePage() {
                     </div>
 
                     {/* 관리자 권한 표시 */}
-                    {user.is_admin && (
+                    {user?.is_admin && (
                         <div className="rounded-md bg-blue-50 p-4 dark:bg-blue-950">
                             <p className="text-base font-medium text-blue-700 dark:text-blue-300">
                                 🎯 관리자 권한을 가지고 있습니다.
@@ -217,9 +199,13 @@ export default function ProfilePage() {
                             계정 생성일
                         </Label>
                         <Input
-                            value={new Date(user.created_at).toLocaleDateString(
-                                'ko-KR'
-                            )}
+                            value={
+                                user?.created_at
+                                    ? new Date(
+                                          user.created_at
+                                      ).toLocaleDateString('ko-KR')
+                                    : '알 수 없음'
+                            }
                             disabled
                             className="bg-muted h-12 text-base"
                         />

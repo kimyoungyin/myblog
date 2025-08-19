@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -12,9 +11,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import Link from 'next/link';
+import { memo } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 
-export default function Header() {
-    const { user, loading, isAdmin, signIn, signOut } = useAuth();
+const Header = memo(function Header() {
+    const { user, isLoading, isAdmin, signOut } = useAuth();
 
     return (
         <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur">
@@ -49,7 +50,7 @@ export default function Header() {
                 {/* 사용자 메뉴 및 테마 토글 */}
                 <div className="flex items-center space-x-4">
                     <ThemeToggle />
-                    {loading ? (
+                    {isLoading ? (
                         <div className="border-primary h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"></div>
                     ) : user ? (
                         <DropdownMenu>
@@ -67,7 +68,7 @@ export default function Header() {
                                             {user.full_name
                                                 ? user.full_name
                                                       .split(' ')
-                                                      .map((n) => n[0])
+                                                      .map((n: string) => n[0])
                                                       .join('')
                                                 : user.email
                                                       .charAt(0)
@@ -123,6 +124,7 @@ export default function Header() {
                                         프로필
                                     </Link>
                                 </DropdownMenuItem>
+
                                 <DropdownMenuItem
                                     className="cursor-pointer text-red-600 focus:text-red-600"
                                     onClick={signOut}
@@ -142,4 +144,6 @@ export default function Header() {
             </div>
         </header>
     );
-}
+});
+
+export default Header;

@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -9,32 +8,39 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { Github, Mail } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { createClient } from '@/utils/supabase/client';
+import { Github, MailIcon } from 'lucide-react';
 
 export default function LoginPage() {
-    const { user, loading, signIn } = useAuth();
-    const router = useRouter();
+    const handleGoogleLogin = async () => {
+        const supabase = createClient();
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${window.location.origin}/auth/callback`,
+            },
+        });
 
-    useEffect(() => {
-        if (user && !loading) {
-            router.push('/');
+        if (data.url) {
+            window.location.href = data.url; // 브라우저 이동
+        } else {
+            console.error('OAuth 로그인 실패:', error);
         }
-    }, [user, loading, router]);
-
-    if (loading) {
-        return (
-            <div className="flex min-h-screen items-center justify-center">
-                <div className="border-primary h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"></div>
-            </div>
-        );
-    }
-
-    if (user) {
-        return null; // 이미 로그인된 경우 리다이렉트
-    }
-
+    };
+    const handleGithubLogin = async () => {
+        const supabase = createClient();
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'github',
+            options: {
+                redirectTo: `${window.location.origin}/auth/callback`,
+            },
+        });
+        if (data.url) {
+            window.location.href = data.url; // 브라우저 이동
+        } else {
+            console.error('OAuth 로그인 실패:', error);
+        }
+    };
     return (
         <div className="bg-background flex min-h-screen items-center justify-center p-4">
             <Card className="w-full max-w-md">
@@ -43,28 +49,34 @@ export default function LoginPage() {
                         로그인
                     </CardTitle>
                     <CardDescription className="text-center">
-                        계정에 로그인하여 블로그를 이용하세요
+                        로그인하세요
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    <input type="hidden" name="provider" value="google" />
                     <Button
+                        type="button"
                         variant="outline"
                         className="w-full"
-                        onClick={() => signIn('google')}
+                        onClick={handleGoogleLogin}
                     >
-                        <Mail className="mr-2 h-4 w-4" />
+                        <MailIcon className="mr-2 h-4 w-4" />
                         Google로 로그인
                     </Button>
+
+                    <input type="hidden" name="provider" value="github" />
                     <Button
+                        type="button"
                         variant="outline"
                         className="w-full"
-                        onClick={() => signIn('github')}
+                        onClick={handleGithubLogin}
                     >
                         <Github className="mr-2 h-4 w-4" />
                         GitHub로 로그인
                     </Button>
+
                     <div className="text-muted-foreground text-center text-sm">
-                        로그인하면 댓글 작성과 좋아요가 가능합니다
+                        로그인 후 원래 페이지로 돌아갑니다
                     </div>
                 </CardContent>
             </Card>
