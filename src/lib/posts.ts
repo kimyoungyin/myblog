@@ -11,6 +11,7 @@ import {
 } from './file-upload-server';
 import { CreatePostData, UpdatePostData } from './schemas';
 import { Post } from '@/types';
+import type { PostgrestError } from '@supabase/supabase-js';
 
 /**
  * 새 글 생성
@@ -332,7 +333,17 @@ export async function getPost(postId: number): Promise<Post | null> {
             .single();
 
         if (error) {
-            throw new Error('글 상세 조회에 실패했습니다.');
+            const pgError = error as PostgrestError;
+            // PostgREST에서 .single() 사용 시 행이 없으면 오류가 발생함
+            // 해당 케이스는 404/406 또는 PGRST116 코드로 보고될 수 있으므로 방어적으로 체크
+            const isNoRow =
+                pgError?.code === 'PGRST116' ||
+                pgError?.details?.toLowerCase?.().includes('0 rows') ||
+                pgError?.message?.toLowerCase?.().includes('no rows');
+            if (isNoRow) {
+                return null;
+            }
+            throw new Error('글 상세 조회에 실패했습니다.', { cause: error });
         }
 
         // 해시태그 정보를 Post 객체에 추가

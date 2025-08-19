@@ -125,3 +125,32 @@
 - `SECURITY DEFINER` 사용 시 함수 본문은 최소 작업만 수행(UPDATE 1문)
 - 함수 소유자/스키마 권한을 관리하고 불필요한 권한 부여 금지
 - 서비스 키는 서버에서만 사용(클라이언트 번들 포함 금지)
+
+## 글 상세 조회 에러 처리 (PostgREST .single())
+
+### 왜 수정이 필요했나?
+
+- Supabase PostgREST의 `.single()`는 행이 없을 때도 오류를 발생시킴
+- 이 오류를 그대로 throw하면 애플리케이션 레벨에서 500류로 처리될 위험
+- 의도는 "존재하지 않는 글"을 404(notFound)로 처리하는 것 → `null` 반환이 더 정확
+
+### 적용한 전략
+
+- `getPost(postId): Promise<Post | null>`에서 오류를 유형화하여 처리
+- PostgREST 오류 중 "row not found" 신호만 `null`로 반환, 나머지는 `throw`
+
+### 구현 포인트
+
+- 타입 협소화: `import type { PostgrestError } from '@supabase/supabase-js'`
+- "row not found" 판별(방어적 체크):
+    - 코드: `PGRST116`
+    - details: 포함 문자열 `"0 rows"`
+    - message: 포함 문자열 `"no rows"`
+- 그 외 오류는 `throw new Error('글 상세 조회에 실패했습니다.', { cause: error })`
+- 상위(페이지)에서는 `null` → `notFound()`로 일관 처리 가능
+
+### 테스트 체크리스트
+
+- 존재하는 ID: 정상 조회 및 해시태그 매핑
+- 존재하지 않는 ID: `null` 반환 → 페이지에서 `notFound()` 호출
+- DB 오류(권한 문제 등): 의미있는 에러 throw, 로깅 가능

@@ -263,6 +263,9 @@ CREATE TABLE likes (
     - [x] 썸네일 이미지 표시
     - [x] 해시태그 및 메타 정보 표시
     - [x] Admin 수정 버튼
+    - [x] 글 상세 조회 에러 처리 개선 (행 미존재 시 null 반환 → notFound 처리)
+        - [x] Supabase PostgREST `.single()`의 "row not found"를 null로 매핑
+        - [x] 기타 오류는 원인(cause)과 함께 throw하여 디버깅 가능
 - [x] 홈페이지 글 목록
     - [x] 최신 글 6개 표시
     - [x] 반응형 그리드 레이아웃 (모바일 1열, 데스크탑 3열)
