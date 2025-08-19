@@ -4,30 +4,14 @@ import { getPostsAction } from '@/lib/actions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, X } from 'lucide-react';
-import { PostCard } from '@/components/post-card';
 import { SortSelector, type SortOption } from '@/components/ui/sort-selector';
-import { AdminCreateHint } from '@/components/AdminCreateHint';
+import PostWrapper from '@/components/posts/PostWrapper';
 
 interface PostsPageProps {
     searchParams: Promise<{
         sort?: string;
         tag?: string;
     }>;
-}
-
-function EmptyHint({ activeTag }: { activeTag?: string }) {
-    return (
-        <Card>
-            <CardContent className="p-12 text-center">
-                <p className="text-muted-foreground mb-4 text-lg">
-                    {activeTag
-                        ? `해시태그 #${activeTag}에 해당하는 글이 없습니다.`
-                        : '아직 작성된 글이 없습니다.'}
-                </p>
-                <AdminCreateHint />
-            </CardContent>
-        </Card>
-    );
 }
 
 export default async function PostsPage({ searchParams }: PostsPageProps) {
@@ -49,7 +33,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         const activeTag = tag?.trim() || undefined;
 
         // 모든 글 조회 (최대 50개, 정렬 + 해시태그 필터 적용)
-        const result = await getPostsAction(1, 50, validSortBy, activeTag);
+        const result = await getPostsAction(1, validSortBy, activeTag);
         const posts = result.posts;
 
         return (
@@ -109,15 +93,11 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                     </div>
 
                     {/* 글 목록 */}
-                    {posts.length === 0 ? (
-                        <EmptyHint activeTag={activeTag} />
-                    ) : (
-                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                            {posts.map((post) => (
-                                <PostCard key={post.id} post={post} />
-                            ))}
-                        </div>
-                    )}
+                    <PostWrapper
+                        initialPosts={posts}
+                        sort={validSortBy}
+                        tag={activeTag || ''}
+                    />
                 </div>
             </div>
         );
