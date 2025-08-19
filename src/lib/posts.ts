@@ -258,10 +258,16 @@ export async function getPosts(
                 sortedQuery = query.order('created_at', { ascending: true });
                 break;
             case 'popular':
-                sortedQuery = query.order('view_count', { ascending: false });
+                // 인기순: 조회수 내림차순 → id 오름차순 (2차 정렬로 안정성 보장)
+                sortedQuery = query
+                    .order('view_count', { ascending: false })
+                    .order('id', { ascending: true });
                 break;
             case 'likes':
-                sortedQuery = query.order('likes_count', { ascending: false });
+                // 좋아요순: 좋아요 수 내림차순 → id 오름차순 (2차 정렬로 안정성 보장)
+                sortedQuery = query
+                    .order('likes_count', { ascending: false })
+                    .order('id', { ascending: true });
                 break;
             default:
                 sortedQuery = query.order('created_at', { ascending: false });
