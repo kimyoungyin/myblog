@@ -14,18 +14,15 @@ import { searchHashtagsAction } from '@/lib/actions';
 import { Hashtag } from '@/lib/hashtags';
 import { uploadFile } from '@/lib/file-upload';
 import { toast } from 'sonner';
-import type { UploadedFile } from '@/types';
 
 interface MarkdownEditorProps {
     initialTitle?: string;
     initialContent?: string;
     initialHashtags?: string[];
-    initialFiles?: UploadedFile[];
     initialData?: {
         title: string;
         content: string;
         hashtags: string[];
-        files?: UploadedFile[];
     };
     action: (formData: FormData) => Promise<void>;
     submitButtonText?: string;
@@ -36,7 +33,6 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     initialTitle = '',
     initialContent = '',
     initialHashtags = [],
-    initialFiles = [],
     initialData,
     action,
     submitButtonText = '저장',
@@ -50,9 +46,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     const [hashtags, setHashtags] = useState<string[]>(
         initialData?.hashtags || initialHashtags
     );
-    const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>(
-        initialData?.files || initialFiles
-    );
+
     const [newHashtag, setNewHashtag] = useState('');
     const [showPreview, setShowPreview] = useState(false);
     const [isDesktop, setIsDesktop] = useState(false);
@@ -69,14 +63,13 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     const [titleError, setTitleError] = useState(false);
     const [contentError, setContentError] = useState(false);
     const [hashtagError, setHashtagError] = useState(false);
-    const [authError, setAuthError] = useState(false);
 
     // 화면 크기 감지
-    useEffect(() => {
-        const checkScreenSize = () => {
-            setIsDesktop(window.innerWidth >= 1024);
-        };
+    const checkScreenSize = useCallback(() => {
+        setIsDesktop(window.innerWidth >= 1024);
+    }, []);
 
+    useEffect(() => {
         // 초기 체크
         checkScreenSize();
 
@@ -85,7 +78,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
         // 클린업
         return () => window.removeEventListener('resize', checkScreenSize);
-    }, []);
+    }, [checkScreenSize]);
 
     // 해시태그 실시간 검색 (디바운싱 적용)
     useEffect(() => {
@@ -110,7 +103,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                 );
                 setSuggestions(results as Hashtag[]);
                 setShowSuggestions(results.length > 0);
-            } catch (error) {
+            } catch {
                 setSuggestions([]);
                 setShowSuggestions(false);
             } finally {
@@ -268,20 +261,6 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                     const result = await uploadFile(file, true); // temp 폴더에 업로드
 
                     if (result.success && result.url) {
-                        // 새로운 UploadedFile 객체 생성
-                        const uploadedFile: UploadedFile = {
-                            id: crypto.randomUUID(),
-                            name: file.name,
-                            url: result.url,
-                            type: 'image',
-                            size: file.size,
-                            path: result.path,
-                            uploaded_at: new Date().toISOString(),
-                            is_temporary: true,
-                        };
-
-                        setUploadedFiles((prev) => [...prev, uploadedFile]);
-
                         // 마크다운 링크 생성 및 삽입 (이미지만)
                         const markdownLink = `![${file.name}](${result.url})`;
 
@@ -321,12 +300,12 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                             result.error || '알 수 없는 오류가 발생했습니다.'
                         );
                     }
-                } catch (error) {
+                } catch {
                     toast.error(`${file.name} 업로드 중 오류가 발생했습니다.`);
                 }
             }
         },
-        [uploadedFiles, setContent]
+        [setContent]
     );
 
     return (

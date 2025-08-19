@@ -171,8 +171,9 @@ async function manageImageFiles(oldContent: string, newContent: string) {
 
         if (removedImages.length > 0) {
             // permanent 폴더에서 사라진 이미지들 삭제
-            const { data: deleteData, error: deleteError } =
-                await supabase.storage.from('files').remove(removedImages);
+            const { error: deleteError } = await supabase.storage
+                .from('files')
+                .remove(removedImages);
 
             if (deleteError) {
                 throw new Error(`이미지 삭제 실패: ${deleteError.message}`);
@@ -295,14 +296,10 @@ export async function deletePostAction(postId: number) {
 }
 
 // 글 목록 조회 Server Action (읽기 전용)
-export async function getPostsAction(
-    page: number = 1,
-    limit: number = 10,
-    hashtag?: string
-) {
+export async function getPostsAction(page: number = 1, limit: number = 10) {
     try {
         // 읽기 전용이므로 인증 불필요
-        return await getPosts(page, limit, hashtag);
+        return await getPosts(page, limit);
     } catch (error) {
         throw error;
     }
@@ -345,7 +342,7 @@ export async function searchHashtagsAction(query: string) {
         }
 
         return data || [];
-    } catch (error) {
+    } catch {
         return [];
     }
 }

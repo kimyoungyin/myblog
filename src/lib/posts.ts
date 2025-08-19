@@ -1,4 +1,4 @@
-import { createClient, createServiceRoleClient } from '@/utils/supabase/server';
+import { createServiceRoleClient } from '@/utils/supabase/server';
 import { createHashtags, type Hashtag } from './hashtags';
 import {
     extractImagePathsFromMarkdown,
@@ -60,9 +60,8 @@ export async function createPost(data: CreatePostData): Promise<Post | null> {
                     cause: moveResult.error,
                 });
             }
-        } else {
-            throw new Error('글에 이미지가 없습니다.');
         }
+        // 글에 이미지 없는 경우 통과
 
         // 3. 글 생성
         const supabase = await createServiceRoleClient();
@@ -220,8 +219,7 @@ export async function deletePost(postId: number): Promise<boolean> {
  */
 export async function getPosts(
     page: number = 1,
-    limit: number = 10,
-    hashtag?: string
+    limit: number = 10
 ): Promise<{ posts: Post[]; total: number }> {
     try {
         // Service Role Supabase 클라이언트 생성 (RLS 우회)
@@ -331,7 +329,7 @@ export async function getPost(postId: number): Promise<Post | null> {
         }
 
         return post;
-    } catch (error) {
+    } catch {
         return null;
     }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef } from 'react';
-import { Upload, X, Image, Video, File, AlertCircle } from 'lucide-react';
+import { Upload, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { uploadFile, deleteFile, validateFile } from '@/lib/file-upload';
@@ -39,32 +39,6 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
         e.preventDefault();
         setIsDragOver(false);
     }, []);
-
-    const handleDrop = useCallback(async (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragOver(false);
-
-        const files = Array.from(e.dataTransfer.files);
-        if (files.length === 0) return;
-
-        await handleFileUpload(files);
-    }, []);
-
-    // 파일 선택 핸들러
-    const handleFileSelect = useCallback(
-        async (e: React.ChangeEvent<HTMLInputElement>) => {
-            const files = Array.from(e.target.files || []);
-            if (files.length === 0) return;
-
-            await handleFileUpload(files);
-
-            // 파일 입력 초기화
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
-        },
-        []
-    );
 
     // 파일 업로드 처리
     const handleFileUpload = useCallback(
@@ -154,7 +128,34 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
         },
         [onFilesUploaded]
     );
+    // 파일 선택 핸들러
+    const handleFileSelect = useCallback(
+        async (e: React.ChangeEvent<HTMLInputElement>) => {
+            const files = Array.from(e.target.files || []);
+            if (files.length === 0) return;
 
+            await handleFileUpload(files);
+
+            // 파일 입력 초기화
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        },
+        [handleFileUpload]
+    );
+
+    const handleDrop = useCallback(
+        async (e: React.DragEvent) => {
+            e.preventDefault();
+            setIsDragOver(false);
+
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length === 0) return;
+
+            await handleFileUpload(files);
+        },
+        [handleFileUpload]
+    );
     // 파일 제거
     const handleFileRemove = useCallback(
         async (fileId: string) => {
@@ -193,8 +194,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
                         target.nextElementSibling?.classList.remove('hidden');
                     }}
                 />
-                {/* 이미지 로드 실패 시 표시할 기본 아이콘 */}
-                <Image className="hidden h-6 w-6 text-blue-500" />
+                <div className="hidden h-6 w-6 text-blue-500" />
             </div>
         );
     };

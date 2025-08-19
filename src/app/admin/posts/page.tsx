@@ -23,7 +23,7 @@ export default function PostsPage() {
             const result = await getPostsAction(1, 50); // 최대 50개 글 조회
             setPosts(result.posts);
             setError(null);
-        } catch (err) {
+        } catch {
             setError('글 목록을 불러오는데 실패했습니다.');
         } finally {
             setLoading(false);
