@@ -215,11 +215,12 @@ export async function deletePost(postId: number): Promise<boolean> {
 }
 
 /**
- * 글 목록 조회 (페이지네이션)
+ * 글 목록 조회 (정렬 기능 포함)
  */
 export async function getPosts(
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
+    sortBy: 'latest' | 'popular' | 'likes' | 'oldest' = 'latest'
 ): Promise<{ posts: Post[]; total: number }> {
     try {
         // Service Role Supabase 클라이언트 생성 (RLS 우회)
@@ -252,13 +253,30 @@ export async function getPosts(
         //     .eq('post_hashtags.hashtags.name', hashtag);
         // }
 
+        // 정렬 기준에 따른 쿼리 구성
+        let sortedQuery = query;
+        switch (sortBy) {
+            case 'latest':
+                sortedQuery = query.order('created_at', { ascending: false });
+                break;
+            case 'oldest':
+                sortedQuery = query.order('created_at', { ascending: true });
+                break;
+            case 'popular':
+                sortedQuery = query.order('view_count', { ascending: false });
+                break;
+            case 'likes':
+                sortedQuery = query.order('likes_count', { ascending: false });
+                break;
+            default:
+                sortedQuery = query.order('created_at', { ascending: false });
+        }
+
         const {
             data: posts,
             error,
             count,
-        } = await query
-            .order('created_at', { ascending: false })
-            .range((page - 1) * limit, page * limit - 1);
+        } = await sortedQuery.range((page - 1) * limit, page * limit - 1);
 
         if (error) {
             throw new Error('글 목록 조회에 실패했습니다.');

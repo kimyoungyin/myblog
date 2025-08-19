@@ -5,29 +5,60 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { PostCard } from '@/components/post-card';
+import { SortSelector, type SortOption } from '@/components/ui/sort-selector';
 
-export default async function PostsPage() {
+interface PostsPageProps {
+    searchParams: {
+        sort?: string;
+    };
+}
+
+export default async function PostsPage({ searchParams }: PostsPageProps) {
     try {
-        // 모든 글 조회 (최대 50개)
-        const result = await getPostsAction(1, 50);
+        // URL 파라미터에서 정렬 옵션 추출 (기본값: latest)
+        const sortBy = (searchParams.sort as SortOption) || 'latest';
+
+        // 정렬 옵션 유효성 검사
+        const validSortOptions: SortOption[] = [
+            'latest',
+            'popular',
+            'likes',
+            'oldest',
+        ];
+        const validSortBy = validSortOptions.includes(sortBy)
+            ? sortBy
+            : 'latest';
+
+        // 모든 글 조회 (최대 50개, 정렬 적용)
+        const result = await getPostsAction(1, 50, validSortBy);
         const posts = result.posts;
 
         return (
             <div className="bg-background min-h-screen">
                 <div className="container mx-auto px-4 py-8">
                     {/* 헤더 */}
-                    <div className="mb-8 flex items-center gap-4">
-                        <Button
-                            variant="outline"
-                            asChild
-                            className="flex items-center gap-2"
-                        >
-                            <Link href="/">
-                                <ArrowLeft className="h-4 w-4" />
-                                홈으로
-                            </Link>
-                        </Button>
-                        <h1 className="text-3xl font-bold">모든 글</h1>
+                    <div className="mb-8 space-y-4">
+                        {/* 홈으로 버튼 */}
+                        <div className="flex justify-start">
+                            <Button
+                                variant="outline"
+                                asChild
+                                className="flex items-center gap-2"
+                            >
+                                <Link href="/">
+                                    <ArrowLeft className="h-4 w-4" />
+                                    홈으로
+                                </Link>
+                            </Button>
+                        </div>
+
+                        {/* 제목과 정렬 선택기 */}
+                        <div className="flex items-center justify-between gap-4">
+                            <h1 className="text-3xl font-bold">모든 글</h1>
+
+                            {/* 정렬 선택기 */}
+                            <SortSelector currentSort={validSortBy} />
+                        </div>
                     </div>
 
                     {/* 글 목록 */}
@@ -47,13 +78,6 @@ export default async function PostsPage() {
                             {posts.map((post) => (
                                 <PostCard key={post.id} post={post} />
                             ))}
-                        </div>
-                    )}
-
-                    {/* 글 개수 표시 */}
-                    {posts.length > 0 && (
-                        <div className="text-muted-foreground mt-8 text-center">
-                            총 {posts.length}개의 글이 있습니다.
                         </div>
                     )}
                 </div>
