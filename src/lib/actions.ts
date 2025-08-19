@@ -59,7 +59,7 @@ export async function createPostAction(formData: FormData) {
         // 캐시 무효화 및 리다이렉트
         revalidatePath('/admin/posts');
         revalidatePath('/posts');
-        redirect('/admin/posts');
+        redirect(`/posts/${post.id}`);
     } catch (error) {
         throw error;
     }
