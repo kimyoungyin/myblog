@@ -65,18 +65,23 @@ export default async function PostPage({ params }: PostPageProps) {
                             </h1>
 
                             {/* 메타 정보 */}
-                            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                                <span>
-                                    작성일: {formatDate(post.created_at)}
-                                </span>
-                                {post.updated_at !== post.created_at && (
+                            <div className="flex flex-wrap items-start justify-between gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                <div className="flex flex-col gap-1">
                                     <span>
-                                        수정일: {formatDate(post.updated_at)}
+                                        작성일: {formatDate(post.created_at)}
                                     </span>
-                                )}
-                                <span>조회수: {post.view_count}</span>
-                                <span>좋아요: {post.likes_count}</span>
-                                <span>댓글: {post.comments_count}</span>
+                                    {post.updated_at !== post.created_at && (
+                                        <span className="text-xs">
+                                            (마지막 수정:{' '}
+                                            {formatDate(post.updated_at)})
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex gap-2">
+                                    {/* <span>조회수: {post.view_count}</span> */}
+                                    <span>좋아요: {post.likes_count}</span>
+                                    {/* <span>댓글: {post.comments_count}</span> */}
+                                </div>
                             </div>
 
                             {/* 해시태그 */}
