@@ -150,22 +150,20 @@ export function SearchResultsWrapper({
                         {posts.map((post) => (
                             <PostCard key={post.id} post={post} />
                         ))}
+
+                        {/* 무한 스크롤 로딩 Skeleton - 기존 grid와 자연스럽게 연결 */}
+                        {isFetchingNextPage &&
+                            Array.from({ length: 3 }).map((_, index) => (
+                                <SinglePostCardSkeleton
+                                    key={`skeleton-${index}`}
+                                />
+                            ))}
                     </div>
 
                     {/* 무한 스크롤 트리거 */}
                     {hasNextPage && (
                         <div ref={ref} className="py-8 text-center">
-                            {isFetchingNextPage && (
-                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                    {Array.from({ length: 3 }).map(
-                                        (_, index) => (
-                                            <SinglePostCardSkeleton
-                                                key={index}
-                                            />
-                                        )
-                                    )}
-                                </div>
-                            )}
+                            {/* 트리거 영역만 유지, Skeleton은 위의 grid에 포함 */}
                         </div>
                     )}
 
