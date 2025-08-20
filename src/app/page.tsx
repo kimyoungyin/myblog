@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { getPostsAction } from '@/lib/actions';
+import { getRecentPostsAction } from '@/lib/actions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
@@ -9,7 +9,7 @@ import { PostCard } from '@/components/post-card';
 export default async function HomePage() {
     try {
         // 최신 글 10개 조회
-        const result = await getPostsAction(1);
+        const result = await getRecentPostsAction();
         const posts = result.posts;
 
         return (

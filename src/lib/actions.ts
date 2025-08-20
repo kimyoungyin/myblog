@@ -298,6 +298,15 @@ export async function deletePostAction(postId: number) {
     }
 }
 
+// 홈페이지 최신 글 조회 Server Action
+export async function getRecentPostsAction() {
+    try {
+        return await getPosts(1, 6);
+    } catch (error) {
+        throw error;
+    }
+}
+
 // 글 목록 조회 Server Action (읽기 전용, 정렬 기능 포함)
 export async function getPostsAction(
     page: number = 1,
