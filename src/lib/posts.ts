@@ -222,7 +222,8 @@ export async function getPosts(
     page: number = 1,
     limit: number = 10,
     sortBy: PostSort = 'latest',
-    hashtag?: string
+    hashtag?: string,
+    searchQuery?: string
 ): Promise<{ posts: Post[]; total: number }> {
     try {
         // Service Role Supabase 클라이언트 생성 (RLS 우회)
@@ -246,6 +247,14 @@ export async function getPosts(
         // 해시태그 필터링
         if (hashtag && hashtag.trim().length > 0) {
             query = query.eq('post_hashtags.hashtags.name', hashtag.trim());
+        }
+
+        // 검색어 필터링 (제목 또는 내용에서 검색)
+        if (searchQuery && searchQuery.trim().length > 0) {
+            const trimmedQuery = searchQuery.trim();
+            query = query.or(
+                `title.ilike.%${trimmedQuery}%,content_markdown.ilike.%${trimmedQuery}%`
+            );
         }
 
         // 정렬 기준에 따른 쿼리 구성
