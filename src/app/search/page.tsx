@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { SearchResultsWrapper } from '@/components/search/SearchResultsWrapper';
 import { SearchBar } from '@/components/ui/search-bar';
+import { SearchResultsSkeleton } from '@/components/ui/search-results-skeleton';
 
 interface SearchPageProps {
     searchParams: Promise<{
@@ -52,16 +53,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 {/* 검색 결과 표시 */}
                 <Suspense
                     key={`${query}-${currentPage}`}
-                    fallback={
-                        <div className="flex min-h-[400px] items-center justify-center">
-                            <div className="flex items-center gap-2">
-                                <div className="border-primary h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" />
-                                <span className="text-muted-foreground text-sm">
-                                    검색 결과를 불러오는 중...
-                                </span>
-                            </div>
-                        </div>
-                    }
+                    fallback={<SearchResultsSkeleton count={6} />}
                 >
                     <SearchResultsSection searchQuery={query} />
                 </Suspense>

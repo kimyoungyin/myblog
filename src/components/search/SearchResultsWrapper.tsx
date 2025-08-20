@@ -10,6 +10,7 @@ import { useInView } from 'react-intersection-observer';
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
+import { SinglePostCardSkeleton } from '@/components/ui/search-results-skeleton';
 
 interface SearchResultsWrapperProps {
     initialPosts: Post[];
@@ -155,11 +156,14 @@ export function SearchResultsWrapper({
                     {hasNextPage && (
                         <div ref={ref} className="py-8 text-center">
                             {isFetchingNextPage && (
-                                <div className="flex items-center justify-center gap-2">
-                                    <div className="border-primary h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" />
-                                    <span className="text-muted-foreground text-sm">
-                                        더 많은 검색 결과를 불러오는 중...
-                                    </span>
+                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                    {Array.from({ length: 3 }).map(
+                                        (_, index) => (
+                                            <SinglePostCardSkeleton
+                                                key={index}
+                                            />
+                                        )
+                                    )}
                                 </div>
                             )}
                         </div>
