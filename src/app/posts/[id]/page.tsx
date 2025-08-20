@@ -2,7 +2,6 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import { getPostAction, incrementViewCountAction } from '@/lib/actions';
 import { MarkdownRenderer } from '@/components/editor/MarkdownRenderer';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -10,6 +9,7 @@ import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import ToEditButton from '@/components/ui/toEditButton';
 import { AlertTriangle } from 'lucide-react';
+import { HashtagLink } from '@/components/ui/hashtag-link';
 
 interface PostPageProps {
     params: Promise<{
@@ -112,15 +112,16 @@ export default async function PostPage({ params }: PostPageProps) {
                             {/* 해시태그 */}
                             {post.hashtags && post.hashtags.length > 0 && (
                                 <div className="flex flex-wrap gap-2">
-                                    {post.hashtags.map((hashtag) => (
-                                        <Badge
-                                            key={hashtag.id}
-                                            variant="secondary"
-                                            className="text-xs"
-                                        >
-                                            #{hashtag.name}
-                                        </Badge>
-                                    ))}
+                                    {post.hashtags
+                                        .sort((a, b) =>
+                                            a.name.localeCompare(b.name)
+                                        )
+                                        .map((hashtag) => (
+                                            <HashtagLink
+                                                key={hashtag.id}
+                                                hashtag={hashtag}
+                                            />
+                                        ))}
                                 </div>
                             )}
                         </div>

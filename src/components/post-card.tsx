@@ -1,11 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Calendar, Eye, Heart, MessageSquare } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import Image from 'next/image';
 import { Post } from '@/types';
+import { HashtagLink } from '@/components/ui/hashtag-link';
 
 interface PostCardProps {
     post: Post;
@@ -76,20 +76,10 @@ export const PostCard: React.FC<PostCardProps> = ({
                         {post.hashtags
                             .sort((a, b) => a.name.localeCompare(b.name))
                             .map((hashtag) => (
-                                <Link
+                                <HashtagLink
                                     key={hashtag.id}
-                                    href={`/posts?tag=${encodeURIComponent(
-                                        hashtag.name
-                                    )}`}
-                                    className="cursor-pointer"
-                                >
-                                    <Badge
-                                        variant="secondary"
-                                        className="text-xs"
-                                    >
-                                        #{hashtag.name}
-                                    </Badge>
-                                </Link>
+                                    hashtag={hashtag}
+                                />
                             ))}
                     </div>
                 )}
