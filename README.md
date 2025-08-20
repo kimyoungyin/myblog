@@ -286,7 +286,7 @@ CREATE TABLE likes (
     - [x] updateImageUrlsInMarkdown 함수 재사용
     - [x] file-upload.ts의 함수들을 actions.ts에서 import하여 사용
 
-### Phase 6: 글 목록 및 상세 페이지
+### Phase 6: 글 목록 및 상세 페이지 ✅
 
 - [x] 홈페이지 글 목록 표시
 - [x] 반응형 그리드 레이아웃 (모바일 1열, 데스크탑 3열)
@@ -317,9 +317,14 @@ CREATE TABLE likes (
         - [x] retry: 3회 (네트워크 오류 시 재시도)
     - [x] 정렬 기준별 캐시 분리 및 안정성 보장
     - [x] React Key 중복 에러 해결 (2차 정렬로 데이터 일관성 확보)
-    - [x] 글 상세 캐싱
-    - [x] 해시태그별 글 목록 캐싱
+    - [x] 글 상세 캐싱 (Next.js 기본 페이지 캐싱)
+    - [x] 해시태그별 글 목록 캐싱 (Next.js 기본 페이지 캐싱)
     - [x] 무한 스크롤 캐싱 최적화
+- [x] UI 컴포넌트 개선
+    - [x] HashtagLink 재사용 가능한 컴포넌트 생성
+    - [x] PostCard UI 개선 및 모든 해시태그 표시
+    - [x] 사용되지 않는 FileUploadZone 컴포넌트 제거
+    - [x] 페이지 크기 상수화 및 코드 품질 개선
 
 ### Phase 7: 검색 및 필터링
 
@@ -389,14 +394,15 @@ CREATE TABLE likes (
 - [ ] UserMenu (프로필 클릭 시 나타나는 Dialog)
 - [ ] SearchBar (검색어 + 해시태그 입력)
 - [ ] HashtagAutocomplete (해시태그 자동완성)
-- [ ] PostCard (글 목록의 개별 글)
+- [x] PostCard (글 목록의 개별 글) ✅
+- [x] HashtagLink (재사용 가능한 해시태그 링크) ✅
 - [ ] CommentForm (댓글 작성 폼)
 - [ ] CommentItem (댓글/대댓글 표시)
-- [ ] MarkdownEditor (마크다운 작성 + 미리보기)
+- [x] MarkdownEditor (마크다운 작성 + 미리보기) ✅
 - [ ] Pagination (페이지네이션)
 - [ ] LoadingSpinner (로딩 상태)
-- [ ] QueryProvider (React Query 설정)
-- [ ] CacheBoundary (캐시 경계 컴포넌트)
+- [x] QueryProvider (React Query 설정) ✅
+- [x] CacheBoundary (캐시 경계 컴포넌트) ✅
 
 ## 환경 설정 파일
 
