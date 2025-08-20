@@ -52,13 +52,10 @@ const Header = memo(function Header() {
                 {/* 사용자 메뉴 및 테마 토글 */}
                 <div className="flex items-center space-x-4">
                     {/* 검색 버튼 - 모바일과 데스크탑 모두에서 표시 */}
-                    <Button asChild variant="outline" size="sm">
-                        <Link
-                            href="/search"
-                            className="flex items-center gap-2"
-                        >
-                            <Search className="h-4 w-4" />
-                            <span className="hidden sm:inline">검색</span>
+                    <Button asChild variant="ghost" size="sm">
+                        <Link href="/search">
+                            <Search className="h-4 w-4" aria-hidden />
+                            <span className="sr-only">검색</span>
                         </Link>
                     </Button>
 

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { getPostsAction } from '@/lib/actions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { SearchResultsWrapper } from '@/components/search/SearchResultsWrapper';
 import { SearchBar } from '@/components/ui/search-bar';
 
@@ -46,10 +46,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                         </Button>
                     </div>
 
-                    {/* 페이지 제목: screen reader 접근성을 위해 요소는 살리되 화면에 표시하지 않음 */}
-                    <h1 className="hidden text-3xl font-bold">
-                        {query ? '검색 결과' : '검색'}
-                    </h1>
+                    <h1 className="sr-only">{query ? '검색 결과' : '검색'}</h1>
                 </div>
 
                 {/* 검색 결과 표시 */}
