@@ -418,7 +418,7 @@ async function createHashtag(name: string): Promise<Hashtag | null> {
 
 ```typescript
 // 디바운싱을 적용한 실시간 검색
-const debouncedHashtagQuery = useDebounce(newHashtag, 300);
+const [debouncedHashtagQuery] = useDebounce(newHashtag, 300);
 
 useEffect(() => {
     const searchHashtagSuggestions = async () => {
@@ -439,7 +439,7 @@ useEffect(() => {
 
 **학습 포인트**:
 
-- `useDebounce` 훅으로 불필요한 API 호출 방지
+- `use-debounce` 라이브러리로 불필요한 API 호출 방지
 - 최소 2글자 이상 입력 시 검색 시작
 - 실시간 검색 결과 표시 및 선택
 
@@ -500,31 +500,20 @@ if (!validationResult.success) {
 - **Zod 최신 버전 호환성**: `error.errors` → `error.issues`로 변경됨
 - **타입 안전성**: `z.ZodError` 타입을 활용한 에러 처리
 
-### 7. 커스텀 훅 활용
+### 7. 디바운싱 라이브러리 활용
 
 ```typescript
-// useDebounce 훅
-export function useDebounce<T>(value: T, delay: number): T {
-    const [debouncedValue, setDebouncedValue] = useState<T>(value);
+// use-debounce 라이브러리 활용
+import { useDebounce } from 'use-debounce';
 
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            setDebouncedValue(value);
-        }, delay);
-
-        return () => {
-            clearTimeout(handler);
-        };
-    }, [value, delay]);
-
-    return debouncedValue;
-}
+// 디바운싱된 해시태그 검색어 (300ms 지연)
+const [debouncedHashtagQuery] = useDebounce(newHashtag, 300);
 ```
 
 **학습 포인트**:
 
-- 재사용 가능한 커스텀 훅 설계
-- `setTimeout`과 `clearTimeout`을 활용한 디바운싱
+- 외부 라이브러리를 활용한 안정적인 디바운싱
+- 튜플 구조분해를 통한 값 추출 (`const [debouncedValue]`)
 - TypeScript 제네릭을 활용한 타입 안전성
 
 ### 8. 이미지 업로드 시스템 ⚠️
@@ -1325,8 +1314,7 @@ src/
 │   ├── schemas.ts                # Zod 검증 스키마
 │   └── supabase.ts               # 타입 정의
 ├── hooks/
-│   ├── useAuth.ts                # 인증 상태 관리 훅
-│   └── useDebounce.ts            # 디바운싱 훅
+│   └── useAuth.ts                # 인증 상태 관리 훅
 ├── stores/
 │   └── auth-store.ts             # Zustand 인증 상태 관리
 └── middleware.ts                  # 미들웨어
