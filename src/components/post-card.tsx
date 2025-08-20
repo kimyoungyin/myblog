@@ -73,24 +73,24 @@ export const PostCard: React.FC<PostCardProps> = ({
                 {/* 해시태그 */}
                 {post.hashtags && post.hashtags.length > 0 && (
                     <div className="flex flex-wrap gap-1">
-                        {post.hashtags.slice(0, 3).map((hashtag) => (
-                            <Link
-                                key={hashtag.id}
-                                href={`/posts?tag=${encodeURIComponent(
-                                    hashtag.name
-                                )}`}
-                                className="cursor-pointer"
-                            >
-                                <Badge variant="secondary" className="text-xs">
-                                    #{hashtag.name}
-                                </Badge>
-                            </Link>
-                        ))}
-                        {post.hashtags.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                                +{post.hashtags.length - 3}
-                            </Badge>
-                        )}
+                        {post.hashtags
+                            .sort((a, b) => a.name.localeCompare(b.name))
+                            .map((hashtag) => (
+                                <Link
+                                    key={hashtag.id}
+                                    href={`/posts?tag=${encodeURIComponent(
+                                        hashtag.name
+                                    )}`}
+                                    className="cursor-pointer"
+                                >
+                                    <Badge
+                                        variant="secondary"
+                                        className="text-xs"
+                                    >
+                                        #{hashtag.name}
+                                    </Badge>
+                                </Link>
+                            ))}
                     </div>
                 )}
             </CardContent>
