@@ -10,7 +10,8 @@ import {
     clearTempFolder,
 } from './file-upload-server';
 import { CreatePostData, UpdatePostData } from './schemas';
-import { Post } from '@/types';
+import { Post, type PostSort } from '@/types';
+import type { PostgrestError } from '@supabase/supabase-js';
 
 /**
  * 새 글 생성
@@ -215,18 +216,20 @@ export async function deletePost(postId: number): Promise<boolean> {
 }
 
 /**
- * 글 목록 조회 (페이지네이션)
+ * 글 목록 조회 (정렬 기능 포함)
  */
 export async function getPosts(
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
+    sortBy: PostSort = 'latest',
+    hashtag?: string
 ): Promise<{ posts: Post[]; total: number }> {
     try {
         // Service Role Supabase 클라이언트 생성 (RLS 우회)
         const supabase = await createServiceRoleClient();
 
         // 글과 해시태그 정보를 함께 조회
-        const query = supabase.from('posts').select(
+        let query = supabase.from('posts').select(
             `
                 *,
                 post_hashtags!inner(
@@ -240,25 +243,41 @@ export async function getPosts(
             { count: 'exact' }
         );
 
-        // 해시태그 필터링 (현재는 기본 조회만 구현, 추후 확장)
-        // if (hashtag) {
-        //   query = query
-        //     .select(`
-        //       *,
-        //       post_hashtags!inner(
-        //         hashtags!inner(name)
-        //       )
-        //     `)
-        //     .eq('post_hashtags.hashtags.name', hashtag);
-        // }
+        // 해시태그 필터링
+        if (hashtag && hashtag.trim().length > 0) {
+            query = query.eq('post_hashtags.hashtags.name', hashtag.trim());
+        }
+
+        // 정렬 기준에 따른 쿼리 구성
+        let sortedQuery = query;
+        switch (sortBy) {
+            case 'latest':
+                sortedQuery = query.order('created_at', { ascending: false });
+                break;
+            case 'oldest':
+                sortedQuery = query.order('created_at', { ascending: true });
+                break;
+            case 'popular':
+                // 인기순: 조회수 내림차순 → id 오름차순 (2차 정렬로 안정성 보장)
+                sortedQuery = query
+                    .order('view_count', { ascending: false })
+                    .order('id', { ascending: true });
+                break;
+            case 'likes':
+                // 좋아요순: 좋아요 수 내림차순 → id 오름차순 (2차 정렬로 안정성 보장)
+                sortedQuery = query
+                    .order('likes_count', { ascending: false })
+                    .order('id', { ascending: true });
+                break;
+            default:
+                sortedQuery = query.order('created_at', { ascending: false });
+        }
 
         const {
             data: posts,
             error,
             count,
-        } = await query
-            .order('created_at', { ascending: false })
-            .range((page - 1) * limit, page * limit - 1);
+        } = await sortedQuery.range((page - 1) * limit, page * limit - 1);
 
         if (error) {
             throw new Error('글 목록 조회에 실패했습니다.');
@@ -314,7 +333,17 @@ export async function getPost(postId: number): Promise<Post | null> {
             .single();
 
         if (error) {
-            return null;
+            const pgError = error as PostgrestError;
+            // PostgREST에서 .single() 사용 시 행이 없으면 오류가 발생함
+            // 해당 케이스는 404/406 또는 PGRST116 코드로 보고될 수 있으므로 방어적으로 체크
+            const isNoRow =
+                pgError?.code === 'PGRST116' ||
+                pgError?.details?.toLowerCase?.().includes('0 rows') ||
+                pgError?.message?.toLowerCase?.().includes('no rows');
+            if (isNoRow) {
+                return null;
+            }
+            throw new Error('글 상세 조회에 실패했습니다.', { cause: error });
         }
 
         // 해시태그 정보를 Post 객체에 추가
@@ -329,7 +358,7 @@ export async function getPost(postId: number): Promise<Post | null> {
         }
 
         return post;
-    } catch {
-        return null;
+    } catch (error) {
+        throw error;
     }
 }

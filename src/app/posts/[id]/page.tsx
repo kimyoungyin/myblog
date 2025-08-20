@@ -1,14 +1,15 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
-import { getPostAction } from '@/lib/actions';
+import { getPostAction, incrementViewCountAction } from '@/lib/actions';
 import { MarkdownRenderer } from '@/components/editor/MarkdownRenderer';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import ToEditButton from '@/components/ui/toEditButton';
+import { AlertTriangle } from 'lucide-react';
+import { HashtagLink } from '@/components/ui/hashtag-link';
 
 interface PostPageProps {
     params: Promise<{
@@ -30,9 +31,40 @@ export default async function PostPage({ params }: PostPageProps) {
             notFound();
         }
 
+        // 조회수 증가 시도 (실패해도 글은 표시)
+        let viewCountError = false;
+        let viewCountErrorMessage = '';
+        try {
+            const viewCountResult = await incrementViewCountAction(postId);
+            if (!viewCountResult.success) {
+                viewCountError = true;
+                viewCountErrorMessage = '조회수 증가에 실패했습니다.';
+            }
+        } catch (error) {
+            console.error('조회수 증가 실패:', error);
+            viewCountError = true;
+            // actions.ts에서 던진 에러 메시지를 그대로 사용
+            if (error instanceof Error) {
+                viewCountErrorMessage = error.message;
+            } else {
+                viewCountErrorMessage = '조회수 증가 중 오류가 발생했습니다.';
+            }
+        }
+
         return (
             <div className="bg-background min-h-screen">
                 <div className="container mx-auto max-w-4xl px-4 py-8">
+                    {/* 조회수 증가 실패 경고 */}
+                    {viewCountError && (
+                        <div className="mb-6 rounded-lg bg-yellow-50 p-4 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
+                            <p className="flex items-center gap-2">
+                                <AlertTriangle className="h-4 w-4" />
+                                {viewCountErrorMessage} 이는 일시적인 문제일 수
+                                있습니다.
+                            </p>
+                        </div>
+                    )}
+
                     {/* 헤더 */}
                     <div className="mb-6 flex items-center justify-between">
                         <Button
@@ -70,7 +102,8 @@ export default async function PostPage({ params }: PostPageProps) {
                                     )}
                                 </div>
                                 <div className="flex gap-2">
-                                    {/* <span>조회수: {post.view_count}</span> */}
+                                    {/* 들어오는 순간 조회수 증가할 것(낙관적 업데이트) */}
+                                    <span>조회수: {post.view_count}</span>
                                     <span>좋아요: {post.likes_count}</span>
                                     {/* <span>댓글: {post.comments_count}</span> */}
                                 </div>
@@ -79,15 +112,16 @@ export default async function PostPage({ params }: PostPageProps) {
                             {/* 해시태그 */}
                             {post.hashtags && post.hashtags.length > 0 && (
                                 <div className="flex flex-wrap gap-2">
-                                    {post.hashtags.map((hashtag) => (
-                                        <Badge
-                                            key={hashtag.id}
-                                            variant="secondary"
-                                            className="text-xs"
-                                        >
-                                            #{hashtag.name}
-                                        </Badge>
-                                    ))}
+                                    {post.hashtags
+                                        .sort((a, b) =>
+                                            a.name.localeCompare(b.name)
+                                        )
+                                        .map((hashtag) => (
+                                            <HashtagLink
+                                                key={hashtag.id}
+                                                hashtag={hashtag}
+                                            />
+                                        ))}
                                 </div>
                             )}
                         </div>

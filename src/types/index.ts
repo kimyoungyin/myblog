@@ -32,6 +32,9 @@ export interface Hashtag {
     created_at: string;
 }
 
+// 글 정렬 타입 (공용)
+export type PostSort = 'latest' | 'popular' | 'likes' | 'oldest';
+
 // 글 타입
 export interface Post {
     id: number;
@@ -74,7 +77,7 @@ export interface SearchParams {
     hashtags?: string[];
     page?: number;
     limit?: number;
-    sort?: 'latest' | 'popular';
+    sort?: PostSort;
 }
 
 // 파일 업로드 관련 타입

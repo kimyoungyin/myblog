@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { getPostsAction } from '@/lib/actions';
+import { getRecentPostsAction } from '@/lib/actions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
@@ -8,8 +8,8 @@ import { PostCard } from '@/components/post-card';
 
 export default async function HomePage() {
     try {
-        // 최신 글 6개 조회
-        const result = await getPostsAction(1, 6);
+        // 최신 글 10개 조회
+        const result = await getRecentPostsAction();
         const posts = result.posts;
 
         return (
@@ -66,28 +66,6 @@ export default async function HomePage() {
                             </div>
                         )}
                     </div>
-
-                    {/* CTA 섹션 */}
-                    <Card className="from-primary/10 to-primary/5 border-primary/20 bg-gradient-to-r">
-                        <CardContent className="p-8 text-center">
-                            <h3 className="mb-4 text-2xl font-bold">
-                                더 많은 글을 보고 싶으신가요?
-                            </h3>
-                            <p className="text-muted-foreground mb-6">
-                                다양한 주제의 기술 글과 개발 경험을
-                                확인해보세요.
-                            </p>
-                            <Button asChild size="lg">
-                                <Link
-                                    href="/posts"
-                                    className="flex items-center gap-2"
-                                >
-                                    모든 글 보기
-                                    <ArrowRight className="h-4 w-4" />
-                                </Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
                 </div>
             </div>
         );
