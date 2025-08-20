@@ -100,7 +100,7 @@
 
 ### ✅ 이미지/비디오 업로드 기능
 
-- **파일**: `src/components/editor/FileUploadZone.tsx` (15KB, 400줄)
+- **파일**: `src/components/editor/MarkdownEditor.tsx` (파일 업로드 기능 포함)
 - **기능**:
     - Supabase Storage 활용한 파일 업로드
     - 드래그 앤 드롭 지원
@@ -1310,7 +1310,7 @@ src/
 │   ├── editor/
 │   │   ├── MarkdownEditor.tsx    # 마크다운 에디터
 │   │   ├── MarkdownRenderer.tsx  # 마크다운 렌더러
-│   │   └── FileUploadZone.tsx    # 파일 업로드 영역
+│   │   └── (파일 업로드 기능은 MarkdownEditor에 통합)
 │   ├── providers/ (SupabaseProvider 제거됨)
 │   └── ui/
 │       └── badge.tsx             # 배지 컴포넌트
@@ -1379,8 +1379,8 @@ manageImageFiles 실행
 
 ### 1. 이미지 미리보기 문제
 
-**문제**: `FileUploadZone`에서 이미지 파일이 아이콘으로만 표시됨
-**원인**: `getFileIcon` 함수에서 이미지 타입을 단순 아이콘으로 처리
+**문제**: 이미지 파일이 아이콘으로만 표시됨
+**원인**: 이미지 타입을 단순 아이콘으로 처리
 **해결**: 실제 이미지 태그를 사용하고 로드 실패 시 fallback 아이콘 표시
 
 ### 2. 임시 파일 관리 문제

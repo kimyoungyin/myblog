@@ -242,7 +242,7 @@ CREATE TABLE likes (
         - [x] 홈페이지 썸네일 최적화
         - [x] 글 목록 썸네일 최적화
         - [x] 글 내용 이미지 최적화 (MarkdownRenderer)
-        - [x] 파일 미리보기 이미지 최적화 (FileUploadZone)
+        - [x] 파일 미리보기 이미지 최적화 (MarkdownEditor)
         - [x] 우선순위 로딩 (첫 3개 이미지)
         - [x] 자동 이미지 포맷 최적화 (WebP, AVIF)
         - [x] 반응형 이미지 및 lazy loading
