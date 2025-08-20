@@ -10,6 +10,7 @@ import { AdminCreateHint } from '@/components/AdminCreateHint';
 import { useInView } from 'react-intersection-observer';
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import { SinglePostCardSkeleton } from '@/components/ui/search-results-skeleton';
 
 function EmptyHint({ activeTag }: { activeTag?: string }) {
     return (
@@ -106,8 +107,15 @@ export default function PostWrapper({
                     {posts.map((post) => (
                         <PostCard key={post.id} post={post} />
                     ))}
+
+                    {/* 무한 스크롤 로딩 Skeleton */}
+                    {isFetchingNextPage &&
+                        Array.from({ length: 3 }).map((_, index) => (
+                            <SinglePostCardSkeleton key={`skeleton-${index}`} />
+                        ))}
                 </div>
             )}
+
             {hasNextPage && (
                 <div ref={ref} className="py-8 text-center">
                     {isFetchingNextPage && (
