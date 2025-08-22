@@ -15,10 +15,17 @@ import { SinglePostCardSkeleton } from '@/components/ui/search-results-skeleton'
 interface SearchResultsWrapperProps {
     initialPosts: Post[];
     searchQuery: string;
+    hashtagIds?: number[];
     totalResults: number;
 }
 
-function SearchEmptyHint({ searchQuery }: { searchQuery: string }) {
+function SearchEmptyHint({
+    searchQuery,
+    hashtagIds,
+}: {
+    searchQuery: string;
+    hashtagIds?: number[];
+}) {
     return (
         <Card className="flex min-h-[400px] items-center justify-center">
             <CardContent className="p-12 text-center">
@@ -27,8 +34,18 @@ function SearchEmptyHint({ searchQuery }: { searchQuery: string }) {
                     검색 결과가 없습니다
                 </h2>
                 <p className="text-muted-foreground mb-6">
-                    &quot;{searchQuery}&quot;에 대한 검색 결과를 찾을 수
-                    없습니다.
+                    {searchQuery ? (
+                        <>
+                            &quot;{searchQuery}&quot;에 대한 검색 결과를 찾을 수
+                            없습니다.
+                        </>
+                    ) : hashtagIds && hashtagIds.length > 0 ? (
+                        <>
+                            선택된 해시태그에 대한 검색 결과를 찾을 수 없습니다.
+                        </>
+                    ) : (
+                        <>검색 결과를 찾을 수 없습니다.</>
+                    )}
                 </p>
                 <div className="space-y-2">
                     <p className="text-muted-foreground text-sm">
@@ -51,10 +68,11 @@ function SearchInitialState() {
             <CardContent className="p-12 text-center">
                 <Search className="text-muted-foreground mx-auto mb-4 h-12 w-12" />
                 <h2 className="mb-4 text-xl font-semibold">
-                    검색어를 입력해주세요
+                    검색어를 입력하거나 해시태그를 선택해주세요
                 </h2>
                 <p className="text-muted-foreground text-sm">
-                    제목이나 내용에 포함된 키워드로 검색할 수 있습니다.
+                    제목이나 내용에 포함된 키워드로 검색하거나, 해시태그를
+                    선택하여 관련 글을 찾을 수 있습니다.
                 </p>
             </CardContent>
         </Card>
@@ -64,13 +82,20 @@ function SearchInitialState() {
 export function SearchResultsWrapper({
     initialPosts,
     searchQuery,
+    hashtagIds,
     totalResults,
 }: SearchResultsWrapperProps) {
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isError } =
         useInfiniteQuery({
-            queryKey: ['search', searchQuery],
+            queryKey: ['search', searchQuery, ...(hashtagIds || [])],
             queryFn: ({ pageParam }) =>
-                getPostsAction(pageParam, 'latest', undefined, searchQuery),
+                getPostsAction(
+                    pageParam,
+                    'latest',
+                    undefined,
+                    hashtagIds,
+                    searchQuery
+                ),
             initialPageParam: 1,
             initialData: {
                 pages: [{ posts: initialPosts, total: totalResults }],
@@ -130,19 +155,42 @@ export function SearchResultsWrapper({
 
     return (
         <div className="min-h-[400px] transition-all duration-300 ease-in-out">
-            {!searchQuery ? (
+            {!searchQuery && (!hashtagIds || hashtagIds.length === 0) ? (
                 <SearchInitialState />
             ) : posts.length === 0 ? (
-                <SearchEmptyHint searchQuery={searchQuery} />
+                <SearchEmptyHint
+                    searchQuery={searchQuery}
+                    hashtagIds={hashtagIds}
+                />
             ) : (
                 <div className="space-y-6">
                     {/* 검색 결과 요약 */}
                     <p className="text-muted-foreground text-xl">
-                        총{' '}
-                        <span className="text-foreground font-semibold">
-                            {totalResults}
-                        </span>
-                        개의 검색 결과를 찾았습니다.
+                        {searchQuery ? (
+                            <>
+                                &quot;{searchQuery}&quot;에 대한{' '}
+                                <span className="text-foreground font-semibold">
+                                    {totalResults}
+                                </span>
+                                개의 검색 결과를 찾았습니다.
+                            </>
+                        ) : hashtagIds && hashtagIds.length > 0 ? (
+                            <>
+                                선택된 해시태그에 대한{' '}
+                                <span className="text-foreground font-semibold">
+                                    {totalResults}
+                                </span>
+                                개의 검색 결과를 찾았습니다.
+                            </>
+                        ) : (
+                            <>
+                                총{' '}
+                                <span className="text-foreground font-semibold">
+                                    {totalResults}
+                                </span>
+                                개의 검색 결과를 찾았습니다.
+                            </>
+                        )}
                     </p>
 
                     {/* 검색 결과 목록 */}
