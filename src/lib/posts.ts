@@ -223,6 +223,7 @@ export async function getPosts(
     limit: number = 10,
     sortBy: PostSort = 'latest',
     hashtag?: string,
+    hashtagIds?: number[],
     searchQuery?: string
 ): Promise<{ posts: Post[]; total: number }> {
     try {
@@ -244,8 +245,12 @@ export async function getPosts(
             { count: 'exact' }
         );
 
-        // 해시태그 필터링
-        if (hashtag && hashtag.trim().length > 0) {
+        // 해시태그 필터링 (이름 또는 ID 기반)
+        if (hashtagIds && hashtagIds.length > 0) {
+            // 해시태그 ID 배열로 필터링
+            query = query.in('post_hashtags.hashtags.id', hashtagIds);
+        } else if (hashtag && hashtag.trim().length > 0) {
+            // 해시태그 이름으로 필터링 (기존 방식)
             query = query.eq('post_hashtags.hashtags.name', hashtag.trim());
         }
 
