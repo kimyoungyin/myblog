@@ -10,7 +10,7 @@ import {
     clearTempFolder,
 } from './file-upload-server';
 import { CreatePostData, UpdatePostData } from './schemas';
-import { Post, type PostSort } from '@/types';
+import { Post, type PostSort, PostWithHashtagsRPC } from '@/types';
 import type { PostgrestError } from '@supabase/supabase-js';
 
 /**
@@ -230,7 +230,44 @@ export async function getPosts(
         // Service Role Supabase 클라이언트 생성 (RLS 우회)
         const supabase = await createServiceRoleClient();
 
-        // 글과 해시태그 정보를 함께 조회
+        // 해시태그 ID 배열이 있는 경우 RPC 함수 사용 (AND 조건)
+        if (hashtagIds && hashtagIds.length > 0) {
+            const { data: rpcResults, error: rpcError } = await supabase.rpc(
+                'get_posts_with_all_hashtags',
+                {
+                    hashtag_ids: hashtagIds,
+                    page_offset: (page - 1) * limit,
+                    page_limit: limit,
+                    sort_by: sortBy,
+                    search_query: searchQuery?.trim() || null,
+                }
+            );
+
+            if (rpcError) {
+                throw new Error('해시태그 검색에 실패했습니다.');
+            }
+
+            // RPC 결과를 Post 타입으로 변환 (더미 행 제거)
+            const posts = (rpcResults || [])
+                .filter(
+                    (result: PostWithHashtagsRPC) =>
+                        result.id !== null && result.id !== -1 && result.id > 0
+                ) // 더미 행 제거
+                .map((result: PostWithHashtagsRPC) => ({
+                    ...result,
+                    hashtags: result.hashtags || [],
+                }));
+
+            // 첫 번째 결과에서 total_count 추출 (더미 행이라도 total_count는 항상 반환됨)
+            const total = rpcResults?.[0]?.total_count || 0;
+
+            return {
+                posts,
+                total: Number(total),
+            };
+        }
+
+        // 기존 방식: 해시태그 이름으로 검색하거나 전체 글 조회
         let query = supabase.from('posts').select(
             `
                 *,
@@ -245,12 +282,8 @@ export async function getPosts(
             { count: 'exact' }
         );
 
-        // 해시태그 필터링 (이름 또는 ID 기반)
-        if (hashtagIds && hashtagIds.length > 0) {
-            // 해시태그 ID 배열로 필터링
-            query = query.in('post_hashtags.hashtags.id', hashtagIds);
-        } else if (hashtag && hashtag.trim().length > 0) {
-            // 해시태그 이름으로 필터링 (기존 방식)
+        // 해시태그 이름으로 필터링 (기존 방식)
+        if (hashtag && hashtag.trim().length > 0) {
             query = query.eq('post_hashtags.hashtags.name', hashtag.trim());
         }
 
