@@ -326,17 +326,51 @@ CREATE TABLE likes (
     - [x] 사용되지 않는 FileUploadZone 컴포넌트 제거
     - [x] 페이지 크기 상수화 및 코드 품질 개선
 
-### Phase 7: 검색 및 필터링
+### Phase 7: 검색 및 필터링 ✅
 
-- [x] 검색바 컴포넌트
-- [ ] 검색어 + 해시태그 조합 검색
-- [ ] 해시태그 자동완성 검색
-- [x] 검색 결과 페이지
+- [x] 검색바 컴포넌트 (`src/components/ui/search-bar.tsx`)
+    - [x] 디바운싱을 통한 검색 성능 최적화 (300ms 지연)
+    - [x] URL 파라미터 기반 검색 상태 관리
+    - [x] 검색어 초기화 기능 (X 버튼)
+    - [x] 검색 시 페이지 자동 리셋 (page=1)
+    - [x] 반응형 디자인 및 접근성 고려
+- [x] 검색 결과 페이지 (`src/app/search/page.tsx`)
+    - [x] 검색바를 최상단에 고정 (sticky positioning)
+    - [x] Suspense를 통한 로딩 상태 관리
+    - [x] 검색어가 없을 때의 안내 메시지
+    - [x] 뒤로가기 버튼으로 글 목록으로 이동
+- [x] 검색 결과 래퍼 컴포넌트 (`src/components/search/SearchResultsWrapper.tsx`)
+    - [x] React Query의 `useInfiniteQuery`를 활용한 무한 스크롤
+    - [x] 검색 결과별 캐싱 전략 구현
+    - [x] Intersection Observer를 통한 자동 페이지 로딩
+    - [x] 검색 결과가 없을 때의 사용자 친화적 안내
+- [x] 검색 결과 스켈레톤 UI (`src/components/ui/search-results-skeleton.tsx`)
+    - [x] 검색 결과 로딩 중 시각적 피드백
+    - [x] 그리드 레이아웃에 맞춘 스켈레톤 디자인
+    - [x] 단일 카드와 전체 그리드 스켈레톤 분리
+- [x] 해시태그 검색 시스템 (`src/components/search/HashtagSearch.tsx`)
+    - [x] 해시태그 자동완성 및 검색
+    - [x] 다중 해시태그 선택 지원
+    - [x] 해시태그 AND 조건 검색 구현
+- [x] 검색어 + 해시태그 조합 검색
+    - [x] 텍스트 검색과 해시태그 필터링 동시 지원
+    - [x] URL 파라미터로 검색 상태 관리 (`q`, `tag`)
+- [x] 해시태그 AND 조건 검색 (PostgreSQL RPC 함수)
+    - [x] `get_posts_with_all_hashtags` RPC 함수 구현
+    - [x] 여러 해시태그를 모두 포함하는 글만 검색 (HAVING COUNT 활용)
+    - [x] 페이지네이션, 정렬, 텍스트 검색 통합 지원
+    - [x] 성능 최적화를 위한 SECURITY DEFINER 사용
 - [x] URL 파라미터 기반 검색 상태 관리
+    - [x] `useSearchParams`와 `useRouter`를 통한 URL 상태 관리
+    - [x] 검색어 변경 시 자동으로 URL 업데이트
+    - [x] 브라우저 뒤로가기/앞으로가기 지원
+    - [x] 검색 상태의 영속성 보장
 - [x] 검색 결과 캐싱 전략
-    - [x] 검색어별 결과 캐싱
-    - [ ] 해시태그별 결과 캐싱
-    - [x] 검색 결과 페이지네이션 캐싱
+    - [x] 검색어별 결과 캐싱 (`queryKey: ['search', searchQuery, ...hashtagIds]`)
+    - [x] 해시태그별 결과 캐싱
+    - [x] 검색 결과 페이지네이션 캐싱 (무한 스크롤)
+    - [x] `staleTime: 5분`, `gcTime: 10분` 설정
+    - [x] 윈도우 포커스 시 자동 재조회 비활성화
 
 ### Phase 8: 댓글 시스템
 
