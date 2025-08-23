@@ -137,6 +137,15 @@ export function SearchResultsWrapper({
         },
     });
 
+    const hasSearchQuery = useMemo(
+        () => searchQuery && searchQuery.length > 0,
+        [searchQuery]
+    );
+    const hasHashtagIds = useMemo(
+        () => hashtagIds && hashtagIds.length > 0,
+        [hashtagIds]
+    );
+
     // 에러 상태 처리
     if (isError) {
         return (
@@ -155,7 +164,7 @@ export function SearchResultsWrapper({
 
     return (
         <div className="min-h-[400px] transition-all duration-300 ease-in-out">
-            {!searchQuery && (!hashtagIds || hashtagIds.length === 0) ? (
+            {!hasSearchQuery && !hasHashtagIds ? (
                 <SearchInitialState />
             ) : posts.length === 0 ? (
                 <SearchEmptyHint
@@ -166,7 +175,7 @@ export function SearchResultsWrapper({
                 <div className="space-y-6">
                     {/* 검색 결과 요약 */}
                     <p className="text-muted-foreground text-xl">
-                        {searchQuery ? (
+                        {hasSearchQuery ? (
                             <>
                                 &quot;{searchQuery}&quot;에 대한{' '}
                                 <span className="text-foreground font-semibold">
@@ -174,7 +183,7 @@ export function SearchResultsWrapper({
                                 </span>
                                 개의 검색 결과를 찾았습니다.
                             </>
-                        ) : hashtagIds && hashtagIds.length > 0 ? (
+                        ) : hasHashtagIds ? (
                             <>
                                 선택된 해시태그에 대한{' '}
                                 <span className="text-foreground font-semibold">
