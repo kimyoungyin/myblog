@@ -10,9 +10,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+
 import Link from 'next/link';
 import { memo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { Search } from 'lucide-react';
 
 const Header = memo(function Header() {
     const { user, isLoading, isAdmin, signOut } = useAuth();
@@ -49,6 +51,14 @@ const Header = memo(function Header() {
 
                 {/* 사용자 메뉴 및 테마 토글 */}
                 <div className="flex items-center space-x-4">
+                    {/* 검색 버튼 - 모바일과 데스크탑 모두에서 표시 */}
+                    <Button asChild variant="ghost" size="sm">
+                        <Link href="/search">
+                            <Search className="h-4 w-4" aria-hidden />
+                            <span className="sr-only">검색</span>
+                        </Link>
+                    </Button>
+
                     <ThemeToggle />
                     {isLoading ? (
                         <div className="border-primary h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"></div>

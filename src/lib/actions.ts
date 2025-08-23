@@ -311,11 +311,20 @@ export async function getRecentPostsAction() {
 export async function getPostsAction(
     page: number = 1,
     sortBy: PostSort = 'latest',
-    hashtag?: string
+    hashtag?: string,
+    hashtagIds?: number[],
+    searchQuery?: string
 ) {
     try {
         // 읽기 전용이므로 인증 불필요
-        return await getPosts(page, PAGE_SIZE, sortBy, hashtag);
+        return await getPosts(
+            page,
+            PAGE_SIZE,
+            sortBy,
+            hashtag,
+            hashtagIds,
+            searchQuery
+        );
     } catch (error) {
         throw error;
     }
@@ -359,6 +368,41 @@ export async function searchHashtagsAction(query: string) {
 
         return data || [];
     } catch {
+        return [];
+    }
+}
+
+// 해시태그 ID로 해시태그 정보 조회 Server Action (읽기 전용)
+export async function getHashtagsByIdsAction(ids: number[]) {
+    try {
+        // 읽기 전용이므로 인증 불필요
+        const supabase = await createClient();
+
+        if (!ids || ids.length === 0) {
+            return [];
+        }
+
+        // 유효한 ID만 필터링
+        const validIds = ids.filter((id) => Number.isInteger(id) && id > 0);
+
+        if (validIds.length === 0) {
+            return [];
+        }
+
+        const { data, error } = await supabase
+            .from('hashtags')
+            .select('id, name')
+            .in('id', validIds)
+            .order('name');
+
+        if (error) {
+            console.error('해시태그 조회 오류:', error);
+            return [];
+        }
+
+        return data || [];
+    } catch (error) {
+        console.error('해시태그 조회 중 예외 발생:', error);
         return [];
     }
 }

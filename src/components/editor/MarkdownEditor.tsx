@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { X, Plus, Save, Eye, EyeOff, Search } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer';
-import { useDebounce } from '@/hooks/useDebounce';
+import { useDebounce } from 'use-debounce';
 import { searchHashtagsAction } from '@/lib/actions';
 import { Hashtag } from '@/lib/hashtags';
 import { uploadFile } from '@/lib/file-upload';
@@ -57,7 +57,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     const [isSearching, setIsSearching] = useState(false);
 
     // 디바운싱된 해시태그 검색어 (300ms 지연)
-    const debouncedHashtagQuery = useDebounce(newHashtag, 300);
+    const [debouncedHashtagQuery] = useDebounce(newHashtag, 300);
 
     // 개별 에러 상태 관리 (저장 시도 후에만 표시)
     const [titleError, setTitleError] = useState(false);

@@ -112,3 +112,19 @@ export interface FileUploadProgress {
     progress: number;
     status: 'uploading' | 'completed' | 'error';
 }
+
+// RPC 함수 반환 타입
+export interface PostWithHashtagsRPC {
+    id: number;
+    title: string;
+    content: string;
+    content_markdown: string;
+    thumbnail_url: string | null;
+    view_count: number;
+    likes_count: number;
+    comments_count: number;
+    created_at: string;
+    updated_at: string;
+    hashtags: Hashtag[];
+    total_count: number;
+}

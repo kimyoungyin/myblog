@@ -1,8 +1,9 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: true
 ---
+
 # TypeScript Standards (MANDATORY)
 
 ## 🔒 **Type Safety (MUST ENFORCE)**
@@ -42,7 +43,7 @@ export type User = {
 
 - **ALWAYS** use proper return types for functions
 - **ALWAYS** validate external data with Zod schemas
-- **ALWAYS** use generic types when appropriate (e.g., `useDebounce<T>`)
+- **ALWAYS** use generic types when appropriate (e.g., `useDebounce<T>` from 'use-debounce')
 - **ALWAYS** handle null/undefined cases explicitly
   description:
   globs:
