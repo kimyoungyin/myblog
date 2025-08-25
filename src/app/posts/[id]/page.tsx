@@ -1,8 +1,12 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
-import { getPostAction, incrementViewCountAction } from '@/lib/actions';
+import {
+    getPostAction,
+    incrementViewCountAction,
+    getCommentsAction,
+} from '@/lib/actions';
 import { MarkdownRenderer } from '@/components/editor/MarkdownRenderer';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
@@ -10,6 +14,7 @@ import Link from 'next/link';
 import ToEditButton from '@/components/ui/toEditButton';
 import { AlertTriangle } from 'lucide-react';
 import { HashtagLink } from '@/components/ui/hashtag-link';
+import { CommentSection } from '@/components/comments/CommentSection';
 
 interface PostPageProps {
     params: Promise<{
@@ -25,7 +30,11 @@ export default async function PostPage({ params }: PostPageProps) {
     }
 
     try {
-        const post = await getPostAction(postId);
+        // 글과 댓글을 병렬로 조회
+        const [post, initialComments] = await Promise.all([
+            getPostAction(postId),
+            getCommentsAction(postId).catch(() => []), // 댓글 조회 실패해도 글은 표시
+        ]);
 
         if (!post) {
             notFound();
@@ -135,17 +144,12 @@ export default async function PostPage({ params }: PostPageProps) {
                             </CardContent>
                         </Card>
 
-                        {/* 댓글 섹션 (추후 구현) */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>댓글</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="py-8 text-center text-gray-500 dark:text-gray-400">
-                                    댓글 기능은 추후 구현 예정입니다.
-                                </p>
-                            </CardContent>
-                        </Card>
+                        {/* 댓글 섹션 */}
+                        <CommentSection
+                            postId={postId}
+                            postAuthorId={undefined} // 글 작성자 ID는 현재 구조에서 사용할 수 없음
+                            initialComments={initialComments}
+                        />
                     </article>
                 </div>
             </div>

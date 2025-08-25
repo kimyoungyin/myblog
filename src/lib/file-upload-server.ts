@@ -53,7 +53,7 @@ export async function moveTempFilesToPermanentServer(
         }
 
         return { success: true, permanentPaths };
-    } catch (error) {
+    } catch {
         return {
             success: false,
             permanentPaths: [],

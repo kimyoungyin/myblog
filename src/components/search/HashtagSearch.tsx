@@ -97,38 +97,6 @@ export const HashtagSearch: React.FC<HashtagSearchProps> = ({
         searchHashtagSuggestions();
     }, [debouncedSearchQuery]);
 
-    // 해시태그 선택 (자동완성에서만 가능)
-    const selectHashtag = useCallback(
-        (hashtag: Hashtag) => {
-            // 이미 선택된 해시태그인지 확인
-            if (!selectedHashtags.find((tag) => tag.id === hashtag.id)) {
-                const newSelectedHashtags = [...selectedHashtags, hashtag];
-                setSelectedHashtags(newSelectedHashtags);
-
-                // URL 업데이트
-                updateURLWithHashtags(newSelectedHashtags);
-            }
-
-            setSearchQuery('');
-            setShowSuggestions(false);
-        },
-        [selectedHashtags]
-    );
-
-    // 해시태그 제거
-    const removeHashtag = useCallback(
-        (hashtagToRemove: Hashtag) => {
-            const newSelectedHashtags = selectedHashtags.filter(
-                (tag) => tag.id !== hashtagToRemove.id
-            );
-            setSelectedHashtags(newSelectedHashtags);
-
-            // URL 업데이트
-            updateURLWithHashtags(newSelectedHashtags);
-        },
-        [selectedHashtags]
-    );
-
     // URL에 해시태그 파라미터 업데이트
     const updateURLWithHashtags = useCallback(
         (hashtags: Hashtag[]) => {
@@ -153,6 +121,38 @@ export const HashtagSearch: React.FC<HashtagSearchProps> = ({
             router.replace(`${pathname}?${params.toString()}`);
         },
         [searchParams, pathname, router]
+    );
+
+    // 해시태그 선택 (자동완성에서만 가능)
+    const selectHashtag = useCallback(
+        (hashtag: Hashtag) => {
+            // 이미 선택된 해시태그인지 확인
+            if (!selectedHashtags.find((tag) => tag.id === hashtag.id)) {
+                const newSelectedHashtags = [...selectedHashtags, hashtag];
+                setSelectedHashtags(newSelectedHashtags);
+
+                // URL 업데이트
+                updateURLWithHashtags(newSelectedHashtags);
+            }
+
+            setSearchQuery('');
+            setShowSuggestions(false);
+        },
+        [selectedHashtags, updateURLWithHashtags]
+    );
+
+    // 해시태그 제거
+    const removeHashtag = useCallback(
+        (hashtagToRemove: Hashtag) => {
+            const newSelectedHashtags = selectedHashtags.filter(
+                (tag) => tag.id !== hashtagToRemove.id
+            );
+            setSelectedHashtags(newSelectedHashtags);
+
+            // URL 업데이트
+            updateURLWithHashtags(newSelectedHashtags);
+        },
+        [selectedHashtags, updateURLWithHashtags]
     );
 
     // 검색어 입력 처리

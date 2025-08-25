@@ -1,3 +1,9 @@
+---
+description: Rules for handling props between Server and Client Components in Next.js
+globs: '**/*.tsx,**/*.ts'
+alwaysApply: true
+---
+
 # Server Component vs Client Component Props Rules
 
 ## 🚨 Critical Rules (MUST FOLLOW)
@@ -181,8 +187,3 @@ Error: Objects with methods cannot be serialized.
 - **Server Actions**: Form-based mutations in Server Components
 
 Remember: **Server Components render on the server and must serialize all props to HTML. Functions and complex objects cannot be serialized.**
-description:
-globs:
-alwaysApply: true
-
----

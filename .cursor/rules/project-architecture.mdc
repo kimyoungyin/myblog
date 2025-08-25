@@ -1,8 +1,9 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: true
 ---
+
 # Project Architecture Rules
 
 ## 🏗️ **Directory Structure (MUST FOLLOW)**
@@ -31,8 +32,3 @@ alwaysApply: true
 - **NEVER** use relative imports when `@/*` alias is available
 - **NEVER** mix different naming conventions in the same file
 - **NEVER** create utility functions outside [src/lib/](mdc:src/lib) or [src/utils/](mdc:src/utils)
-  description:
-  globs:
-  alwaysApply: true
-
----
