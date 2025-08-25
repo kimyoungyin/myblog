@@ -372,17 +372,78 @@ CREATE TABLE likes (
     - [x] `staleTime: 5분`, `gcTime: 10분` 설정
     - [x] 윈도우 포커스 시 자동 재조회 비활성화
 
-### Phase 8: 댓글 시스템
+### Phase 8: 댓글 시스템 ✅
 
-- [ ] 댓글 작성/수정/삭제
-- [ ] 대댓글 기능 (1단계 계층)
-- [ ] 댓글 목록 표시
-- [ ] 댓글 권한 관리 (작성자만 수정/삭제)
-- [ ] 댓글 실시간 업데이트
-- [ ] 댓글 캐싱 및 실시간 동기화
-    - [ ] 댓글 목록 캐싱
-    - [ ] 댓글 작성/수정/삭제 시 캐시 무효화
-    - [ ] Optimistic Updates 구현
+#### 1. 데이터베이스 스키마 및 타입 정의
+
+- [x] 댓글 테이블 스키마 확인 (`comments` 테이블)
+- [x] 댓글 타입 정의 확인 (`Comment` 인터페이스)
+- [x] Supabase Database 타입 정의 확인
+
+#### 2. 댓글 Server Actions 구현
+
+- [x] `createCommentAction` - 댓글 작성 (인증 필수)
+- [x] `updateCommentAction` - 댓글 수정 (작성자만)
+- [x] `deleteCommentAction` - 댓글 삭제 (작성자만)
+- [x] `getCommentsAction` - 댓글 목록 조회 (공개)
+- [x] Zod 스키마를 통한 댓글 데이터 검증
+
+#### 3. 댓글 관련 함수 구현 (`src/lib/comments.ts`)
+
+- [x] `getComments` - 특정 글의 댓글 목록 조회 (계층 구조 포함)
+- [x] `createComment` - 댓글 생성 (일반 댓글 + 대댓글)
+- [x] `updateComment` - 댓글 수정
+- [x] `deleteComment` - 댓글 삭제
+
+#### 4. 댓글 폼 컴포넌트 (`src/components/comments/CommentForm.tsx`)
+
+- [x] 로그인한 사용자만 댓글 작성 가능
+- [x] 로그인하지 않은 사용자에게 로그인 페이지 링크 제공
+- [x] 일반 텍스트 입력 (마크다운 미지원)
+- [x] 댓글/대댓글 구분 처리
+- [x] 폼 제출 후 자동 초기화
+
+#### 5. 댓글 아이템 컴포넌트 (`src/components/comments/CommentItem.tsx`)
+
+- [x] 댓글 내용 및 메타 정보 표시 (작성자, 작성일)
+- [x] 글 작성자 강조 표시 (배지 또는 하이라이트)
+- [x] 작성자만 수정/삭제 버튼 표시
+- [x] 대댓글 버튼 (로그인한 사용자만)
+- [x] 대댓글 UI (왼쪽 여백으로 구분)
+
+#### 6. 댓글 목록 컴포넌트 (`src/components/comments/CommentList.tsx`)
+
+- [x] 댓글 목록을 계층 구조로 표시
+- [x] 대댓글은 부모 댓글 아래에 들여쓰기로 표시
+- [x] 대댓글의 대댓글은 부모 댓글의 대댓글로 처리 (1단계 깊이 제한)
+- [x] 댓글이 없을 때 안내 메시지
+
+#### 7. 댓글 시스템 통합 (`src/app/posts/[id]/page.tsx`)
+
+- [x] 글 상세 페이지에 댓글 시스템 추가
+- [x] 댓글 목록과 댓글 폼을 적절한 위치에 배치
+- [x] 반응형 디자인 고려
+
+#### 8. 권한 관리 및 보안
+
+- [x] 댓글 작성: 로그인한 사용자만 가능
+- [x] 댓글 수정/삭제: 작성자만 가능
+- [x] 서버 사이드 인증 검증
+- [x] 클라이언트 사이드 UI 상태 관리
+
+#### 9. 캐싱 및 성능 최적화
+
+- [x] React Query를 통한 댓글 목록 캐싱
+- [x] 댓글 작성/수정/삭제 시 캐시 무효화
+- [x] Optimistic Updates 구현 (즉시 UI 업데이트)
+- [x] 댓글 수 실시간 업데이트
+
+#### 10. 사용자 경험 개선
+
+- [x] 댓글 작성 중 로딩 상태 표시
+- [x] 댓글 작성 성공/실패 피드백
+- [x] 대댓글 작성 시 부모 댓글 하이라이트
+- [x] 댓글 수정 시 인라인 편집 UI
 
 ### Phase 9: 좋아요 시스템
 
@@ -430,8 +491,11 @@ CREATE TABLE likes (
 - [ ] HashtagAutocomplete (해시태그 자동완성)
 - [x] PostCard (글 목록의 개별 글) ✅
 - [x] HashtagLink (재사용 가능한 해시태그 링크) ✅
-- [ ] CommentForm (댓글 작성 폼)
-- [ ] CommentItem (댓글/대댓글 표시)
+- [x] CommentForm (댓글 작성 폼) ✅
+- [x] CommentItem (댓글/대댓글 표시) ✅
+- [x] CommentList (댓글 목록) ✅
+- [x] CommentSection (통합 댓글 섹션) ✅
+- [x] CommentSkeleton (댓글 로딩 UI) ✅
 - [x] MarkdownEditor (마크다운 작성 + 미리보기) ✅
 - [ ] Pagination (페이지네이션)
 - [ ] LoadingSpinner (로딩 상태)
