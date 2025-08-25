@@ -78,6 +78,40 @@ export const UserProfileSchema = z.object({
     updated_at: z.string().datetime(),
 });
 
+// 댓글 생성 스키마
+export const CreateCommentSchema = z.object({
+    content: z
+        .string()
+        .min(1, '댓글 내용을 입력해주세요.')
+        .max(1000, '댓글은 1,000글자 이하여야 합니다.')
+        .transform((val) => val.trim()),
+    post_id: z.number().int().positive('올바른 글 ID가 아닙니다.'),
+    parent_id: z
+        .number()
+        .int()
+        .positive('올바른 부모 댓글 ID가 아닙니다.')
+        .nullable()
+        .optional(),
+});
+
+// 댓글 수정 스키마
+export const UpdateCommentSchema = z.object({
+    content: z
+        .string()
+        .min(1, '댓글 내용을 입력해주세요.')
+        .max(1000, '댓글은 1,000글자 이하여야 합니다.')
+        .transform((val) => val.trim()),
+});
+
+// 댓글 ID 검증 스키마
+export const CommentIdSchema = z.object({
+    id: z
+        .string()
+        .regex(/^\d+$/, '올바른 댓글 ID가 아닙니다.')
+        .transform((val) => parseInt(val, 10))
+        .refine((val) => val > 0, '댓글 ID는 1 이상이어야 합니다.'),
+});
+
 // 타입 추론
 export type CreatePostData = z.infer<typeof CreatePostSchema>;
 export type UpdatePostData = z.infer<typeof UpdatePostSchema>;
@@ -86,6 +120,9 @@ export type SearchHashtagData = z.infer<typeof SearchHashtagSchema>;
 export type PostIdData = z.infer<typeof PostIdSchema>;
 export type PaginationData = z.infer<typeof PaginationSchema>;
 export type UserProfileData = z.infer<typeof UserProfileSchema>;
+export type CreateCommentData = z.infer<typeof CreateCommentSchema>;
+export type UpdateCommentData = z.infer<typeof UpdateCommentSchema>;
+export type CommentIdData = z.infer<typeof CommentIdSchema>;
 
 // 검증 에러 타입
 export type ValidationError = {
