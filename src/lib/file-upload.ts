@@ -78,7 +78,7 @@ export async function uploadFile(
             : `permanent/image/${fileName}`;
 
         // Supabase Storage에 업로드
-        const { data, error } = await supabase.storage
+        const { error } = await supabase.storage
             .from(FILE_UPLOAD_CONFIG.storageBucket)
             .upload(uploadPath, file, {
                 upsert: true,
