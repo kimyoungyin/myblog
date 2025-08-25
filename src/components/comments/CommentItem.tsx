@@ -45,23 +45,28 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     const [isEditing, setIsEditing] = useState(false);
     const [isReplying, setIsReplying] = useState(false);
     const [editContent, setEditContent] = useState(comment.content);
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const isAuthor = user?.id === comment.author_id;
     const isPostAuthor = comment.author_id === postAuthorId;
 
-    const handleEdit = async (formData: FormData) => {
+    const handleEdit = async (e: React.FormEvent) => {
+        e.preventDefault(); // 기본 form 제출 방지
+
+        const formData = new FormData(e.target as HTMLFormElement);
         const newContent = formData.get('content') as string;
 
-        // 낙관적 업데이트: 즉시 UI에 반영
+        // 1. 낙관적 업데이트: 즉시 UI에 반영
         onOptimisticUpdate?.(comment.id, newContent);
-        setIsEditing(false);
+        setIsEditing(false); // 편집 모드 종료
 
-        setIsSubmitting(true);
         try {
+            // 2. 서버 액션 호출
+            formData.append('comment_id', comment.id.toString());
+            formData.append('post_id', comment.post_id.toString());
+
             await updateCommentAction(formData);
             toast.success('댓글이 수정되었습니다.');
-            // 성공 시에는 낙관적 업데이트를 신뢰 (새로고침 안 함)
+            // 성공 시: 낙관적 업데이트를 신뢰 (추가 작업 없음)
         } catch (error) {
             console.error('댓글 수정 실패:', error);
             toast.error(
@@ -69,11 +74,9 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                     ? error.message
                     : '댓글 수정 중 오류가 발생했습니다.'
             );
-            // 실패 시에만 편집 모드로 되돌리고 데이터 새로고침
+            // 실패 시: 편집 모드로 되돌리고 데이터 새로고침
             setIsEditing(true);
-            onReplySuccess?.();
-        } finally {
-            setIsSubmitting(false);
+            onReplySuccess?.(); // 실패 시에만 새로고침
         }
     };
 
@@ -101,13 +104,19 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                     : '댓글 삭제 중 오류가 발생했습니다.'
             );
             // 실패 시에만 데이터 새로고침으로 원래 상태로 복원
-            onReplySuccess?.();
+            onReplySuccess?.(); // 실패 시에만 새로고침
         }
     };
 
     const handleReplySuccess = () => {
         setIsReplying(false);
         // 대댓글 작성 성공 시에는 폼만 닫고 데이터 새로고침은 하지 않음
+    };
+
+    const handleReplyFailure = () => {
+        // 대댓글 작성 실패 시: 폼 다시 열기 및 데이터 새로고침
+        setIsReplying(true);
+        onReplySuccess?.(); // 데이터 새로고침으로 UI 원복
     };
 
     return (
@@ -145,7 +154,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
                     <div className="flex items-center gap-1">
                         {/* 대댓글 버튼 */}
-                        {!isReply && user && (
+                        {!isReply && user && !isReplying && (
                             <Button
                                 variant="ghost"
                                 size="sm"
@@ -194,24 +203,13 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
                 {/* 댓글 내용 */}
                 {isEditing ? (
-                    <form action={handleEdit} className="space-y-3">
-                        <input
-                            type="hidden"
-                            name="comment_id"
-                            value={comment.id}
-                        />
-                        <input
-                            type="hidden"
-                            name="post_id"
-                            value={comment.post_id}
-                        />
+                    <form onSubmit={handleEdit} className="space-y-3">
                         <Textarea
                             name="content"
                             value={editContent}
                             onChange={(e) => setEditContent(e.target.value)}
                             rows={3}
                             className="resize-none"
-                            disabled={isSubmitting}
                             required
                             maxLength={1000}
                         />
@@ -228,19 +226,15 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                                         setIsEditing(false);
                                         setEditContent(comment.content);
                                     }}
-                                    disabled={isSubmitting}
                                 >
                                     취소
                                 </Button>
                                 <Button
                                     type="submit"
                                     size="sm"
-                                    disabled={
-                                        isSubmitting ||
-                                        editContent.trim().length === 0
-                                    }
+                                    disabled={editContent.trim().length === 0}
                                 >
-                                    {isSubmitting ? '수정 중...' : '수정'}
+                                    수정
                                 </Button>
                             </div>
                         </div>
@@ -256,6 +250,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             {isReplying && (
                 <div className="mt-3">
                     <CommentForm
+                        isReplying={isReplying}
                         postId={comment.post_id}
                         parentId={comment.parent_id || comment.id}
                         placeholder={`${
@@ -265,6 +260,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                         }님에게 답글 작성...`}
                         onSuccess={handleReplySuccess}
                         onCancel={() => setIsReplying(false)}
+                        onFailure={handleReplyFailure}
                         onOptimisticAdd={onOptimisticAdd}
                         className="border-dashed"
                     />

@@ -120,8 +120,8 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
         }
     }, [postId]);
 
-    const handleCommentSuccess = () => {
-        // 댓글 작성/수정/삭제 후 목록 새로고침
+    const handleCommentFailure = () => {
+        // 댓글 작성/수정/삭제 실패 시에만 목록 새로고침으로 UI 복원
         loadComments();
     };
 
@@ -183,7 +183,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                     {/* 댓글 작성 폼 */}
                     <CommentForm
                         postId={postId}
-                        onSuccess={handleCommentSuccess}
+                        onSuccess={handleCommentFailure}
                         onOptimisticAdd={handleOptimisticAdd}
                     />
 
@@ -210,7 +210,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                         <CommentList
                             comments={comments}
                             postAuthorId={postAuthorId}
-                            onReplySuccess={handleCommentSuccess}
+                            onReplySuccess={handleCommentFailure}
                             onOptimisticAdd={handleOptimisticAdd}
                             onOptimisticUpdate={handleOptimisticUpdate}
                             onOptimisticDelete={handleOptimisticDelete}

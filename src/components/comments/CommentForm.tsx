@@ -12,29 +12,34 @@ import { Comment } from '@/types';
 import { toast } from 'sonner';
 
 interface CommentFormProps {
+    isReplying?: boolean;
     postId: number;
     parentId?: number;
     onSuccess?: () => void;
     onCancel?: () => void;
+    onFailure?: () => void; // 실패 시 호출 (대댓글 폼 다시 열기 등)
     onOptimisticAdd?: (comment: Comment) => void;
     placeholder?: string;
     className?: string;
 }
 
 export const CommentForm: React.FC<CommentFormProps> = ({
+    isReplying,
     postId,
     parentId,
     onSuccess,
     onCancel,
+    onFailure,
     onOptimisticAdd,
     placeholder = '댓글을 작성해주세요...',
     className,
 }) => {
     const { user, isLoading: authLoading } = useAuth();
     const [content, setContent] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = async (formData: FormData) => {
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault(); // 기본 form 제출 방지
+
         if (!user) {
             toast.error('로그인이 필요합니다.');
             return;
@@ -58,21 +63,29 @@ export const CommentForm: React.FC<CommentFormProps> = ({
             author: user,
         };
 
-        // 즉시 UI에 반영
+        // 1. 즉시 UI에 반영 (낙관적 업데이트)
         onOptimisticAdd?.(optimisticComment);
-        setContent('');
+        setContent(''); // 폼 초기화
 
-        setIsSubmitting(true);
+        // 2. 대댓글인 경우 즉시 폼 닫기 (낙관적 UI)
+        if (parentId) {
+            onSuccess?.(); // 대댓글 폼 즉시 닫기
+        }
+
         try {
+            // 3. FormData 생성하여 서버 액션 호출 (백그라운드)
+            const formData = new FormData();
+            formData.append('post_id', postId.toString());
+            formData.append('content', commentContent);
+            if (parentId) {
+                formData.append('parent_id', parentId.toString());
+            }
+
             await createCommentAction(formData);
             toast.success(
                 parentId ? '대댓글이 작성되었습니다.' : '댓글이 작성되었습니다.'
             );
-            // 성공 시에는 낙관적 업데이트를 신뢰 (새로고침 안 함)
-            // 대댓글인 경우에만 폼 닫기 (일반 댓글은 폼이 그대로 유지됨)
-            if (parentId) {
-                onSuccess?.(); // 대댓글 폼 닫기
-            }
+            // 성공 시: 추가 작업 없음 (이미 낙관적 업데이트 완료)
         } catch (error) {
             console.error('댓글 작성 실패:', error);
             toast.error(
@@ -80,11 +93,16 @@ export const CommentForm: React.FC<CommentFormProps> = ({
                     ? error.message
                     : '댓글 작성 중 오류가 발생했습니다.'
             );
-            // 실패 시에만 내용 복원 및 데이터 새로고침
+            // 실패 시: 내용 복원 및 UI 원복
             setContent(commentContent);
-            onSuccess?.();
-        } finally {
-            setIsSubmitting(false);
+
+            if (parentId) {
+                // 대댓글 실패 시: 폼 다시 열기
+                onFailure?.();
+            } else {
+                // 일반 댓글 실패 시: 데이터 새로고침
+                onSuccess?.();
+            }
         }
     };
 
@@ -129,13 +147,10 @@ export const CommentForm: React.FC<CommentFormProps> = ({
     }
 
     return (
-        <Card className={`p-4 ${className || ''}`}>
-            <form action={handleSubmit} className="space-y-4">
-                <input type="hidden" name="post_id" value={postId} />
-                {parentId && (
-                    <input type="hidden" name="parent_id" value={parentId} />
-                )}
-
+        <Card
+            className={`${isReplying ? 'mt-2 ml-8' : 'mt-4'} p-4 ${className || ''}`}
+        >
+            <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                     <label htmlFor="content" className="sr-only">
                         {parentId ? '대댓글 작성' : '댓글 작성'}
@@ -148,7 +163,6 @@ export const CommentForm: React.FC<CommentFormProps> = ({
                         onChange={(e) => setContent(e.target.value)}
                         rows={parentId ? 3 : 4}
                         className="resize-none"
-                        disabled={isSubmitting}
                         required
                         maxLength={1000}
                     />
@@ -164,7 +178,6 @@ export const CommentForm: React.FC<CommentFormProps> = ({
                             variant="outline"
                             size="sm"
                             onClick={onCancel}
-                            disabled={isSubmitting}
                         >
                             취소
                         </Button>
@@ -172,13 +185,9 @@ export const CommentForm: React.FC<CommentFormProps> = ({
                     <Button
                         type="submit"
                         size="sm"
-                        disabled={isSubmitting || content.trim().length === 0}
+                        disabled={content.trim().length === 0}
                     >
-                        {isSubmitting
-                            ? '작성 중...'
-                            : parentId
-                              ? '대댓글 작성'
-                              : '댓글 작성'}
+                        {parentId ? '대댓글 작성' : '댓글 작성'}
                     </Button>
                 </div>
             </form>
