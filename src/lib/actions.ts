@@ -453,3 +453,160 @@ export async function incrementViewCountAction(postId: number) {
         throw err;
     }
 }
+
+// =====================================================
+// 댓글 관련 Server Actions
+// =====================================================
+
+/**
+ * 댓글 목록 조회 Server Action
+ */
+export async function getCommentsAction(postId: number) {
+    try {
+        const { getComments } = await import('./comments');
+        return await getComments(postId);
+    } catch (error) {
+        console.error('댓글 목록 조회 실패:', error);
+        throw error;
+    }
+}
+
+/**
+ * 댓글 생성 Server Action
+ */
+export async function createCommentAction(formData: FormData) {
+    try {
+        // 인증 확인
+        const supabase = await createClient();
+        const {
+            data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session?.user) {
+            throw new Error('댓글을 작성하려면 로그인이 필요합니다.');
+        }
+
+        // 폼 데이터 추출
+        const rawData = {
+            content: formData.get('content') as string,
+            post_id: parseInt(formData.get('post_id') as string, 10),
+            parent_id: formData.get('parent_id')
+                ? parseInt(formData.get('parent_id') as string, 10)
+                : null,
+        };
+
+        // Zod 스키마로 검증
+        const { CreateCommentSchema } = await import('./schemas');
+        const validationResult = CreateCommentSchema.safeParse(rawData);
+
+        if (!validationResult.success) {
+            const errorMessage = validationResult.error.issues
+                .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+                .join(', ');
+            throw new Error(`데이터 검증 실패: ${errorMessage}`);
+        }
+
+        // 댓글 생성
+        const { createComment } = await import('./comments');
+        const comment = await createComment(
+            validationResult.data,
+            session.user.id
+        );
+
+        // 캐시 무효화
+        revalidatePath(`/posts/${rawData.post_id}`);
+
+        return comment;
+    } catch (error) {
+        console.error('댓글 생성 실패:', error);
+        throw error;
+    }
+}
+
+/**
+ * 댓글 수정 Server Action
+ */
+export async function updateCommentAction(formData: FormData) {
+    try {
+        // 인증 확인
+        const supabase = await createClient();
+        const {
+            data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session?.user) {
+            throw new Error('댓글을 수정하려면 로그인이 필요합니다.');
+        }
+
+        // 폼 데이터 추출
+        const rawData = {
+            content: formData.get('content') as string,
+            comment_id: parseInt(formData.get('comment_id') as string, 10),
+            post_id: parseInt(formData.get('post_id') as string, 10),
+        };
+
+        // Zod 스키마로 검증
+        const { UpdateCommentSchema } = await import('./schemas');
+        const validationResult = UpdateCommentSchema.safeParse({
+            content: rawData.content,
+        });
+
+        if (!validationResult.success) {
+            const errorMessage = validationResult.error.issues
+                .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+                .join(', ');
+            throw new Error(`데이터 검증 실패: ${errorMessage}`);
+        }
+
+        // 댓글 수정
+        const { updateComment } = await import('./comments');
+        const comment = await updateComment(
+            rawData.comment_id,
+            validationResult.data,
+            session.user.id
+        );
+
+        // 캐시 무효화
+        revalidatePath(`/posts/${rawData.post_id}`);
+
+        return comment;
+    } catch (error) {
+        console.error('댓글 수정 실패:', error);
+        throw error;
+    }
+}
+
+/**
+ * 댓글 삭제 Server Action
+ */
+export async function deleteCommentAction(formData: FormData) {
+    try {
+        // 인증 확인
+        const supabase = await createClient();
+        const {
+            data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session?.user) {
+            throw new Error('댓글을 삭제하려면 로그인이 필요합니다.');
+        }
+
+        // 폼 데이터 추출
+        const rawData = {
+            comment_id: parseInt(formData.get('comment_id') as string, 10),
+            post_id: parseInt(formData.get('post_id') as string, 10),
+        };
+
+        // 댓글 삭제
+        const { deleteComment } = await import('./comments');
+        await deleteComment(rawData.comment_id, session.user.id);
+
+        // 캐시 무효화
+        revalidatePath(`/posts/${rawData.post_id}`);
+
+        return { success: true };
+    } catch (error) {
+        console.error('댓글 삭제 실패:', error);
+        throw error;
+    }
+}
