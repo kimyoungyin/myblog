@@ -672,7 +672,7 @@ export async function toggleLikeAction(formData: FormData) {
 /**
  * 좋아요 상태 조회 Server Action
  */
-export async function getLikeStatusAction(postId: number, userId?: string) {
+export async function getLikeStatusAction(postId: number) {
     try {
         // 글 ID 검증
         const validationResult = PostIdSchema.safeParse({
@@ -682,11 +682,17 @@ export async function getLikeStatusAction(postId: number, userId?: string) {
             throw new Error('올바른 글 ID가 아닙니다.');
         }
 
+        // 현재 사용자 세션 확인
+        const supabase = await createClient();
+        const {
+            data: { session },
+        } = await supabase.auth.getSession();
+
         // 좋아요 상태 조회
         const { getLikeStatus } = await import('./likes');
         const likeStatus = await getLikeStatus(
             validationResult.data.id,
-            userId
+            session?.user?.id
         );
 
         return likeStatus;
