@@ -480,10 +480,11 @@ export async function createCommentAction(formData: FormData) {
         // 인증 확인
         const supabase = await createClient();
         const {
-            data: { session },
-        } = await supabase.auth.getSession();
+            data: { user },
+            error: authError,
+        } = await supabase.auth.getUser();
 
-        if (!session?.user) {
+        if (authError || !user) {
             throw new Error('댓글을 작성하려면 로그인이 필요합니다.');
         }
 
@@ -509,10 +510,7 @@ export async function createCommentAction(formData: FormData) {
 
         // 댓글 생성
         const { createComment } = await import('./comments');
-        const comment = await createComment(
-            validationResult.data,
-            session.user.id
-        );
+        const comment = await createComment(validationResult.data, user.id);
 
         // 캐시 무효화
         revalidatePath(`/posts/${rawData.post_id}`);
@@ -532,10 +530,11 @@ export async function updateCommentAction(formData: FormData) {
         // 인증 확인
         const supabase = await createClient();
         const {
-            data: { session },
-        } = await supabase.auth.getSession();
+            data: { user },
+            error: authError,
+        } = await supabase.auth.getUser();
 
-        if (!session?.user) {
+        if (authError || !user) {
             throw new Error('댓글을 수정하려면 로그인이 필요합니다.');
         }
 
@@ -564,7 +563,7 @@ export async function updateCommentAction(formData: FormData) {
         const comment = await updateComment(
             rawData.comment_id,
             validationResult.data,
-            session.user.id
+            user.id
         );
 
         // 캐시 무효화
@@ -585,10 +584,11 @@ export async function deleteCommentAction(formData: FormData) {
         // 인증 확인
         const supabase = await createClient();
         const {
-            data: { session },
-        } = await supabase.auth.getSession();
+            data: { user },
+            error: authError,
+        } = await supabase.auth.getUser();
 
-        if (!session?.user) {
+        if (authError || !user) {
             throw new Error('댓글을 삭제하려면 로그인이 필요합니다.');
         }
 
@@ -600,7 +600,7 @@ export async function deleteCommentAction(formData: FormData) {
 
         // 댓글 삭제
         const { deleteComment } = await import('./comments');
-        await deleteComment(rawData.comment_id, session.user.id);
+        await deleteComment(rawData.comment_id, user.id);
 
         // 캐시 무효화
         revalidatePath(`/posts/${rawData.post_id}`);
@@ -624,10 +624,11 @@ export async function toggleLikeAction(formData: FormData) {
         // 인증 확인
         const supabase = await createClient();
         const {
-            data: { session },
-        } = await supabase.auth.getSession();
+            data: { user },
+            error: authError,
+        } = await supabase.auth.getUser();
 
-        if (!session?.user) {
+        if (authError || !user) {
             throw new Error('좋아요를 추가/제거하려면 로그인이 필요합니다.');
         }
 
@@ -647,7 +648,7 @@ export async function toggleLikeAction(formData: FormData) {
 
         // 좋아요 토글
         const { toggleLike } = await import('./likes');
-        const result = await toggleLike(validationResult.data, session.user.id);
+        const result = await toggleLike(validationResult.data, user.id);
 
         if (!result.success) {
             throw new Error(result.error || '좋아요 처리에 실패했습니다.');
@@ -682,17 +683,17 @@ export async function getLikeStatusAction(postId: number) {
             throw new Error('올바른 글 ID가 아닙니다.');
         }
 
-        // 현재 사용자 세션 확인
+        // 현재 사용자 확인 (에러가 발생해도 계속 진행)
         const supabase = await createClient();
         const {
-            data: { session },
-        } = await supabase.auth.getSession();
+            data: { user },
+        } = await supabase.auth.getUser();
 
-        // 좋아요 상태 조회
+        // 좋아요 상태 조회 (로그인하지 않은 사용자도 조회 가능)
         const { getLikeStatus } = await import('./likes');
         const likeStatus = await getLikeStatus(
             validationResult.data.id,
-            session?.user?.id
+            user?.id
         );
 
         return likeStatus;
