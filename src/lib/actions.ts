@@ -14,6 +14,7 @@ import {
     UpdatePostSchema,
     SearchHashtagSchema,
     PostIdSchema,
+    ToggleLikeSchema,
 } from './schemas';
 import {
     updateImageUrlsInMarkdown,
@@ -607,6 +608,110 @@ export async function deleteCommentAction(formData: FormData) {
         return { success: true };
     } catch (error) {
         console.error('댓글 삭제 실패:', error);
+        throw error;
+    }
+}
+
+// ============================================================================
+// 좋아요 관련 Server Actions
+// ============================================================================
+
+/**
+ * 좋아요 토글 Server Action
+ */
+export async function toggleLikeAction(formData: FormData) {
+    try {
+        // 인증 확인
+        const supabase = await createClient();
+        const {
+            data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session?.user) {
+            throw new Error('좋아요를 추가/제거하려면 로그인이 필요합니다.');
+        }
+
+        // 폼 데이터 추출
+        const rawData = {
+            post_id: parseInt(formData.get('post_id') as string, 10),
+        };
+
+        // Zod 스키마로 데이터 검증
+        const validationResult = ToggleLikeSchema.safeParse(rawData);
+        if (!validationResult.success) {
+            const errorMessage = validationResult.error.issues
+                .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+                .join(', ');
+            throw new Error(`데이터 검증 실패: ${errorMessage}`);
+        }
+
+        // 좋아요 토글
+        const { toggleLike } = await import('./likes');
+        const result = await toggleLike(validationResult.data, session.user.id);
+
+        if (!result.success) {
+            throw new Error(result.error || '좋아요 처리에 실패했습니다.');
+        }
+
+        // 관련 페이지 캐시 무효화
+        revalidatePath(`/posts/${rawData.post_id}`);
+        revalidatePath('/posts');
+        revalidatePath('/');
+
+        return {
+            success: true,
+            is_liked: result.is_liked,
+            likes_count: result.likes_count,
+        };
+    } catch (error) {
+        console.error('좋아요 토글 실패:', error);
+        throw error;
+    }
+}
+
+/**
+ * 좋아요 상태 조회 Server Action
+ */
+export async function getLikeStatusAction(postId: number, userId?: string) {
+    try {
+        // 글 ID 검증
+        const validationResult = PostIdSchema.safeParse({
+            id: postId.toString(),
+        });
+        if (!validationResult.success) {
+            throw new Error('올바른 글 ID가 아닙니다.');
+        }
+
+        // 좋아요 상태 조회
+        const { getLikeStatus } = await import('./likes');
+        const likeStatus = await getLikeStatus(
+            validationResult.data.id,
+            userId
+        );
+
+        return likeStatus;
+    } catch (error) {
+        console.error('좋아요 상태 조회 실패:', error);
+        throw error;
+    }
+}
+
+/**
+ * 사용자 좋아요 목록 조회 Server Action
+ */
+export async function getUserLikesAction(
+    userId: string,
+    page: number = 1,
+    limit: number = PAGE_SIZE
+) {
+    try {
+        // 사용자 좋아요 목록 조회
+        const { getUserLikes } = await import('./likes');
+        const result = await getUserLikes(userId, page, limit);
+
+        return result;
+    } catch (error) {
+        console.error('사용자 좋아요 목록 조회 실패:', error);
         throw error;
     }
 }
