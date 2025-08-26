@@ -445,17 +445,74 @@ CREATE TABLE likes (
 - [x] 대댓글 작성 시 부모 댓글 하이라이트
 - [x] 댓글 수정 시 인라인 편집 UI
 
-### Phase 9: 좋아요 시스템
+### Phase 9: 좋아요 시스템 ✅
 
-- [ ] 좋아요 토글 기능
-- [ ] 좋아요 수 실시간 업데이트
-- [ ] 좋아요 상태 관리
-- [ ] 좋아요 권한 관리 (로그인 사용자만)
-- [ ] 좋아요 캐싱 및 실시간 동기화
-    - [ ] 좋아요 상태 캐싱
-    - [ ] 좋아요 수 캐싱
-    - [ ] Optimistic Updates 구현
-    - [ ] 좋아요 토글 시 관련 캐시 무효화
+#### 1. 데이터베이스 스키마 및 타입 정의
+
+- [x] 좋아요 Zod 스키마 정의 (`ToggleLikeSchema`, `GetLikeStatusSchema`)
+- [x] 좋아요 타입 정의 (`LikeStatus`, `ToggleLikeResult`)
+- [x] 좋아요 테이블 스키마 확인 (`likes` 테이블)
+
+#### 2. 좋아요 데이터베이스 레이어 구현
+
+- [x] `getLikeStatus` - 글의 좋아요 상태 및 개수 조회
+- [x] `toggleLike` - 좋아요 추가/제거 토글 기능
+- [x] `getUserLikes` - 사용자별 좋아요 목록 조회 (페이지네이션)
+- [x] `getLikesCount` - 특정 글의 좋아요 수 조회
+- [x] Service Role Client를 통한 RLS 우회
+- [x] 에러 처리 및 트랜잭션 안전성 보장
+- [x] posts 테이블 likes_count 자동 동기화
+
+#### 3. 좋아요 Server Actions 구현
+
+- [x] `toggleLikeAction` - 좋아요 토글 처리 (인증 필수)
+- [x] `getLikeStatusAction` - 좋아요 상태 조회
+- [x] `getUserLikesAction` - 사용자별 좋아요 목록 조회
+- [x] FormData 기반 입력 처리 및 Zod 검증
+- [x] 에러 처리 및 사용자 친화적 메시지
+- [x] 보안 강화: `getSession()` → `getUser()` 변경
+
+#### 4. 좋아요 버튼 UI 컴포넌트
+
+- [x] `LikeButton` - 재사용 가능한 좋아요 버튼 컴포넌트
+- [x] 낙관적 UI 업데이트 (즉시 반응하는 좋아요 토글)
+- [x] 로그인 상태별 차별화된 UI
+- [x] 다양한 크기 지원 (sm, default, lg)
+- [x] 좋아요 수 표시 옵션 (showCount)
+- [x] 에러 처리 및 상태 복원 로직
+- [x] Heart 아이콘 fill 애니메이션
+
+#### 5. 좋아요 시스템 통합
+
+- [x] 글 상세 페이지에 좋아요 버튼 통합
+- [x] 글 목록에서 좋아요 수 표시 (PostCard)
+- [x] 좋아요 상태를 병렬로 조회하여 성능 최적화
+- [x] Server Action 내부로 인증 로직 캡슐화
+
+#### 6. 권한 관리 및 보안
+
+- [x] 좋아요 추가/제거: 로그인한 사용자만 가능
+- [x] 서버 사이드 인증 검증 (`getUser()` 사용)
+- [x] 클라이언트 사이드 UI 상태 관리
+- [x] 비로그인 사용자를 위한 로그인 링크 제공
+
+#### 7. 캐싱 및 성능 최적화
+
+- [x] 세 페이지 캐시 무효화로 데이터 일관성 보장:
+    - `/posts/[id]`: 글 상세 페이지
+    - `/posts`: 글 목록 (PostCard likes_count)
+    - `/`: 홈페이지 (PostCard likes_count)
+- [x] 낙관적 UI 업데이트로 즉시 반응
+- [x] 실패 시 자동 상태 복원
+- [x] React Query 기본 캐싱 전략 활용
+
+#### 8. 사용자 경험 개선
+
+- [x] 좋아요 토글 시 즉시 UI 반응 (낙관적 업데이트)
+- [x] 조용한 에러 처리 (toast 제거로 자연스러운 UX)
+- [x] 로딩 상태 표시 및 중복 클릭 방지
+- [x] 접근성 고려: 색상, 크기, 상태 표시
+- [x] 현대적 소셜 미디어 UX 패턴 적용
 
 ### Phase 10: 최적화 및 테스트
 
