@@ -57,6 +57,7 @@ export async function getLikeStatus(
 
 /**
  * 좋아요를 토글합니다 (추가/제거).
+ * PostgreSQL RPC 함수를 사용하여 원자적 연산을 보장합니다.
  * @param data - 좋아요 토글 데이터
  * @param userId - 사용자 ID
  * @returns 좋아요 토글 결과
@@ -65,78 +66,49 @@ export async function toggleLike(
     data: ToggleLikeData,
     userId: string
 ): Promise<ToggleLikeResult> {
+    const supabase = createServiceRoleClient();
     try {
-        const supabase = createServiceRoleClient();
-        const { post_id } = data;
+        // PostgreSQL RPC 함수를 통한 원자적 좋아요 토글
+        const { data: result, error } = await supabase.rpc('toggle_like', {
+            p_post_id: data.post_id,
+            p_user_id: userId,
+        });
 
-        // 현재 좋아요 상태 확인
-        const { data: existingLike, error: checkError } = await supabase
-            .from('likes')
-            .select('id')
-            .eq('post_id', post_id)
-            .eq('user_id', userId)
-            .single();
-
-        if (checkError && checkError.code !== 'PGRST116') {
-            throw new Error('좋아요 상태 확인에 실패했습니다.');
+        if (error) {
+            console.error('좋아요 토글 RPC 에러:', error);
+            return {
+                success: false,
+                is_liked: false,
+                likes_count: 0,
+                error: error.message || '좋아요 처리에 실패했습니다.',
+            };
         }
 
-        let isLiked: boolean;
-
-        if (existingLike) {
-            // 좋아요가 있으면 제거
-            const { error: deleteError } = await supabase
-                .from('likes')
-                .delete()
-                .eq('id', existingLike.id);
-
-            if (deleteError) {
-                throw new Error('좋아요 제거에 실패했습니다.');
-            }
-
-            isLiked = false;
-        } else {
-            // 좋아요가 없으면 추가
-            const { error: insertError } = await supabase.from('likes').insert({
-                post_id,
-                user_id: userId,
-            });
-
-            if (insertError) {
-                throw new Error('좋아요 추가에 실패했습니다.');
-            }
-
-            isLiked = true;
+        // RPC 함수가 반환한 JSON 결과 파싱
+        if (!result || typeof result !== 'object') {
+            return {
+                success: false,
+                is_liked: false,
+                likes_count: 0,
+                error: '서버 응답이 올바르지 않습니다.',
+            };
         }
 
-        // 업데이트된 좋아요 수 조회
-        const { count: likesCount, error: countError } = await supabase
-            .from('likes')
-            .select('*', { count: 'exact', head: true })
-            .eq('post_id', post_id);
-
-        if (countError) {
-            throw new Error('좋아요 수 조회에 실패했습니다.');
+        // RPC 함수에서 에러가 반환된 경우
+        if (!result.success) {
+            return {
+                success: false,
+                is_liked: false,
+                likes_count: 0,
+                error: result.error || '좋아요 처리에 실패했습니다.',
+            };
         }
 
-        // posts 테이블의 likes_count 업데이트
-        const { error: updateError } = await supabase
-            .from('posts')
-            .update({ likes_count: likesCount || 0 })
-            .eq('id', post_id);
-
-        if (updateError) {
-            console.error(
-                'posts 테이블 likes_count 업데이트 실패:',
-                updateError
-            );
-            // 이 에러는 치명적이지 않으므로 계속 진행
-        }
-
+        // 성공적인 결과 반환
         return {
             success: true,
-            is_liked: isLiked,
-            likes_count: likesCount || 0,
+            is_liked: result.is_liked,
+            likes_count: result.likes_count,
         };
     } catch (error) {
         console.error('좋아요 토글 실패:', error);
