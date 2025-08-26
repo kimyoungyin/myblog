@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toggleLikeAction } from '@/lib/actions';
 import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
 import Link from 'next/link';
 
 interface LikeButtonProps {
@@ -33,7 +32,6 @@ export function LikeButton({
 
     const handleToggleLike = async () => {
         if (!user) {
-            toast.error('좋아요를 누르려면 로그인이 필요합니다.');
             return;
         }
 
@@ -56,22 +54,10 @@ export function LikeButton({
                 // 서버 결과로 최종 상태 업데이트
                 setIsLiked(result.is_liked);
                 setLikesCount(result.likes_count);
-
-                toast.success(
-                    result.is_liked
-                        ? '좋아요를 눌렀습니다!'
-                        : '좋아요를 취소했습니다.'
-                );
-            } catch (error) {
+            } catch {
                 // 실패 시 원래 상태로 복원
                 setIsLiked(!newIsLiked);
                 setLikesCount(initialLikesCount);
-
-                const errorMessage =
-                    error instanceof Error
-                        ? error.message
-                        : '좋아요 처리 중 오류가 발생했습니다.';
-                toast.error(errorMessage);
             }
         });
     };
