@@ -14,6 +14,7 @@ import {
     UpdatePostSchema,
     SearchHashtagSchema,
     PostIdSchema,
+    ToggleLikeSchema,
 } from './schemas';
 import {
     updateImageUrlsInMarkdown,
@@ -479,10 +480,11 @@ export async function createCommentAction(formData: FormData) {
         // 인증 확인
         const supabase = await createClient();
         const {
-            data: { session },
-        } = await supabase.auth.getSession();
+            data: { user },
+            error: authError,
+        } = await supabase.auth.getUser();
 
-        if (!session?.user) {
+        if (authError || !user) {
             throw new Error('댓글을 작성하려면 로그인이 필요합니다.');
         }
 
@@ -508,10 +510,7 @@ export async function createCommentAction(formData: FormData) {
 
         // 댓글 생성
         const { createComment } = await import('./comments');
-        const comment = await createComment(
-            validationResult.data,
-            session.user.id
-        );
+        const comment = await createComment(validationResult.data, user.id);
 
         // 캐시 무효화
         revalidatePath(`/posts/${rawData.post_id}`);
@@ -531,10 +530,11 @@ export async function updateCommentAction(formData: FormData) {
         // 인증 확인
         const supabase = await createClient();
         const {
-            data: { session },
-        } = await supabase.auth.getSession();
+            data: { user },
+            error: authError,
+        } = await supabase.auth.getUser();
 
-        if (!session?.user) {
+        if (authError || !user) {
             throw new Error('댓글을 수정하려면 로그인이 필요합니다.');
         }
 
@@ -563,7 +563,7 @@ export async function updateCommentAction(formData: FormData) {
         const comment = await updateComment(
             rawData.comment_id,
             validationResult.data,
-            session.user.id
+            user.id
         );
 
         // 캐시 무효화
@@ -584,10 +584,11 @@ export async function deleteCommentAction(formData: FormData) {
         // 인증 확인
         const supabase = await createClient();
         const {
-            data: { session },
-        } = await supabase.auth.getSession();
+            data: { user },
+            error: authError,
+        } = await supabase.auth.getUser();
 
-        if (!session?.user) {
+        if (authError || !user) {
             throw new Error('댓글을 삭제하려면 로그인이 필요합니다.');
         }
 
@@ -599,7 +600,7 @@ export async function deleteCommentAction(formData: FormData) {
 
         // 댓글 삭제
         const { deleteComment } = await import('./comments');
-        await deleteComment(rawData.comment_id, session.user.id);
+        await deleteComment(rawData.comment_id, user.id);
 
         // 캐시 무효화
         revalidatePath(`/posts/${rawData.post_id}`);
@@ -607,6 +608,117 @@ export async function deleteCommentAction(formData: FormData) {
         return { success: true };
     } catch (error) {
         console.error('댓글 삭제 실패:', error);
+        throw error;
+    }
+}
+
+// ============================================================================
+// 좋아요 관련 Server Actions
+// ============================================================================
+
+/**
+ * 좋아요 토글 Server Action
+ */
+export async function toggleLikeAction(formData: FormData) {
+    try {
+        // 인증 확인
+        const supabase = await createClient();
+        const {
+            data: { user },
+            error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            throw new Error('좋아요를 추가/제거하려면 로그인이 필요합니다.');
+        }
+
+        // 폼 데이터 추출
+        const rawData = {
+            post_id: parseInt(formData.get('post_id') as string, 10),
+        };
+
+        // Zod 스키마로 데이터 검증
+        const validationResult = ToggleLikeSchema.safeParse(rawData);
+        if (!validationResult.success) {
+            const errorMessage = validationResult.error.issues
+                .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+                .join(', ');
+            throw new Error(`데이터 검증 실패: ${errorMessage}`);
+        }
+
+        // 좋아요 토글
+        const { toggleLike } = await import('./likes');
+        const result = await toggleLike(validationResult.data, user.id);
+
+        if (!result.success) {
+            throw new Error(result.error || '좋아요 처리에 실패했습니다.');
+        }
+
+        // 관련 페이지 캐시 무효화
+        revalidatePath(`/posts/${rawData.post_id}`);
+        revalidatePath('/posts');
+        revalidatePath('/');
+
+        return {
+            success: true,
+            is_liked: result.is_liked,
+            likes_count: result.likes_count,
+        };
+    } catch (error) {
+        console.error('좋아요 토글 실패:', error);
+        throw error;
+    }
+}
+
+/**
+ * 좋아요 상태 조회 Server Action
+ */
+export async function getLikeStatusAction(postId: number) {
+    try {
+        // 글 ID 검증
+        const validationResult = PostIdSchema.safeParse({
+            id: postId.toString(),
+        });
+        if (!validationResult.success) {
+            throw new Error('올바른 글 ID가 아닙니다.');
+        }
+
+        // 현재 사용자 확인 (에러가 발생해도 계속 진행)
+        const supabase = await createClient();
+        const {
+            data: { user },
+        } = await supabase.auth.getUser();
+
+        // 좋아요 상태 조회 (로그인하지 않은 사용자도 조회 가능)
+        const { getLikeStatus } = await import('./likes');
+        const likeStatus = await getLikeStatus(
+            validationResult.data.id,
+            user?.id
+        );
+
+        return likeStatus;
+    } catch (error) {
+        console.error('좋아요 상태 조회 실패:', error);
+        throw error;
+    }
+}
+
+/**
+ * 사용자 좋아요 목록 조회 Server Action
+ */
+export async function getUserLikesAction(
+    userId: string,
+    page: number = 1,
+    limit: number = PAGE_SIZE
+) {
+    try {
+        // 사용자 좋아요 목록 조회
+        const { getUserLikes } = await import('./likes');
+        const result = await getUserLikes(userId, page, limit);
+
+        return result;
+    } catch (error) {
+        console.error('사용자 좋아요 목록 조회 실패:', error);
         throw error;
     }
 }

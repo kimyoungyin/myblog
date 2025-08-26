@@ -112,6 +112,17 @@ export const CommentIdSchema = z.object({
         .refine((val) => val > 0, '댓글 ID는 1 이상이어야 합니다.'),
 });
 
+// 좋아요 토글 스키마
+export const ToggleLikeSchema = z.object({
+    post_id: z.number().int().positive('올바른 글 ID가 아닙니다.'),
+});
+
+// 좋아요 상태 조회 스키마
+export const GetLikeStatusSchema = z.object({
+    post_id: z.number().int().positive('올바른 글 ID가 아닙니다.'),
+    user_id: z.string().min(1, '사용자 ID가 필요합니다.').optional(),
+});
+
 // 타입 추론
 export type CreatePostData = z.infer<typeof CreatePostSchema>;
 export type UpdatePostData = z.infer<typeof UpdatePostSchema>;
@@ -123,6 +134,8 @@ export type UserProfileData = z.infer<typeof UserProfileSchema>;
 export type CreateCommentData = z.infer<typeof CreateCommentSchema>;
 export type UpdateCommentData = z.infer<typeof UpdateCommentSchema>;
 export type CommentIdData = z.infer<typeof CommentIdSchema>;
+export type ToggleLikeData = z.infer<typeof ToggleLikeSchema>;
+export type GetLikeStatusData = z.infer<typeof GetLikeStatusSchema>;
 
 // 검증 에러 타입
 export type ValidationError = {

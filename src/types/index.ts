@@ -71,6 +71,21 @@ export interface Like {
     created_at: string;
 }
 
+// 좋아요 상태 타입
+export interface LikeStatus {
+    post_id: number;
+    is_liked: boolean;
+    likes_count: number;
+}
+
+// 좋아요 토글 결과 타입
+export interface ToggleLikeResult {
+    success: boolean;
+    is_liked: boolean;
+    likes_count: number;
+    error?: string;
+}
+
 // 검색 파라미터 타입
 export interface SearchParams {
     query?: string;

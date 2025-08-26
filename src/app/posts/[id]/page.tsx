@@ -4,6 +4,7 @@ import {
     getPostAction,
     incrementViewCountAction,
     getCommentsAction,
+    getLikeStatusAction,
 } from '@/lib/actions';
 import { MarkdownRenderer } from '@/components/editor/MarkdownRenderer';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,6 +16,7 @@ import ToEditButton from '@/components/ui/toEditButton';
 import { AlertTriangle } from 'lucide-react';
 import { HashtagLink } from '@/components/ui/hashtag-link';
 import { CommentSection } from '@/components/comments/CommentSection';
+import { LikeButton } from '@/components/likes/LikeButton';
 
 interface PostPageProps {
     params: Promise<{
@@ -30,10 +32,15 @@ export default async function PostPage({ params }: PostPageProps) {
     }
 
     try {
-        // 글과 댓글을 병렬로 조회
-        const [post, initialComments] = await Promise.all([
+        // 글, 댓글, 좋아요 상태를 병렬로 조회
+        const [post, initialComments, likeStatus] = await Promise.all([
             getPostAction(postId),
             getCommentsAction(postId).catch(() => []), // 댓글 조회 실패해도 글은 표시
+            getLikeStatusAction(postId).catch(() => ({
+                post_id: postId,
+                is_liked: false,
+                likes_count: 0,
+            })), // 좋아요 상태 조회 실패해도 글은 표시
         ]);
 
         if (!post) {
@@ -110,11 +117,16 @@ export default async function PostPage({ params }: PostPageProps) {
                                         </span>
                                     )}
                                 </div>
-                                <div className="flex gap-2">
-                                    {/* 들어오는 순간 조회수 증가할 것(낙관적 업데이트) */}
+                                <div className="flex items-center gap-4">
                                     <span>조회수: {post.view_count}</span>
-                                    <span>좋아요: {post.likes_count}</span>
-                                    {/* <span>댓글: {post.comments_count}</span> */}
+                                    <LikeButton
+                                        postId={postId}
+                                        initialLikesCount={
+                                            likeStatus.likes_count
+                                        }
+                                        initialIsLiked={likeStatus.is_liked}
+                                        size="sm"
+                                    />
                                 </div>
                             </div>
 
