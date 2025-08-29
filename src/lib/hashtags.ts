@@ -83,6 +83,7 @@ export async function createHashtags(names: string[]): Promise<Hashtag[]> {
 
 /**
  * 해시태그 목록을 글 개수와 함께 조회 (글 개수 내림차순 정렬)
+ * 관계 오류를 피하기 위해 별도 쿼리로 구현
  */
 export async function getHashtagsWithCount(
     limit: number = 20
@@ -90,33 +91,56 @@ export async function getHashtagsWithCount(
     try {
         const supabase = createServiceRoleClient();
 
-        // Supabase aggregate 함수를 사용하여 해시태그별 글 개수 조회
-        const { data, error } = await supabase
+        // 1단계: 모든 해시태그 조회
+        const { data: hashtags, error: hashtagsError } = await supabase
             .from('hashtags')
-            .select(
-                `
-                id,
-                name,
-                created_at,
-                post_hashtags(count)
-            `
-            )
-            .order('post_hashtags(count)', { ascending: false })
-            .order('name', { ascending: true }) // 2차 정렬: 이름 오름차순
-            .limit(limit);
+            .select('id, name, created_at')
+            .order('name', { ascending: true });
 
-        if (error) {
-            console.error('해시태그 목록 조회 오류:', error);
+        if (hashtagsError) {
+            console.error('해시태그 목록 조회 오류:', hashtagsError);
             return [];
         }
 
-        // 결과를 HashtagWithCount 형태로 변환
-        const hashtagsWithCount = (data || []).map((hashtag) => ({
-            id: hashtag.id,
-            name: hashtag.name,
-            created_at: hashtag.created_at,
-            post_count: hashtag.post_hashtags?.[0]?.count || 0,
-        }));
+        if (!hashtags || hashtags.length === 0) {
+            return [];
+        }
+
+        // 2단계: 각 해시태그별 글 개수 조회
+        const hashtagIds = hashtags.map((h) => h.id);
+        const { data: postCounts, error: countError } = await supabase
+            .from('post_hashtags')
+            .select('hashtag_id')
+            .in('hashtag_id', hashtagIds);
+
+        if (countError) {
+            console.error('해시태그 글 개수 조회 오류:', countError);
+            return [];
+        }
+
+        // 3단계: 해시태그별 글 개수 집계
+        const countMap = new Map<number, number>();
+        (postCounts || []).forEach((pc) => {
+            const current = countMap.get(pc.hashtag_id) || 0;
+            countMap.set(pc.hashtag_id, current + 1);
+        });
+
+        // 4단계: 결과 조합 및 정렬
+        const hashtagsWithCount = hashtags
+            .map((hashtag) => ({
+                id: hashtag.id,
+                name: hashtag.name,
+                created_at: hashtag.created_at,
+                post_count: countMap.get(hashtag.id) || 0,
+            }))
+            .sort((a, b) => {
+                // 글 개수 내림차순, 같으면 이름 오름차순
+                if (b.post_count !== a.post_count) {
+                    return b.post_count - a.post_count;
+                }
+                return a.name.localeCompare(b.name);
+            })
+            .slice(0, limit); // 상위 limit개만 반환
 
         return hashtagsWithCount;
     } catch (error) {
