@@ -206,7 +206,7 @@ onChange: (inView) => {
 return (
     <>
         {posts.length === 0 ? (
-            <EmptyHint activeTag={tag} />
+            <EmptyHint />
         ) : (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {posts.map((post) => (
@@ -344,14 +344,12 @@ if (isError) {
 #### **빈 상태 처리**
 
 ```tsx
-function EmptyHint({ activeTag }: { activeTag?: string }) {
+function EmptyHint() {
     return (
         <Card>
             <CardContent className="p-12 text-center">
                 <p className="text-muted-foreground mb-4 text-lg">
-                    {activeTag
-                        ? `해시태그 #${activeTag}에 해당하는 글이 없습니다.`
-                        : '아직 작성된 글이 없습니다.'}
+                    {'아직 작성된 글이 없습니다.'}
                 </p>
                 <AdminCreateHint />
             </CardContent>
