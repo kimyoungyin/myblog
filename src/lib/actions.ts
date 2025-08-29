@@ -312,20 +312,12 @@ export async function getRecentPostsAction() {
 export async function getPostsAction(
     page: number = 1,
     sortBy: PostSort = 'latest',
-    hashtag?: string,
     hashtagIds?: number[],
     searchQuery?: string
 ) {
     try {
         // 읽기 전용이므로 인증 불필요
-        return await getPosts(
-            page,
-            PAGE_SIZE,
-            sortBy,
-            hashtag,
-            hashtagIds,
-            searchQuery
-        );
+        return await getPosts(page, PAGE_SIZE, sortBy, hashtagIds, searchQuery);
     } catch (error) {
         throw error;
     }
