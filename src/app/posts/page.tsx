@@ -41,7 +41,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
             if (!isNaN(tagId) && tagId > 0) {
                 // ID 기반 필터링
                 activeTagId = tagId;
-                // 해시태그 이름 조회
+                // 해시태그 이름 조회 (UI 표시용)
                 const { getHashtagByIdAction } = await import('@/lib/actions');
                 const hashtagInfo = await getHashtagByIdAction(tagId);
                 if (hashtagInfo) {
@@ -71,7 +71,6 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
             getPostsAction(
                 1,
                 validSortBy,
-                activeTagName,
                 activeTagId ? [activeTagId] : undefined
             ),
             getHashtagsWithCountAction(15), // 상위 15개 해시태그
@@ -130,9 +129,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                             {/* 정렬 선택기 */}
                             <SortSelector
                                 currentSort={validSortBy}
-                                currentTag={
-                                    activeTagId?.toString() || activeTagName
-                                }
+                                currentTagId={activeTagId?.toString()}
                             />
                         </div>
                     </div>
@@ -163,11 +160,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                             <PostWrapper
                                 initialPosts={posts}
                                 sort={validSortBy}
-                                tag={
-                                    activeTagId?.toString() ||
-                                    activeTagName ||
-                                    ''
-                                }
+                                tagId={activeTagId?.toString() || undefined}
                             />
                         </div>
                     </div>
