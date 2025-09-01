@@ -18,7 +18,7 @@ export const HashtagLink: React.FC<HashtagLinkProps> = ({
 }) => {
     return (
         <Link
-            href={`/posts?tag=${encodeURIComponent(hashtag.name)}`}
+            href={`/posts?tag=${hashtag.id}`}
             className={`transition-colors hover:opacity-80 ${className}`}
         >
             <Badge variant={variant} className="text-xs">

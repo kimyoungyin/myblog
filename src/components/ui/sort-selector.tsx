@@ -14,7 +14,7 @@ export type SortOption = PostSort;
 
 interface SortSelectorProps {
     currentSort: SortOption;
-    currentTag?: string;
+    currentTagId?: string;
     className?: string;
 }
 
@@ -47,7 +47,7 @@ const SORT_OPTIONS = [
 
 export const SortSelector: React.FC<SortSelectorProps> = ({
     currentSort,
-    currentTag,
+    currentTagId,
     className = '',
 }) => {
     const currentOption = SORT_OPTIONS.find(
@@ -75,7 +75,7 @@ export const SortSelector: React.FC<SortSelectorProps> = ({
                     const Icon = option.icon;
                     const params = new URLSearchParams();
                     params.set('sort', option.value);
-                    if (currentTag) params.set('tag', currentTag);
+                    if (currentTagId) params.set('tag', currentTagId);
                     const href = `?${params.toString()}`;
                     return (
                         <DropdownMenuItem key={option.value} asChild>

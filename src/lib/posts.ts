@@ -222,7 +222,6 @@ export async function getPosts(
     page: number = 1,
     limit: number = 10,
     sortBy: PostSort = 'latest',
-    hashtag?: string,
     hashtagIds?: number[],
     searchQuery?: string
 ): Promise<{ posts: Post[]; total: number }> {
@@ -264,125 +263,6 @@ export async function getPosts(
             return {
                 posts,
                 total: Number(total),
-            };
-        }
-
-        // 해시태그 이름으로 필터링하는 경우 - 모든 해시태그를 포함하여 조회
-        if (hashtag && hashtag.trim().length > 0) {
-            // 1. 해당 해시태그를 가진 포스트 ID들을 먼저 찾기
-            const { data: postsWithHashtag, error: hashtagError } =
-                await supabase
-                    .from('posts')
-                    .select(
-                        `
-                    id,
-                    post_hashtags!inner(
-                        hashtags!inner(
-                            name
-                        )
-                    )
-                `
-                    )
-                    .eq('post_hashtags.hashtags.name', hashtag.trim());
-
-            if (hashtagError) {
-                throw new Error('해시태그 필터링에 실패했습니다.');
-            }
-
-            if (!postsWithHashtag || postsWithHashtag.length === 0) {
-                // 해당 해시태그를 가진 글이 없는 경우
-                return {
-                    posts: [],
-                    total: 0,
-                };
-            }
-
-            // 2. 찾은 포스트 ID들로 전체 정보 조회 (모든 해시태그 포함)
-            const postIds = postsWithHashtag.map((p) => p.id);
-
-            let query = supabase
-                .from('posts')
-                .select(
-                    `
-                    *,
-                    post_hashtags(
-                        hashtags(
-                            id,
-                            name,
-                            created_at
-                        )
-                    )
-                `,
-                    { count: 'exact' }
-                )
-                .in('id', postIds);
-
-            // 검색어 필터링 (제목 또는 내용에서 검색)
-            if (searchQuery && searchQuery.trim().length > 0) {
-                const trimmedQuery = searchQuery.trim();
-                query = query.or(
-                    `title.ilike.%${trimmedQuery}%,content_markdown.ilike.%${trimmedQuery}%`
-                );
-            }
-
-            // 정렬 기준에 따른 쿼리 구성
-            let sortedQuery = query;
-            switch (sortBy) {
-                case 'latest':
-                    sortedQuery = query.order('created_at', {
-                        ascending: false,
-                    });
-                    break;
-                case 'oldest':
-                    sortedQuery = query.order('created_at', {
-                        ascending: true,
-                    });
-                    break;
-                case 'popular':
-                    // 인기순: 조회수 내림차순 → id 오름차순 (2차 정렬로 안정성 보장)
-                    sortedQuery = query
-                        .order('view_count', { ascending: false })
-                        .order('id', { ascending: true });
-                    break;
-                case 'likes':
-                    // 좋아요순: 좋아요 수 내림차순 → id 오름차순 (2차 정렬로 안정성 보장)
-                    sortedQuery = query
-                        .order('likes_count', { ascending: false })
-                        .order('id', { ascending: true });
-                    break;
-                default:
-                    sortedQuery = query.order('created_at', {
-                        ascending: false,
-                    });
-            }
-
-            const {
-                data: posts,
-                error,
-                count,
-            } = await sortedQuery.range((page - 1) * limit, page * limit - 1);
-
-            if (error) {
-                throw new Error('글 목록 조회에 실패했습니다.');
-            }
-
-            // 해시태그 정보를 Post 객체에 추가
-            const postsWithHashtags = (posts || []).map((post) => {
-                if (post.post_hashtags) {
-                    const hashtags = post.post_hashtags.map(
-                        (ph: { hashtags: Hashtag }) => ph.hashtags
-                    );
-                    return {
-                        ...post,
-                        hashtags,
-                    };
-                }
-                return post;
-            });
-
-            return {
-                posts: postsWithHashtags,
-                total: count || 0,
             };
         }
 

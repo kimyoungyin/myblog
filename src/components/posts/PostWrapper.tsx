@@ -12,14 +12,12 @@ import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { SinglePostCardSkeleton } from '@/components/ui/search-results-skeleton';
 
-function EmptyHint({ activeTag }: { activeTag?: string }) {
+function EmptyHint() {
     return (
         <Card>
             <CardContent className="p-12 text-center">
                 <p className="text-muted-foreground mb-4 text-lg">
-                    {activeTag
-                        ? `해시태그 #${activeTag}에 해당하는 글이 없습니다.`
-                        : '아직 작성된 글이 없습니다.'}
+                    {'아직 작성된 글이 없습니다.'}
                 </p>
                 <AdminCreateHint />
             </CardContent>
@@ -30,16 +28,21 @@ function EmptyHint({ activeTag }: { activeTag?: string }) {
 export default function PostWrapper({
     initialPosts,
     sort,
-    tag,
+    tagId,
 }: {
     initialPosts: Post[];
     sort: PostSort;
-    tag: string;
+    tagId?: string;
 }) {
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isError } =
         useInfiniteQuery({
-            queryKey: ['posts', sort, tag],
-            queryFn: ({ pageParam }) => getPostsAction(pageParam, sort, tag),
+            queryKey: ['posts', sort, tagId],
+            queryFn: ({ pageParam }) =>
+                getPostsAction(
+                    pageParam,
+                    sort,
+                    tagId ? [Number(tagId)] : undefined // hashtagIds (ID 배열)
+                ),
             initialPageParam: 1,
             initialData: {
                 pages: [{ posts: initialPosts, total: initialPosts.length }],
@@ -101,7 +104,7 @@ export default function PostWrapper({
     return (
         <>
             {posts.length === 0 ? (
-                <EmptyHint activeTag={tag} />
+                <EmptyHint />
             ) : (
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {posts.map((post) => (

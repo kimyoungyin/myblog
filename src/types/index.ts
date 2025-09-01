@@ -32,6 +32,14 @@ export interface Hashtag {
     created_at: string;
 }
 
+// 글 개수를 포함한 해시태그 타입
+export interface HashtagWithCount {
+    id: number;
+    name: string;
+    created_at: string;
+    post_count: number;
+}
+
 // 글 정렬 타입 (공용)
 export type PostSort = 'latest' | 'popular' | 'likes' | 'oldest';
 

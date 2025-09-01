@@ -312,20 +312,12 @@ export async function getRecentPostsAction() {
 export async function getPostsAction(
     page: number = 1,
     sortBy: PostSort = 'latest',
-    hashtag?: string,
     hashtagIds?: number[],
     searchQuery?: string
 ) {
     try {
         // 읽기 전용이므로 인증 불필요
-        return await getPosts(
-            page,
-            PAGE_SIZE,
-            sortBy,
-            hashtag,
-            hashtagIds,
-            searchQuery
-        );
+        return await getPosts(page, PAGE_SIZE, sortBy, hashtagIds, searchQuery);
     } catch (error) {
         throw error;
     }
@@ -720,5 +712,29 @@ export async function getUserLikesAction(
     } catch (error) {
         console.error('사용자 좋아요 목록 조회 실패:', error);
         throw error;
+    }
+}
+
+// 해시태그 목록 조회 Server Action (글 개수 포함, 읽기 전용)
+export async function getHashtagsWithCountAction(limit: number = 20) {
+    try {
+        // 읽기 전용이므로 인증 불필요
+        const { getHashtagsWithCount } = await import('./hashtags');
+        return await getHashtagsWithCount(limit);
+    } catch (error) {
+        console.error('해시태그 목록 조회 실패:', error);
+        return [];
+    }
+}
+
+// 해시태그 ID로 해시태그 조회 Server Action (읽기 전용)
+export async function getHashtagByIdAction(id: number) {
+    try {
+        // 읽기 전용이므로 인증 불필요
+        const { getHashtagById } = await import('./hashtags');
+        return await getHashtagById(id);
+    } catch (error) {
+        console.error('해시태그 조회 실패:', error);
+        return null;
     }
 }

@@ -514,7 +514,25 @@ CREATE TABLE likes (
 - [x] 접근성 고려: 색상, 크기, 상태 표시
 - [x] 현대적 소셜 미디어 UX 패턴 적용
 
-### Phase 10: 최적화 및 테스트
+### Phase 10. 해시태그 메뉴 및 그룹화
+
+- [x] 검색 때 hashtag id를 사용한 searchParam 방식을 홈 -> posts 해시태그 필터에서도 id만 사용하도록 리팩토링(hastag-link 등등)
+- [x] 홈 좌측에 글이 많은 순서대로 해시태그 목록 링크
+    - [x] 인덱싱으로 성능 향상
+        - [x] JOIN 컬럼 인덱스 (post_hashtags.post_id, hashtag_id)
+        - [x] 정렬 컬럼 인덱스 (created_at, view_count, likes_count)
+        - [x] 복합 인덱스 (정렬 + ID 2차 정렬)
+        - [x] 전문 검색 GIN 인덱스 (title, content)
+        - [x] 해시태그 이름 검색 인덱스
+    - [x] 성능 모니터링 도구 구현
+        - [x] 인덱스 사용률 분석 RPC 함수
+        - [x] 캐시 히트율 분석 RPC 함수
+        - [x] 테이블 크기 분석 RPC 함수
+        - [x] 해시태그 쿼리 성능 분석 함수
+- [x] 해시태그 클릭 시 hastag-link를 클릭한 것처럼 `posts?tag=1`로 이동.
+    - [x] sort나 tag로 필터링된 posts 페이지에도 좌측에 해시태그 목록 링크 유지
+
+### Phase 11: 최적화 및 테스트
 
 - [ ] 이미지 최적화 (Next.js Image)
 - [ ] SEO 최적화
@@ -532,7 +550,7 @@ CREATE TABLE likes (
 - [ ] 컴포넌트 테스트 (Testing Library)
 - [ ] E2E 테스트 (Playwright)
 
-### Phase 11: 배포 및 운영
+### Phase 12: 배포 및 운영
 
 - [ ] Vercel 배포 설정
 - [ ] 환경 변수 설정 (프로덕션)

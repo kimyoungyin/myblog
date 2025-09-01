@@ -93,7 +93,6 @@ async function SearchResultsSection({
         const result = await getPostsAction(
             1,
             'latest',
-            undefined,
             hashtagIds,
             searchQuery
         );

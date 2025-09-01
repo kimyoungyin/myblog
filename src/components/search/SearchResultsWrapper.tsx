@@ -89,13 +89,7 @@ export function SearchResultsWrapper({
         useInfiniteQuery({
             queryKey: ['search', searchQuery, ...(hashtagIds || [])],
             queryFn: ({ pageParam }) =>
-                getPostsAction(
-                    pageParam,
-                    'latest',
-                    undefined,
-                    hashtagIds,
-                    searchQuery
-                ),
+                getPostsAction(pageParam, 'latest', hashtagIds, searchQuery),
             initialPageParam: 1,
             initialData: {
                 pages: [{ posts: initialPosts, total: totalResults }],
