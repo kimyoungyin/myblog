@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import {
     getRecentPostsAction,
     getHashtagsWithCountAction,
@@ -9,6 +10,48 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { PostCard } from '@/components/post-card';
 import { HashtagSidebar } from '@/components/hashtags/HashtagSidebar';
+
+// 홈페이지 메타데이터
+export const metadata: Metadata = {
+    title: '홈',
+    description:
+        '김영인의 기술 블로그입니다. React, Next.js, TypeScript 등 웹 개발 기술과 경험을 공유합니다.',
+    keywords: [
+        '김영인',
+        '기술 블로그',
+        '개발 블로그',
+        'React',
+        'Next.js',
+        'TypeScript',
+        '웹 개발',
+        '프론트엔드',
+        '풀스택',
+    ],
+
+    // Open Graph 홈페이지 최적화
+    openGraph: {
+        title: '김영인의 기술 블로그',
+        description:
+            'React, Next.js, TypeScript 등 웹 개발 기술과 경험을 공유하는 블로그입니다.',
+        url: '/',
+        type: 'website',
+    },
+
+    // Twitter Card 홈페이지 최적화
+    twitter: {
+        title: '김영인의 기술 블로그',
+        description:
+            'React, Next.js, TypeScript 등 웹 개발 기술과 경험을 공유하는 블로그입니다.',
+    },
+
+    // 홈페이지 전용 추가 메타데이터
+    other: {
+        // 홈페이지임을 명시
+        'page-type': 'homepage',
+        // 최신 글 정보 제공
+        'content-type': 'blog-homepage',
+    },
+};
 
 export default async function HomePage() {
     try {
@@ -96,6 +139,74 @@ export default async function HomePage() {
                             )}
                         </div>
                     </div>
+
+                    {/* JSON-LD WebSite 스키마 */}
+                    <script
+                        type="application/ld+json"
+                        dangerouslySetInnerHTML={{
+                            __html: JSON.stringify({
+                                '@context': 'https://schema.org',
+                                '@type': 'WebSite',
+                                name: 'MyBlog - 김영인의 기술 블로그',
+                                alternateName: '김영인의 기술 블로그',
+                                url:
+                                    process.env.NEXT_PUBLIC_SITE_URL ||
+                                    'https://myblog.vercel.app',
+                                description:
+                                    '개발 과정에서 배운 것들과 경험을 나만의 방식으로 정리하여 공유하는 기술 블로그입니다.',
+                                inLanguage: 'ko-KR',
+                                author: {
+                                    '@type': 'Person',
+                                    name: '김영인',
+                                    url:
+                                        process.env.NEXT_PUBLIC_SITE_URL ||
+                                        'https://myblog.vercel.app',
+                                },
+                                publisher: {
+                                    '@type': 'Organization',
+                                    name: 'MyBlog',
+                                    url:
+                                        process.env.NEXT_PUBLIC_SITE_URL ||
+                                        'https://myblog.vercel.app',
+                                },
+                                potentialAction: {
+                                    '@type': 'SearchAction',
+                                    target: {
+                                        '@type': 'EntryPoint',
+                                        urlTemplate: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://myblog.vercel.app'}/search?q={search_term_string}`,
+                                    },
+                                    'query-input':
+                                        'required name=search_term_string',
+                                },
+                                mainEntity: {
+                                    '@type': 'Blog',
+                                    name: '김영인의 기술 블로그',
+                                    description:
+                                        'React, Next.js, TypeScript 등 웹 개발 기술과 경험을 공유하는 블로그',
+                                    author: {
+                                        '@type': 'Person',
+                                        name: '김영인',
+                                    },
+                                    blogPost: posts.map((post) => ({
+                                        '@type': 'BlogPosting',
+                                        headline: post.title,
+                                        url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://myblog.vercel.app'}/posts/${post.id}`,
+                                        datePublished: post.created_at,
+                                        dateModified: post.updated_at,
+                                        author: {
+                                            '@type': 'Person',
+                                            name: '김영인',
+                                        },
+                                        image: post.thumbnail_url || undefined,
+                                        keywords:
+                                            post.hashtags
+                                                ?.map((tag) => tag.name)
+                                                .join(', ') || '',
+                                    })),
+                                },
+                            }).replace(/</g, '\\u003c'),
+                        }}
+                    />
                 </div>
             </div>
         );
