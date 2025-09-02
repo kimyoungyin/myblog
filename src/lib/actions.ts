@@ -61,7 +61,6 @@ export async function createPostAction(formData: FormData) {
         }
 
         // 캐시 무효화 및 리다이렉트
-        revalidatePath('/admin/posts');
         revalidatePath('/posts');
         redirect(`/posts/${post.id}`);
     } catch (error) {
@@ -145,7 +144,6 @@ export async function updatePostAction(postId: number, formData: FormData) {
         }
 
         // 캐시 무효화 및 리다이렉트
-        revalidatePath('/admin/posts');
         revalidatePath(`/admin/posts/${postId}/edit`);
         revalidatePath(`/posts/${postId}`);
         revalidatePath('/posts');
@@ -290,7 +288,6 @@ export async function deletePostAction(postId: number) {
         }
 
         // 캐시 무효화
-        revalidatePath('/admin/posts');
         revalidatePath('/posts');
 
         return { success: true };
