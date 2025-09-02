@@ -564,11 +564,13 @@ CREATE TABLE likes (
 - [ ] 단위 테스트 작성 (Vitest)
 - [ ] 컴포넌트 테스트 (Testing Library)
 - [ ] E2E 테스트 (Playwright)
-- [ ] 고급 SEO 최적화
-    - [ ] 동적 페이지별 generateMetadata 함수 구현
-    - [ ] Open Graph 메타태그 추가
-    - [ ] JSON-LD 구조화 데이터 추가
-    - [ ] 사이트맵 생성
+- [x] 고급 SEO 최적화
+    - [x] 동적 페이지별 generateMetadata 함수 구현
+    - [x] Open Graph 메타태그 추가
+    - [x] JSON-LD 구조화 데이터 추가
+    - [x] canonical/alternates 설정
+    - [x] 사이트맵 생성
+    - [x] robots.txt 생성
 
 ### Phase 12: 배포 및 운영
 
