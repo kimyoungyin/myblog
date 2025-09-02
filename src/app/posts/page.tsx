@@ -85,6 +85,11 @@ export async function generateMetadata({
             description: baseDescription,
         },
 
+        // canonical URL
+        alternates: {
+            canonical: '/posts',
+        },
+
         // 글 목록 페이지 전용 메타데이터
         other: {
             'page-type': 'blog-list',

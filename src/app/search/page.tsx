@@ -87,6 +87,11 @@ export async function generateMetadata({
             description,
         },
 
+        // canonical URL
+        alternates: {
+            canonical: '/search',
+        },
+
         // 검색 페이지 전용 메타데이터
         other: {
             'page-type': 'search-results',
