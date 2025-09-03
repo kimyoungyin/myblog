@@ -582,10 +582,8 @@ CREATE TABLE likes (
 
 ## 재사용 가능한 컴포넌트 목록
 
-- [ ] Header (네비게이션, 로그인 상태, Admin 메뉴)
-- [ ] UserMenu (프로필 클릭 시 나타나는 Dialog)
-- [ ] SearchBar (검색어 + 해시태그 입력)
-- [ ] HashtagAutocomplete (해시태그 자동완성)
+- [x] Header (네비게이션, 로그인 상태, Admin 메뉴) ✅
+- [x] SearchBar (검색어 + 해시태그 입력) ✅
 - [x] PostCard (글 목록의 개별 글) ✅
 - [x] HashtagLink (재사용 가능한 해시태그 링크) ✅
 - [x] CommentForm (댓글 작성 폼) ✅
@@ -594,8 +592,6 @@ CREATE TABLE likes (
 - [x] CommentSection (통합 댓글 섹션) ✅
 - [x] CommentSkeleton (댓글 로딩 UI) ✅
 - [x] MarkdownEditor (마크다운 작성 + 미리보기) ✅
-- [ ] Pagination (페이지네이션)
-- [ ] LoadingSpinner (로딩 상태)
 - [x] QueryProvider (React Query 설정) ✅
 - [x] CacheBoundary (캐시 경계 컴포넌트) ✅
 
