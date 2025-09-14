@@ -115,14 +115,6 @@ const Header = memo(function Header() {
                                                 새 글 작성
                                             </Link>
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem asChild>
-                                            <Link
-                                                href="/admin/posts"
-                                                className="cursor-pointer"
-                                            >
-                                                글 관리
-                                            </Link>
-                                        </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                     </>
                                 )}

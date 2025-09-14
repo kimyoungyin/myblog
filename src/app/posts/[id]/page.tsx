@@ -1,5 +1,6 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
+import type { Metadata, ResolvingMetadata } from 'next';
 import {
     getPostAction,
     incrementViewCountAction,
@@ -22,6 +23,148 @@ interface PostPageProps {
     params: Promise<{
         id: string;
     }>;
+}
+
+// 동적 메타데이터 생성 함수
+export async function generateMetadata(
+    { params }: PostPageProps,
+    parent: ResolvingMetadata
+): Promise<Metadata> {
+    const postId = parseInt((await params).id);
+
+    if (isNaN(postId)) {
+        return {
+            title: '글을 찾을 수 없습니다 | MyBlog',
+            description: '요청하신 글을 찾을 수 없습니다.',
+        };
+    }
+
+    try {
+        // 글 데이터 조회 (generateMetadata에서 fetch는 자동으로 메모이제이션됨)
+        const post = await getPostAction(postId);
+
+        if (!post) {
+            return {
+                title: '글을 찾을 수 없습니다 | MyBlog',
+                description: '요청하신 글을 찾을 수 없습니다.',
+            };
+        }
+
+        // 부모 메타데이터에서 기본 이미지 가져오기
+        const previousImages = (await parent).openGraph?.images || [];
+
+        // 글 내용에서 첫 200자 추출 (마크다운 제거)
+        const contentPreview = post.content_markdown
+            .replace(/[#*`_~\[\]()]/g, '') // 마크다운 문법 제거
+            .replace(/\n+/g, ' ') // 개행 문자를 공백으로 변환
+            .trim()
+            .substring(0, 200);
+
+        // 해시태그를 키워드로 변환
+        const keywords = post.hashtags?.map((tag) => tag.name) || [];
+
+        // 기본 사이트 URL (환경변수에서 가져오거나 기본값 사용)
+        const baseUrl =
+            process.env.NEXT_PUBLIC_SITE_URL || 'https://myblog.vercel.app';
+        const postUrl = `${baseUrl}/posts/${post.id}`;
+
+        return {
+            title: `${post.title} | MyBlog`,
+            description:
+                contentPreview ||
+                '김영인의 기술 블로그에서 공유하는 개발 경험과 지식입니다.',
+            keywords: ['개발', '블로그', '기술', '프로그래밍', ...keywords],
+            authors: [{ name: '김영인' }],
+            creator: '김영인',
+            publisher: 'MyBlog',
+
+            // Open Graph 메타데이터
+            openGraph: {
+                title: post.title,
+                description:
+                    contentPreview ||
+                    '김영인의 기술 블로그에서 공유하는 개발 경험과 지식입니다.',
+                url: postUrl,
+                siteName: 'MyBlog - 김영인의 기술 블로그',
+                locale: 'ko_KR',
+                type: 'article',
+                publishedTime: post.created_at,
+                modifiedTime: post.updated_at,
+                authors: ['김영인'],
+                tags: keywords,
+                images: post.thumbnail_url
+                    ? [
+                          {
+                              url: post.thumbnail_url,
+                              width: 1200,
+                              height: 630,
+                              alt: post.title,
+                          },
+                          // 카카오톡 최적화를 위한 정사각형 이미지 (권장: 800x800)
+                          {
+                              url: post.thumbnail_url,
+                              width: 800,
+                              height: 800,
+                              alt: post.title,
+                          },
+                          ...previousImages,
+                      ]
+                    : previousImages,
+            },
+
+            // Twitter Card 메타데이터
+            twitter: {
+                card: 'summary_large_image',
+                title: post.title,
+                description:
+                    contentPreview ||
+                    '김영인의 기술 블로그에서 공유하는 개발 경험과 지식입니다.',
+                creator: '@kimyoungin', // 실제 트위터 핸들로 변경 필요
+                images: post.thumbnail_url ? [post.thumbnail_url] : undefined,
+            },
+
+            // 카카오톡 및 한국 플랫폼 최적화를 위한 추가 메타데이터
+            other: {
+                // 카카오톡에서 사용하는 추가 메타태그들
+                'og:image:width': '1200',
+                'og:image:height': '630',
+                'og:rich_attachment': 'true',
+                // 네이버 블로그 등에서 활용하는 메타태그
+                'article:section': keywords.length > 0 ? keywords[0] : '기술',
+                'article:tag': keywords.join(','),
+                // 한국어 콘텐츠임을 명시
+                'content-language': 'ko',
+                language: 'Korean',
+            },
+
+            // 추가 메타데이터
+            category: 'technology',
+            robots: {
+                index: true,
+                follow: true,
+                nocache: false,
+                googleBot: {
+                    index: true,
+                    follow: true,
+                    noimageindex: false,
+                    'max-video-preview': -1,
+                    'max-image-preview': 'large',
+                    'max-snippet': -1,
+                },
+            },
+
+            // 대체 URL (canonical)
+            alternates: {
+                canonical: postUrl,
+            },
+        };
+    } catch (error) {
+        console.error('메타데이터 생성 실패:', error);
+        return {
+            title: '글을 찾을 수 없습니다 | MyBlog',
+            description: '요청하신 글을 찾을 수 없습니다.',
+        };
+    }
 }
 
 export default async function PostPage({ params }: PostPageProps) {
@@ -163,6 +306,73 @@ export default async function PostPage({ params }: PostPageProps) {
                             initialComments={initialComments}
                         />
                     </article>
+
+                    {/* JSON-LD 구조화 데이터 */}
+                    <script
+                        type="application/ld+json"
+                        dangerouslySetInnerHTML={{
+                            __html: JSON.stringify({
+                                '@context': 'https://schema.org',
+                                '@type': 'BlogPosting',
+                                headline: post.title,
+                                description: post.content_markdown
+                                    .replace(/[#*`_~\[\]()]/g, '')
+                                    .replace(/\n+/g, ' ')
+                                    .trim()
+                                    .substring(0, 200),
+                                author: {
+                                    '@type': 'Person',
+                                    name: '김영인',
+                                    url:
+                                        process.env.NEXT_PUBLIC_SITE_URL ||
+                                        'https://myblog.vercel.app',
+                                },
+                                publisher: {
+                                    '@type': 'Organization',
+                                    name: 'MyBlog',
+                                    url:
+                                        process.env.NEXT_PUBLIC_SITE_URL ||
+                                        'https://myblog.vercel.app',
+                                },
+                                datePublished: post.created_at,
+                                dateModified: post.updated_at,
+                                image: post.thumbnail_url || undefined,
+                                url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://myblog.vercel.app'}/posts/${post.id}`,
+                                keywords:
+                                    post.hashtags
+                                        ?.map((tag) => tag.name)
+                                        .join(', ') || '',
+                                wordCount:
+                                    post.content_markdown.split(/\s+/).length,
+                                inLanguage: 'ko-KR',
+                                mainEntityOfPage: {
+                                    '@type': 'WebPage',
+                                    '@id': `${process.env.NEXT_PUBLIC_SITE_URL || 'https://myblog.vercel.app'}/posts/${post.id}`,
+                                },
+                                interactionStatistic: [
+                                    {
+                                        '@type': 'InteractionCounter',
+                                        interactionType:
+                                            'https://schema.org/ReadAction',
+                                        userInteractionCount: post.view_count,
+                                    },
+                                    {
+                                        '@type': 'InteractionCounter',
+                                        interactionType:
+                                            'https://schema.org/LikeAction',
+                                        userInteractionCount: post.likes_count,
+                                    },
+                                    {
+                                        '@type': 'InteractionCounter',
+                                        interactionType:
+                                            'https://schema.org/CommentAction',
+                                        userInteractionCount:
+                                            post.comments_count,
+                                    },
+                                ],
+                            }),
+                        }}
+                    />
                 </div>
             </div>
         );

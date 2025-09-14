@@ -534,10 +534,25 @@ CREATE TABLE likes (
 
 ### Phase 11: 최적화 및 테스트
 
-- [ ] 이미지 최적화 (Next.js Image)
-- [ ] SEO 최적화
-- [ ] 성능 최적화 (React.memo, useMemo, useCallback)
-- [ ] React Query 성능 최적화
+- [x] 이미지 최적화 (Next.js Image)
+    - [x] PostCard 썸네일 최적화 (width=500, height=500, priority 지원)
+    - [x] MarkdownRenderer 이미지 최적화 (width=800, height=600)
+    - [x] Next.js Image 설정 (next.config.ts에 Supabase 도메인 추가)
+    - [x] lazy loading 및 적절한 크기 설정
+- [x] SEO 최적화 (기본)
+    - [x] 기본 메타데이터 설정 (title, description)
+    - [x] 한국어 페이지 설정 (lang="ko")
+    - [x] 시맨틱 HTML 구조 (article, main, header, footer)
+- [x] 성능 최적화 (React.memo, useMemo, useCallback)
+    - [x] 7개 컴포넌트에서 24개 최적화 구현
+    - [x] SearchResultsWrapper: useMemo 3개 (posts, hasSearchQuery, hasHashtagIds)
+    - [x] MarkdownEditor: useCallback 7개 (이벤트 핸들러 최적화)
+    - [x] SearchBar: useCallback 2개 (디바운싱 최적화)
+    - [x] HashtagSearch: useCallback 6개 (다중 해시태그 최적화)
+    - [x] PostWrapper: useMemo 1개 (posts 배열 최적화)
+    - [x] CommentSection: useCallback 4개 (댓글 CRUD 최적화)
+    - [x] Header: useCallback 1개 (네비게이션 최적화)
+- [x] React Query 성능 최적화
     - [x] 캐시 TTL 설정 (staleTime: 5분, gcTime: 10분)
     - [x] 백그라운드 리페치 설정 (refetchInterval: 2분)
     - [x] 캐시 크기 제한 및 가비지 컬렉션
@@ -546,9 +561,17 @@ CREATE TABLE likes (
     - [x] 컴포넌트 마운트 시 최신 데이터 확인
     - [x] 네트워크 재연결 시 자동 동기화
     - [x] 지수 백오프를 통한 재시도 전략
-- [ ] 단위 테스트 작성 (Vitest)
-- [ ] 컴포넌트 테스트 (Testing Library)
-- [ ] E2E 테스트 (Playwright)
+- [x] 고급 SEO 최적화
+    - [x] 동적 페이지별 generateMetadata 함수 구현
+    - [x] Open Graph 메타태그 추가
+    - [x] JSON-LD 구조화 데이터 추가
+    - [x] canonical/alternates 설정
+    - [x] 사이트맵 생성
+    - [x] robots.txt 생성
+
+<!-- - [ ] 단위 테스트 작성 (Vitest) -->
+<!-- - [ ] 컴포넌트 테스트 (Testing Library) -->
+<!-- - [ ] E2E 테스트 (Playwright) -->
 
 ### Phase 12: 배포 및 운영
 
@@ -560,10 +583,8 @@ CREATE TABLE likes (
 
 ## 재사용 가능한 컴포넌트 목록
 
-- [ ] Header (네비게이션, 로그인 상태, Admin 메뉴)
-- [ ] UserMenu (프로필 클릭 시 나타나는 Dialog)
-- [ ] SearchBar (검색어 + 해시태그 입력)
-- [ ] HashtagAutocomplete (해시태그 자동완성)
+- [x] Header (네비게이션, 로그인 상태, Admin 메뉴) ✅
+- [x] SearchBar (검색어 + 해시태그 입력) ✅
 - [x] PostCard (글 목록의 개별 글) ✅
 - [x] HashtagLink (재사용 가능한 해시태그 링크) ✅
 - [x] CommentForm (댓글 작성 폼) ✅
@@ -572,8 +593,6 @@ CREATE TABLE likes (
 - [x] CommentSection (통합 댓글 섹션) ✅
 - [x] CommentSkeleton (댓글 로딩 UI) ✅
 - [x] MarkdownEditor (마크다운 작성 + 미리보기) ✅
-- [ ] Pagination (페이지네이션)
-- [ ] LoadingSpinner (로딩 상태)
 - [x] QueryProvider (React Query 설정) ✅
 - [x] CacheBoundary (캐시 경계 컴포넌트) ✅
 

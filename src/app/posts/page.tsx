@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { getPostsAction, getHashtagsWithCountAction } from '@/lib/actions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,89 @@ interface PostsPageProps {
         sort?: string;
         tag?: string;
     }>;
+}
+
+// 글 목록 페이지 동적 메타데이터 생성
+export async function generateMetadata({
+    searchParams,
+}: PostsPageProps): Promise<Metadata> {
+    const { sort, tag } = await searchParams;
+
+    // 정렬 방식에 따른 제목 생성
+    const getSortTitle = (sortType: string) => {
+        switch (sortType) {
+            case 'popular':
+                return '인기 글';
+            case 'likes':
+                return '좋아요 순';
+            case 'oldest':
+                return '오래된 글';
+            case 'latest':
+            default:
+                return '최신 글';
+        }
+    };
+
+    // 해시태그 정보 조회
+    let tagInfo = null;
+    if (tag?.trim()) {
+        const tagId = parseInt(tag.trim(), 10);
+        if (!isNaN(tagId) && tagId > 0) {
+            try {
+                const { getHashtagByIdAction } = await import('@/lib/actions');
+                tagInfo = await getHashtagByIdAction(tagId);
+            } catch (error) {
+                console.error('해시태그 정보 조회 실패:', error);
+            }
+        }
+    }
+
+    // 동적 제목 생성
+    const sortTitle = getSortTitle(sort || 'latest');
+    const baseTitle = tagInfo ? `#${tagInfo.name} ${sortTitle}` : sortTitle;
+
+    // 동적 설명 생성
+    const baseDescription = tagInfo
+        ? `${tagInfo.name} 해시태그가 포함된 글들을 ${sortTitle} 순으로 정렬하여 보여줍니다.`
+        : `모든 글을 ${sortTitle} 순으로 정렬하여 보여줍니다.`;
+
+    // 키워드 생성
+    const keywords = ['블로그', '글 목록', sortTitle];
+    if (tagInfo) {
+        keywords.push(tagInfo.name, `#${tagInfo.name}`);
+    }
+
+    return {
+        title: baseTitle,
+        description: `${baseDescription} 김영인의 기술 블로그에서 개발 경험과 지식을 공유합니다.`,
+        keywords,
+
+        // Open Graph 최적화
+        openGraph: {
+            title: `${baseTitle} | MyBlog`,
+            description: baseDescription,
+            url: `/posts${tag ? `?tag=${tag}` : ''}${sort ? `${tag ? '&' : '?'}sort=${sort}` : ''}`,
+            type: 'website',
+        },
+
+        // Twitter Card 최적화
+        twitter: {
+            title: `${baseTitle} | MyBlog`,
+            description: baseDescription,
+        },
+
+        // canonical URL
+        alternates: {
+            canonical: '/posts',
+        },
+
+        // 글 목록 페이지 전용 메타데이터
+        other: {
+            'page-type': 'blog-list',
+            'sort-order': sort || 'latest',
+            ...(tagInfo && { 'filtered-hashtag': tagInfo.name }),
+        },
+    };
 }
 
 export default async function PostsPage({ searchParams }: PostsPageProps) {
