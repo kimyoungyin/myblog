@@ -561,9 +561,6 @@ CREATE TABLE likes (
     - [x] 컴포넌트 마운트 시 최신 데이터 확인
     - [x] 네트워크 재연결 시 자동 동기화
     - [x] 지수 백오프를 통한 재시도 전략
-- [ ] 단위 테스트 작성 (Vitest)
-- [ ] 컴포넌트 테스트 (Testing Library)
-- [ ] E2E 테스트 (Playwright)
 - [x] 고급 SEO 최적화
     - [x] 동적 페이지별 generateMetadata 함수 구현
     - [x] Open Graph 메타태그 추가
@@ -571,6 +568,10 @@ CREATE TABLE likes (
     - [x] canonical/alternates 설정
     - [x] 사이트맵 생성
     - [x] robots.txt 생성
+
+<!-- - [ ] 단위 테스트 작성 (Vitest) -->
+<!-- - [ ] 컴포넌트 테스트 (Testing Library) -->
+<!-- - [ ] E2E 테스트 (Playwright) -->
 
 ### Phase 12: 배포 및 운영
 
