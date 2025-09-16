@@ -1,14 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase environment variables');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
 // 데이터베이스 테이블 타입 정의
 export type Database = {
     public: {
@@ -125,7 +114,7 @@ export type Database = {
                     updated_at: string;
                 };
                 Insert: {
-                    id?: number;
+                    id: number;
                     content: string;
                     post_id: number;
                     author_id: string;
