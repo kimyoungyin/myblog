@@ -1,9 +1,9 @@
 export default function Footer() {
     return (
         <footer className="bg-background border-t">
-            <div className="container flex flex-col items-center justify-between gap-4 py-10 md:h-24 md:flex-row md:py-0">
-                <div className="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
-                    <p className="text-muted-foreground text-center text-sm leading-loose md:text-left">
+            <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+                <div className="flex flex-col items-start gap-1 md:flex-row md:items-center md:gap-2">
+                    <p className="text-muted-foreground text-sm leading-loose">
                         © 2024 MyBlog. All rights reserved.
                     </p>
                 </div>

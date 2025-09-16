@@ -34,7 +34,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
     }
 
     return (
-        <div className="from-background via-background to-muted/20 flex min-h-[calc(100vh-9rem)] items-center justify-center bg-gradient-to-br p-4 md:min-h-[calc(100vh-10rem)]">
+        <div className="from-background via-background to-muted/20 flex min-h-[calc(100vh-9rem)] items-center justify-center bg-gradient-to-br p-4">
             <div className="w-full max-w-2xl space-y-8">
                 {/* 메인 에러 카드 */}
                 <Card className="border-destructive/20 shadow-xl">
