@@ -575,11 +575,37 @@ CREATE TABLE likes (
 
 ### Phase 12: 배포 및 운영
 
-- [ ] Vercel 배포 설정
-- [ ] 환경 변수 설정 (프로덕션)
-- [ ] 도메인 연결
-- [ ] 모니터링 및 로깅
-- [ ] 백업 전략
+- [x] Vercel 배포 설정 ✅
+- [x] 환경 변수 설정 (프로덕션) ✅
+- [ ] 도메인 연결 (선택사항)
+- [ ] 모니터링 및 로깅 (선택사항)
+- [ ] 백업 전략 (선택사항)
+
+#### Vercel 배포 가이드
+
+1. **GitHub 저장소 연결**
+    - Vercel 대시보드에서 "New Project" 클릭
+    - GitHub 저장소 선택 및 Import
+    - Framework Preset: Next.js (자동 감지)
+
+2. **환경 변수 설정**
+
+    ```env
+    # Supabase Configuration
+    NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+    DATABASE_URL=your_supabase_database_url
+    ```
+
+3. **자동 배포 설정**
+    - `main` 브랜치: 프로덕션 자동 배포 활성화
+    - `develop` 브랜치: 배포 비활성화 (vercel.json 설정)
+    - Pull Request: Preview 배포 자동 생성
+
+4. **배포 확인**
+    - Build 로그 확인
+    - 기능 테스트 (인증, 댓글, 좋아요 등)
+    - 성능 및 SEO 검증
 
 ## 재사용 가능한 컴포넌트 목록
 
