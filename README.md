@@ -1,12 +1,14 @@
-# 마크다운 기반 블로그 프로젝트 설계 명세서
+# 마크다운 기반 블로그 프로젝트 🎉 **완성!**
 
 ## 프로젝트 개요
 
-- 마크다운 기반 블로그. 개발자로서 정리한 자신의 경험과 지식을 공유하는 블로그
-- 글마다 해시태그 N개 저장 후 검색 및 분류에 사용
-- admin(나)만 글 작성 가능
-- 관련 단계를 하나씩 거쳐나갈 때마다 최종 확인 요청 받고, 이후 실행
-- 구현해나갈 때마다, Phase 별로 추가하거나, 내가 직접 구현했다면 학습했어야 하는 것들에 대해 `학습정리.md`에 정리하여 추후 참고 가능하도록 함
+- **마크다운 기반 블로그**: 개발자로서 정리한 자신의 경험과 지식을 공유하는 블로그
+- **해시태그 시스템**: 글마다 해시태그 N개 저장 후 검색 및 분류에 사용 (AND 조건 검색 지원)
+- **관리자 전용**: admin(나)만 글 작성 가능
+- **단계별 개발**: 12개 Phase로 나누어 체계적으로 구현
+- **학습 중심**: Phase별로 학습한 내용을 `학습정리-Phase{N}.md`에 정리
+
+**🚀 배포된 사이트**: https://myblog-navy-kappa.vercel.app/
 
 ## 기술 스택
 
@@ -573,13 +575,18 @@ CREATE TABLE likes (
 <!-- - [ ] 컴포넌트 테스트 (Testing Library) -->
 <!-- - [ ] E2E 테스트 (Playwright) -->
 
-### Phase 12: 배포 및 운영
+### Phase 12: 배포 및 운영 ✅
 
 - [x] Vercel 배포 설정 ✅
 - [x] 환경 변수 설정 (프로덕션) ✅
+- [x] OAuth 프로덕션 환경 설정 ✅
+- [x] 성능 모니터링 (Vercel Analytics) ✅
+- [x] 자동 배포 파이프라인 구축 ✅
 - [ ] 도메인 연결 (선택사항)
-- [ ] 모니터링 및 로깅 (선택사항)
+- [ ] 고급 모니터링 및 로깅 (선택사항)
 - [ ] 백업 전략 (선택사항)
+
+**🎉 배포 완료**: https://myblog-navy-kappa.vercel.app/
 
 #### Vercel 배포 가이드
 
@@ -594,8 +601,18 @@ CREATE TABLE likes (
     # Supabase Configuration
     NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
     NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+    SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
     DATABASE_URL=your_supabase_database_url
+
+    # Site URL (OAuth 인증 필수)
+    NEXT_PUBLIC_SITE_URL=https://your-domain.vercel.app
     ```
+
+    **중요**: OAuth 인증을 위해 Supabase 프로젝트 설정에서 다음 URL들을 추가해야 합니다:
+    - **Site URL**: `https://your-domain.vercel.app`
+    - **Redirect URLs**:
+        - `https://your-domain.vercel.app/auth/callback`
+        - `http://localhost:3000/auth/callback`
 
 3. **자동 배포 설정**
     - `main` 브랜치: 프로덕션 자동 배포 활성화
