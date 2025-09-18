@@ -16,7 +16,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
 }) => {
     return (
         <div
-            className={`prose prose-sm dark:prose-invert max-w-none ${className}`}
+            className={`prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap ${className}`}
         >
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -134,6 +134,12 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
                         <blockquote className="border-primary text-muted-foreground border-l-4 pl-4 italic">
                             {children}
                         </blockquote>
+                    ),
+                    // 텍스트 공백 보존
+                    span: ({ children, ...props }) => (
+                        <span style={{ whiteSpace: 'pre-wrap' }} {...props}>
+                            {children}
+                        </span>
                     ),
                 }}
             >
