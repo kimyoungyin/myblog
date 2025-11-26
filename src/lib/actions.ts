@@ -62,6 +62,7 @@ export async function createPostAction(formData: FormData) {
 
         // 캐시 무효화 및 리다이렉트
         revalidatePath('/posts');
+        revalidatePath('/'); // 홈페이지 캐시 무효화
         redirect(`/posts/${post.id}`);
     } catch (error) {
         throw error;
@@ -147,6 +148,7 @@ export async function updatePostAction(postId: number, formData: FormData) {
         revalidatePath(`/admin/posts/${postId}/edit`);
         revalidatePath(`/posts/${postId}`);
         revalidatePath('/posts');
+        revalidatePath('/'); // 홈페이지 캐시 무효화
 
         // 수정된 글의 상세 페이지로 리다이렉트
         redirect(`/posts/${postId}`);
@@ -289,6 +291,7 @@ export async function deletePostAction(postId: number) {
 
         // 캐시 무효화
         revalidatePath('/posts');
+        revalidatePath('/'); // 홈페이지 캐시 무효화
 
         return { success: true };
     } catch (error) {
@@ -503,6 +506,8 @@ export async function createCommentAction(formData: FormData) {
 
         // 캐시 무효화
         revalidatePath(`/posts/${rawData.post_id}`);
+        revalidatePath('/posts'); // 글 목록 캐시 무효화
+        revalidatePath('/'); // 홈페이지 캐시 무효화
 
         return comment;
     } catch (error) {
@@ -557,6 +562,8 @@ export async function updateCommentAction(formData: FormData) {
 
         // 캐시 무효화
         revalidatePath(`/posts/${rawData.post_id}`);
+        revalidatePath('/posts'); // 글 목록 캐시 무효화
+        revalidatePath('/'); // 홈페이지 캐시 무효화
 
         return comment;
     } catch (error) {
@@ -593,6 +600,8 @@ export async function deleteCommentAction(formData: FormData) {
 
         // 캐시 무효화
         revalidatePath(`/posts/${rawData.post_id}`);
+        revalidatePath('/posts'); // 글 목록 캐시 무효화
+        revalidatePath('/'); // 홈페이지 캐시 무효화
 
         return { success: true };
     } catch (error) {
