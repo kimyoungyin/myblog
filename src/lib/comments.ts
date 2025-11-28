@@ -179,6 +179,19 @@ export async function createComment(
             throw new Error(`댓글 생성 실패: ${error.message}`);
         }
 
+        // 댓글 수 증가
+        const { error: countError } = await supabase.rpc(
+            'increment_comment_count',
+            {
+                post_id_param: data.post_id,
+            }
+        );
+
+        if (countError) {
+            console.error('댓글 수 증가 실패:', countError);
+            // 댓글은 생성되었으므로 에러를 던지지 않고 로그만 남김
+        }
+
         // 타입 안전하게 변환
         const commentWithAuthor = newComment as CommentWithAuthor;
         const comment = convertToComment(commentWithAuthor);
@@ -259,6 +272,18 @@ export async function deleteComment(
     try {
         const supabase = createServiceRoleClient();
 
+        // 먼저 댓글 정보를 가져와서 post_id 확인
+        const { data: comment, error: fetchError } = await supabase
+            .from('comments')
+            .select('post_id')
+            .eq('id', commentId)
+            .eq('author_id', authorId)
+            .single();
+
+        if (fetchError || !comment) {
+            throw new Error('댓글을 찾을 수 없거나 삭제 권한이 없습니다.');
+        }
+
         // 댓글 삭제 (작성자만 가능)
         const { error } = await supabase
             .from('comments')
@@ -268,6 +293,19 @@ export async function deleteComment(
 
         if (error) {
             throw new Error(`댓글 삭제 실패: ${error.message}`);
+        }
+
+        // 댓글 수 감소
+        const { error: countError } = await supabase.rpc(
+            'decrement_comment_count',
+            {
+                post_id_param: comment.post_id,
+            }
+        );
+
+        if (countError) {
+            console.error('댓글 수 감소 실패:', countError);
+            // 댓글은 삭제되었으므로 에러를 던지지 않고 로그만 남김
         }
     } catch (error) {
         console.error('댓글 삭제 중 오류:', error);
