@@ -5,8 +5,11 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Image from 'next/image';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-
+import {
+    oneDark,
+    oneLight,
+} from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { useTheme } from 'next-themes';
 interface MarkdownRendererProps {
     content: string;
     className?: string;
@@ -16,6 +19,8 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
     content,
     className = '',
 }) => {
+    const { theme } = useTheme();
+    const codeStyle = theme === 'light' ? oneLight : oneDark;
     return (
         <div
             className={`prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap ${className}`}
@@ -93,6 +98,25 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
                             </a>
                         );
                     },
+                    // pre 태그 오버라이드 - 코드 블록의 외부 래퍼 제거
+                    pre: ({ children, ...props }) => {
+                        // pre 태그 내부의 code 요소를 찾아서 직접 렌더링
+                        const codeElement = React.Children.toArray(
+                            children
+                        ).find(
+                            (child) =>
+                                React.isValidElement(child) &&
+                                child.type === 'code'
+                        );
+
+                        if (codeElement && React.isValidElement(codeElement)) {
+                            // code 컴포넌트가 직접 처리하도록 반환
+                            return codeElement;
+                        }
+
+                        // 일반적인 pre 태그인 경우 기본 렌더링
+                        return <pre {...props}>{children}</pre>;
+                    },
                     // 코드 블록 스타일링
                     code: ({ className, children, ...props }) => {
                         const match = /language-(\w+)/.exec(className || '');
@@ -111,7 +135,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
                             );
                         }
 
-                        // 코드 블록인 경우
+                        // 코드 블록인 경우 - 이제 외부 pre 태그 없이 직접 렌더링
                         const language = match[1];
 
                         try {
@@ -122,7 +146,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
                                     </div>
                                     <SyntaxHighlighter
                                         language={language}
-                                        style={oneDark}
+                                        style={codeStyle}
                                         customStyle={{
                                             margin: 0,
                                             borderRadius: 0,
