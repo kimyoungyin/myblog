@@ -4,6 +4,8 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Image from 'next/image';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface MarkdownRendererProps {
     content: string;
@@ -96,20 +98,77 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
                         const match = /language-(\w+)/.exec(className || '');
                         const isInline =
                             !className || !className.includes('language-');
-                        return !isInline && match ? (
-                            <pre className="bg-muted overflow-x-auto rounded-lg p-4">
-                                <code className={className} {...props}>
+
+                        // 인라인 코드인 경우
+                        if (isInline || !match) {
+                            return (
+                                <code
+                                    className="bg-muted rounded px-1 py-0.5 font-mono text-sm"
+                                    {...props}
+                                >
                                     {children}
                                 </code>
-                            </pre>
-                        ) : (
-                            <code
-                                className="bg-muted rounded px-1 py-0.5 text-sm"
-                                {...props}
-                            >
-                                {children}
-                            </code>
-                        );
+                            );
+                        }
+
+                        // 코드 블록인 경우
+                        const language = match[1];
+
+                        try {
+                            return (
+                                <div className="my-4 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                                    <div className="bg-gray-100 px-3 py-2 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                                        {language}
+                                    </div>
+                                    <SyntaxHighlighter
+                                        language={language}
+                                        style={oneDark}
+                                        customStyle={{
+                                            margin: 0,
+                                            borderRadius: 0,
+                                            fontSize: '14px',
+                                            lineHeight: '1.5',
+                                            padding: '16px',
+                                        }}
+                                        codeTagProps={{
+                                            className: 'font-mono',
+                                        }}
+                                        showLineNumbers={false}
+                                        wrapLines={true}
+                                        wrapLongLines={true}
+                                    >
+                                        {String(children).replace(/\n$/, '')}
+                                    </SyntaxHighlighter>
+                                </div>
+                            );
+                        } catch (error) {
+                            // 언어가 지원되지 않거나 에러가 발생한 경우 fallback
+                            console.warn(
+                                `Syntax highlighting failed for language: ${language}`,
+                                error
+                            );
+                            return (
+                                <div className="my-4 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                                    <div className="bg-gray-100 px-3 py-2 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                                        {language} (highlighting unavailable)
+                                    </div>
+                                    <pre className="overflow-x-auto bg-gray-50 p-4 dark:bg-gray-900">
+                                        <code
+                                            className="font-mono text-sm"
+                                            style={{
+                                                fontFamily:
+                                                    'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+                                            }}
+                                        >
+                                            {String(children).replace(
+                                                /\n$/,
+                                                ''
+                                            )}
+                                        </code>
+                                    </pre>
+                                </div>
+                            );
+                        }
                     },
                     // 테이블 스타일링
                     table: ({ children }) => (
