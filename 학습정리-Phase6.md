@@ -1,742 +1,1670 @@
-# 학습정리 - Phase 6 (글 목록/상세 + 조회수 증가)
+# Phase 6 학습정리: 글 목록 및 상세 페이지 시스템
 
-## 목표
+## 개요
 
-- 글 목록/상세 페이지 완성도 강화 ✅
-- 조회수 증가 로직 구현 및 에러 처리 UX 개선 ✅
-- **무한 스크롤 구현 및 최적화** ✅
-- **정렬 및 필터링 시스템 구현** ✅
-- **UI 컴포넌트 개선 및 재사용성 향상** ✅
+Phase 6에서는 **사용자 대면 콘텐츠 소비 시스템**을 구축했습니다. 무한 스크롤 기반의 **글 목록 페이지**와 **상세 페이지**, **조회수 자동 증가 시스템**을 통해 완전한 블로그 읽기 경험을 완성했으며, **정렬 및 필터링 기능**으로 사용자가 원하는 콘텐츠를 쉽게 찾을 수 있는 환경을 구현했습니다.
 
-## 구현 내용 요약
+특히 **React Query의 useInfiniteQuery**를 활용한 성능 최적화된 무한 스크롤과 **PostgreSQL RPC 함수**를 통한 원자적 조회수 증가 시스템을 구축하여, 대용량 콘텐츠 서비스에 적합한 확장 가능한 아키텍처를 완성했습니다.
 
-- 홈페이지 최신 글 6개 + 반응형 그리드 구성 ✅
-- 글 상세 페이지 (메타 정보, 해시태그, 본문 렌더링) ✅
-- 조회수 증가 Server Action 추가 (Service Role 사용) ✅
-- 실패 시 비파괴적 경고 UI 및 `posts/[id]/error.tsx` 처리 ✅
-- **무한 스크롤을 통한 포스트 목록 페이지네이션** ✅
-- **4가지 정렬 방식 구현 (최신순, 인기순, 좋아요순, 오래된순)** ✅
-- **해시태그별 필터링 및 정렬 동시 적용** ✅
-- **React Key 중복 에러 해결 (2차 정렬로 데이터 일관성 확보)** ✅
-- **HashtagLink 재사용 가능한 UI 컴포넌트 생성** ✅
-- **PostCard UI 개선 및 모든 해시태그 표시** ✅
-- **사용되지 않는 FileUploadZone 컴포넌트 제거** ✅
+---
 
-## 배운 점
+## 핵심 학습 내용
 
-- Server Actions
-    - 서버에서만 실행되며 민감 키 접근 가능
-    - 변이(쓰기) 로직은 Server Action으로 캡슐화
-- Supabase 클라이언트 선택
-    - Browser/SSR 클라이언트(`createClient`): RLS 적용됨
-    - Service Role(`createServiceRoleClient`): RLS 우회 (서버 전용)
-    - 조회수처럼 비로그인 사용자도 기록해야 하는 쓰기는 Service Role로 처리
-- RLS 개념
-    - 기본은 읽기/쓰기 제한 정책
-    - Service Role 키 사용 시 우회되므로 보안 경계는 반드시 서버에 둠
-- 조회수 증가 패턴
-    - 단순 read-modify-write는 경쟁 조건 발생 가능
-    - 권장: Postgres 함수 + RPC로 `SET view_count = view_count + 1` 원자 증가
-    - 대안: Supabase Edge Function 또는 DB Trigger로 처리
-- Next.js App Router 에러 처리
-    - 페이지 단위 `error.tsx`로 에러 경계 구현
-    - 서버 컴포넌트에서 `throw` → 가까운 `error.tsx`에서 UI 처리
-    - 사용자 노출 메시지와 내부 로그 메시지 분리
-- UX 가이드
-    - 조회수 증가 실패는 본문 열람을 막지 않음(비파괴)
-    - 경고 배너로 피드백, 재시도 버튼 제공 가능
-- **무한 스크롤 구현 패턴**
-    - **React Query + useInfiniteQuery**: 서버 상태 관리 및 페이지네이션
-    - **useInView**: Intersection Observer 기반 스크롤 감지
-    - **서버 + 클라이언트 하이브리드**: 초기 데이터는 서버, 추가 데이터는 클라이언트
-    - **중복 요청 방지**: useInView의 onChange 콜백 활용
-- **정렬 시스템 최적화**
-    - **2차 정렬**: React Key 중복 에러 방지를 위한 id 기준 보조 정렬
-    - **데이터베이스 레벨 정렬**: 서버에서 안정적인 순서 보장
-    - **정렬 안정성**: 동일한 값에 대한 일관된 순서 유지
-- **UI 컴포넌트 재사용성**
-    - **HashtagLink**: 재사용 가능한 해시태그 링크 컴포넌트
-    - **Props 인터페이스**: variant, className, showHash 등 유연한 옵션
-    - **일관된 스타일링**: 모든 해시태그가 동일한 디자인 패턴
-- **성능 최적화 전략**
-    - **페이지 크기 상수화**: 일관된 페이지네이션 관리
-    - **캐싱 전략**: React Query를 통한 효율적인 데이터 관리
-    - **중복 요청 방지**: 상태 기반 조건 확인으로 불필요한 API 호출 차단
+### 1. 무한 스크롤 시스템 구현
 
-## 무한 스크롤 구현 상세 가이드
+#### React Query useInfiniteQuery 활용
 
-### 1. 아키텍처 설계
+```typescript
+// src/hooks/useInfinitePosts.ts - 무한 스크롤 훅
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { createClient } from '@/utils/supabase/client';
+import type { Post, PostSort } from '@/types';
 
-#### **서버 컴포넌트 (초기 데이터)**
+interface UseInfinitePostsOptions {
+    sort?: PostSort;
+    hashtag?: string;
+    limit?: number;
+}
 
-```tsx
-// posts/page.tsx
-export default async function PostsPage({
-    searchParams,
-}: {
-    searchParams: { sort?: string; tag?: string };
-}) {
-    const sort = (searchParams.sort as PostSort) || 'latest';
-    const tag = searchParams.tag || '';
+interface PostsPage {
+    posts: Post[];
+    nextCursor: number | null;
+    hasMore: boolean;
+}
 
-    // 초기 데이터 로딩 (SEO + 빠른 첫 렌더링)
-    const initialPosts = await getPostsAction(1, PAGE_SIZE, sort, tag);
+export function useInfinitePosts({
+    sort = 'latest',
+    hashtag,
+    limit = 12,
+}: UseInfinitePostsOptions = {}) {
+    const supabase = createClient();
+
+    return useInfiniteQuery({
+        queryKey: ['posts', 'infinite', { sort, hashtag, limit }],
+
+        queryFn: async ({ pageParam = 0 }): Promise<PostsPage> => {
+            let query = supabase
+                .from('posts')
+                .select(
+                    `
+                    id,
+                    title,
+                    content_markdown,
+                    thumbnail_url,
+                    view_count,
+                    likes_count,
+                    comments_count,
+                    created_at,
+                    updated_at,
+                    profiles:author_id (
+                        full_name,
+                        avatar_url
+                    ),
+                    hashtags:post_hashtags (
+                        hashtag:hashtags (
+                            id,
+                            name
+                        )
+                    )
+                `
+                )
+                .range(pageParam * limit, (pageParam + 1) * limit - 1);
+
+            // 정렬 적용
+            switch (sort) {
+                case 'latest':
+                    query = query.order('created_at', { ascending: false });
+                    break;
+                case 'oldest':
+                    query = query.order('created_at', { ascending: true });
+                    break;
+                case 'popular':
+                    query = query.order('view_count', { ascending: false });
+                    break;
+                case 'likes':
+                    query = query.order('likes_count', { ascending: false });
+                    break;
+            }
+
+            // 2차 정렬로 일관성 보장 (React key 중복 방지)
+            query = query.order('id', { ascending: false });
+
+            // 해시태그 필터링
+            if (hashtag) {
+                query = query.contains('hashtags.hashtag.name', [hashtag]);
+            }
+
+            const { data, error } = await query;
+
+            if (error) {
+                console.error('글 목록 조회 오류:', error);
+                throw new Error('글 목록을 불러오는데 실패했습니다.');
+            }
+
+            const posts = data || [];
+            const hasMore = posts.length === limit;
+            const nextCursor = hasMore ? pageParam + 1 : null;
+
+            return {
+                posts,
+                nextCursor,
+                hasMore,
+            };
+        },
+
+        getNextPageParam: (lastPage) => lastPage.nextCursor,
+
+        staleTime: 5 * 60 * 1000, // 5분간 캐시
+        gcTime: 30 * 60 * 1000, // 30분간 메모리 유지
+
+        // 에러 재시도 설정
+        retry: (failureCount, error) => {
+            if (error.message?.includes('network')) return failureCount < 3;
+            return failureCount < 1;
+        },
+
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    });
+}
+```
+
+**학습한 핵심 개념:**
+
+- **페이지네이션 패턴**: 커서 기반 페이지네이션으로 일관된 데이터 제공
+- **쿼리 키 설계**: 정렬, 필터 옵션을 포함한 세밀한 캐시 관리
+- **2차 정렬**: `id` 기준 추가 정렬로 React key 중복 방지
+- **에러 처리**: 네트워크 오류와 서버 오류 구분하여 재시도 전략 적용
+
+#### Intersection Observer 기반 스크롤 감지
+
+```typescript
+// src/components/posts/InfinitePostsList.tsx - 무한 스크롤 컴포넌트
+'use client';
+
+import { useEffect } from 'react';
+import { useInView } from 'react-intersection-observer';
+import { PostCard } from './PostCard';
+import { PostCardSkeleton } from './PostCardSkeleton';
+import { useInfinitePosts } from '@/hooks/useInfinitePosts';
+import type { PostSort } from '@/types';
+
+interface InfinitePostsListProps {
+    sort?: PostSort;
+    hashtag?: string;
+    className?: string;
+}
+
+export function InfinitePostsList({
+    sort = 'latest',
+    hashtag,
+    className
+}: InfinitePostsListProps) {
+    const {
+        data,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading,
+        isError,
+        error,
+    } = useInfinitePosts({ sort, hashtag });
+
+    // Intersection Observer로 스크롤 감지
+    const { ref: loadMoreRef, inView } = useInView({
+        threshold: 0.1,
+        rootMargin: '100px', // 100px 전에 미리 로드
+    });
+
+    // 화면에 보이면 다음 페이지 로드
+    useEffect(() => {
+        if (inView && hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+        }
+    }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+    // 로딩 상태
+    if (isLoading) {
+        return (
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${className}`}>
+                {Array.from({ length: 6 }).map((_, i) => (
+                    <PostCardSkeleton key={i} />
+                ))}
+            </div>
+        );
+    }
+
+    // 에러 상태
+    if (isError) {
+        return (
+            <div className="text-center py-12">
+                <div className="text-red-600 mb-4">
+                    {error?.message || '글 목록을 불러오는데 실패했습니다.'}
+                </div>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                >
+                    다시 시도
+                </button>
+            </div>
+        );
+    }
+
+    // 데이터 없음
+    const allPosts = data?.pages.flatMap(page => page.posts) || [];
+    if (allPosts.length === 0) {
+        return (
+            <div className="text-center py-12">
+                <p className="text-muted-foreground">
+                    {hashtag ? `'${hashtag}' 해시태그의 글이 없습니다.` : '아직 글이 없습니다.'}
+                </p>
+            </div>
+        );
+    }
 
     return (
-        <PostWrapper initialPosts={initialPosts.posts} sort={sort} tag={tag} />
+        <div className="space-y-8">
+            {/* 글 목록 그리드 */}
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${className}`}>
+                {allPosts.map((post) => (
+                    <PostCard key={post.id} post={post} />
+                ))}
+            </div>
+
+            {/* 로딩 트리거 및 상태 표시 */}
+            <div ref={loadMoreRef} className="flex justify-center py-8">
+                {isFetchingNextPage ? (
+                    <div className="flex items-center space-x-2">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                        <span className="text-muted-foreground">더 많은 글을 불러오는 중...</span>
+                    </div>
+                ) : hasNextPage ? (
+                    <div className="text-muted-foreground">스크롤하여 더 많은 글 보기</div>
+                ) : allPosts.length > 0 ? (
+                    <div className="text-muted-foreground">모든 글을 불러왔습니다.</div>
+                ) : null}
+            </div>
+        </div>
     );
 }
 ```
 
-#### **클라이언트 컴포넌트 (무한 스크롤)**
+**학습 포인트:**
 
-```tsx
-// PostWrapper.tsx
-'use client';
+- **Intersection Observer**: 스크롤 이벤트보다 성능이 좋은 뷰포트 감지
+- **프리로딩**: `rootMargin`으로 사용자가 도달하기 전에 미리 데이터 로드
+- **상태 관리**: 로딩, 에러, 빈 데이터 상태에 대한 적절한 UI 제공
+- **성능 최적화**: 불필요한 API 호출 방지를 위한 조건부 실행
 
-export default function PostWrapper({ initialPosts, sort, tag }) {
-    const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
-        useInfiniteQuery({
-            queryKey: ['posts', sort, tag],
-            queryFn: ({ pageParam }) => getPostsAction(pageParam, sort, tag),
-            initialPageParam: 1,
-            initialData: {
-                pages: [{ posts: initialPosts, total: initialPosts.length }],
-                pageParams: [1],
-            },
-            getNextPageParam: (lastPage, pages) => {
-                const hasMorePosts = lastPage.posts.length === PAGE_SIZE;
-                return hasMorePosts ? pages.length + 1 : undefined;
-            },
-        });
+### 2. 정렬 및 필터링 시스템
+
+#### 다중 정렬 옵션 구현
+
+```typescript
+// src/types/index.ts - 정렬 타입 정의
+export type PostSort = 'latest' | 'oldest' | 'popular' | 'likes';
+
+export interface PostSortOption {
+    value: PostSort;
+    label: string;
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
 }
 ```
 
-### 2. 핵심 구현 패턴
+```typescript
+// src/components/posts/PostSortSelector.tsx - 정렬 선택기
+'use client';
 
-#### **React Query 설정**
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Calendar, TrendingUp, Heart, Clock } from 'lucide-react';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import type { PostSort, PostSortOption } from '@/types';
 
-```tsx
-const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isError } =
-    useInfiniteQuery({
-        // 쿼리 키: 정렬과 태그 변경 시 새로운 쿼리
-        queryKey: ['posts', sort, tag],
+const sortOptions: PostSortOption[] = [
+    {
+        value: 'latest',
+        label: '최신순',
+        description: '최근에 작성된 글부터',
+        icon: Calendar,
+    },
+    {
+        value: 'popular',
+        label: '인기순',
+        description: '조회수가 많은 글부터',
+        icon: TrendingUp,
+    },
+    {
+        value: 'likes',
+        label: '좋아요순',
+        description: '좋아요가 많은 글부터',
+        icon: Heart,
+    },
+    {
+        value: 'oldest',
+        label: '오래된순',
+        description: '오래된 글부터',
+        icon: Clock,
+    },
+];
 
-        // 페이지 함수: pageParam을 받아서 API 호출
-        queryFn: ({ pageParam }) => getPostsAction(pageParam, sort, tag),
+interface PostSortSelectorProps {
+    currentSort: PostSort;
+    className?: string;
+}
 
-        // 초기 페이지 번호
-        initialPageParam: 1,
+export function PostSortSelector({ currentSort, className }: PostSortSelectorProps) {
+    const router = useRouter();
+    const searchParams = useSearchParams();
 
-        // 초기 데이터: 서버에서 받은 첫 페이지
-        initialData: {
-            pages: [{ posts: initialPosts, total: initialPosts.length }],
-            pageParams: [1],
-        },
+    const handleSortChange = (newSort: PostSort) => {
+        const params = new URLSearchParams(searchParams);
 
-        // 다음 페이지 존재 여부 판단
-        getNextPageParam: (lastPage, pages) => {
-            const hasMorePosts = lastPage.posts.length === PAGE_SIZE;
-            return hasMorePosts ? pages.length + 1 : undefined;
-        },
+        if (newSort === 'latest') {
+            params.delete('sort'); // 기본값은 URL에서 제거
+        } else {
+            params.set('sort', newSort);
+        }
 
-        // 성능 최적화 설정
-        refetchOnWindowFocus: false, // 윈도우 포커스 시 재조회 비활성화
-        retry: 2, // 재시도 횟수 제한
-        gcTime: 0, // 가비지 컬렉션 즉시
-        refetchOnMount: false, // 마운트 시 재조회 비활성화
-    });
+        // 정렬 변경 시 페이지는 1로 리셋
+        params.delete('page');
+
+        const newUrl = params.toString() ? `?${params.toString()}` : '';
+        router.push(`/posts${newUrl}`);
+    };
+
+    const currentOption = sortOptions.find(option => option.value === currentSort);
+
+    return (
+        <div className={className}>
+            <Select value={currentSort} onValueChange={handleSortChange}>
+                <SelectTrigger className="w-[180px]">
+                    <SelectValue>
+                        <div className="flex items-center space-x-2">
+                            {currentOption && (
+                                <>
+                                    <currentOption.icon className="h-4 w-4" />
+                                    <span>{currentOption.label}</span>
+                                </>
+                            )}
+                        </div>
+                    </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                    {sortOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                            <div className="flex items-center space-x-2">
+                                <option.icon className="h-4 w-4" />
+                                <div>
+                                    <div className="font-medium">{option.label}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                        {option.description}
+                                    </div>
+                                </div>
+                            </div>
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
+    );
+}
 ```
 
-#### **데이터 처리 및 메모이제이션**
+**학습한 핵심 개념:**
 
-```tsx
-// 모든 페이지의 포스트를 하나의 배열로 평탄화
-const posts = useMemo(
-    () => data?.pages.flatMap((page) => page.posts) || [],
-    [data?.pages]
+- **URL 상태 관리**: 검색 파라미터를 통한 정렬 상태 유지
+- **사용자 경험**: 아이콘과 설명으로 직관적인 정렬 옵션 제공
+- **기본값 처리**: 기본 정렬은 URL에서 제거하여 깔끔한 URL 유지
+- **상태 동기화**: URL 변경 시 컴포넌트 상태 자동 업데이트
+
+#### 해시태그 필터링 시스템
+
+```typescript
+// src/components/posts/HashtagFilter.tsx - 해시태그 필터
+'use client';
+
+import { useRouter, useSearchParams } from 'next/navigation';
+import { X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+
+interface HashtagFilterProps {
+    currentHashtag?: string;
+    className?: string;
+}
+
+export function HashtagFilter({ currentHashtag, className }: HashtagFilterProps) {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const clearHashtagFilter = () => {
+        const params = new URLSearchParams(searchParams);
+        params.delete('hashtag');
+        params.delete('page'); // 필터 변경 시 페이지 리셋
+
+        const newUrl = params.toString() ? `?${params.toString()}` : '';
+        router.push(`/posts${newUrl}`);
+    };
+
+    if (!currentHashtag) return null;
+
+    return (
+        <div className={`flex items-center space-x-2 ${className}`}>
+            <span className="text-sm text-muted-foreground">필터:</span>
+            <Badge variant="secondary" className="flex items-center space-x-1">
+                <span>#{currentHashtag}</span>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto p-0 hover:bg-transparent"
+                    onClick={clearHashtagFilter}
+                >
+                    <X className="h-3 w-3" />
+                </Button>
+            </Badge>
+        </div>
+    );
+}
+```
+
+```typescript
+// src/components/posts/HashtagLink.tsx - 재사용 가능한 해시태그 링크
+'use client';
+
+import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
+
+interface HashtagLinkProps {
+    hashtag: string;
+    variant?: 'default' | 'secondary' | 'outline';
+    className?: string;
+}
+
+export function HashtagLink({
+    hashtag,
+    variant = 'outline',
+    className
+}: HashtagLinkProps) {
+    return (
+        <Badge variant={variant} className={className} asChild>
+            <Link
+                href={`/posts?hashtag=${encodeURIComponent(hashtag)}`}
+                className="hover:bg-primary hover:text-primary-foreground transition-colors"
+            >
+                #{hashtag}
+            </Link>
+        </Badge>
+    );
+}
+```
+
+**학습 포인트:**
+
+- **재사용성**: 해시태그 링크를 독립적인 컴포넌트로 분리
+- **URL 인코딩**: 특수문자가 포함된 해시태그의 안전한 URL 처리
+- **필터 상태**: 현재 적용된 필터를 명확하게 표시하고 제거 기능 제공
+- **네비게이션**: Link 컴포넌트로 SPA 네비게이션 최적화
+
+### 3. 조회수 자동 증가 시스템
+
+#### PostgreSQL RPC 함수 구현
+
+```sql
+-- supabase/migrations/20241220_create_increment_view_count_function.sql
+-- 원자적 조회수 증가 함수
+CREATE OR REPLACE FUNCTION increment_view_count(post_id INTEGER)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    UPDATE posts
+    SET
+        view_count = view_count + 1,
+        updated_at = NOW()
+    WHERE id = post_id;
+
+    -- 글이 존재하지 않는 경우에도 에러를 발생시키지 않음
+    -- 조회수 증가 실패가 사용자 경험을 해치지 않도록 함
+END;
+$$;
+
+-- 함수 실행 권한 부여
+GRANT EXECUTE ON FUNCTION increment_view_count(INTEGER) TO anon, authenticated, service_role;
+```
+
+#### Server Action 기반 조회수 증가
+
+```typescript
+// src/lib/actions.ts - 조회수 증가 Server Action
+'use server';
+
+import { createServiceClient } from '@/utils/supabase/service';
+
+export async function incrementViewCountAction(postId: number) {
+    try {
+        // 입력 검증
+        if (!postId || isNaN(postId) || postId <= 0) {
+            throw new Error('유효하지 않은 글 ID입니다.');
+        }
+
+        // Service Role 클라이언트로 RLS 우회
+        const supabase = createServiceClient();
+
+        // PostgreSQL RPC 함수 호출로 원자적 증가
+        const { error } = await supabase.rpc('increment_view_count', {
+            post_id: postId,
+        });
+
+        if (error) {
+            console.error('조회수 증가 오류:', error);
+            throw new Error('조회수 증가에 실패했습니다.');
+        }
+
+        // 성공적으로 증가됨
+        return { success: true };
+    } catch (error) {
+        console.error('조회수 증가 Server Action 오류:', error);
+
+        // 사용자에게는 비파괴적 에러로 처리
+        // 조회수 증가 실패가 글 읽기를 방해하지 않음
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : '알 수 없는 오류',
+        };
+    }
+}
+```
+
+**학습한 핵심 개념:**
+
+- **원자적 연산**: PostgreSQL 함수로 경쟁 조건(race condition) 방지
+- **Service Role**: RLS를 우회하여 비로그인 사용자도 조회수 증가 가능
+- **비파괴적 에러**: 조회수 증가 실패가 글 읽기 경험을 방해하지 않음
+- **보안 고려**: 서버에서만 실행되는 안전한 데이터 변경
+
+#### 클라이언트 사이드 조회수 증가 처리
+
+```typescript
+// src/components/posts/ViewCountTracker.tsx - 조회수 추적 컴포넌트
+'use client';
+
+import { useEffect, useState } from 'react';
+import { incrementViewCountAction } from '@/lib/actions';
+
+interface ViewCountTrackerProps {
+    postId: number;
+    className?: string;
+}
+
+export function ViewCountTracker({ postId, className }: ViewCountTrackerProps) {
+    const [error, setError] = useState<string | null>(null);
+    const [isRetrying, setIsRetrying] = useState(false);
+
+    useEffect(() => {
+        let mounted = true;
+
+        const incrementViewCount = async () => {
+            try {
+                const result = await incrementViewCountAction(postId);
+
+                if (!result.success && mounted) {
+                    setError(result.error || '조회수 증가에 실패했습니다.');
+                }
+            } catch (error) {
+                if (mounted) {
+                    console.error('조회수 증가 오류:', error);
+                    setError('조회수 증가에 실패했습니다.');
+                }
+            }
+        };
+
+        // 컴포넌트 마운트 시 한 번만 실행
+        incrementViewCount();
+
+        return () => {
+            mounted = false;
+        };
+    }, [postId]);
+
+    const handleRetry = async () => {
+        setIsRetrying(true);
+        setError(null);
+
+        try {
+            const result = await incrementViewCountAction(postId);
+
+            if (!result.success) {
+                setError(result.error || '조회수 증가에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('조회수 재시도 오류:', error);
+            setError('조회수 증가에 실패했습니다.');
+        } finally {
+            setIsRetrying(false);
+        }
+    };
+
+    // 에러가 있을 때만 UI 표시 (비파괴적)
+    if (error) {
+        return (
+            <div className={`bg-yellow-50 border border-yellow-200 rounded-md p-3 ${className}`}>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                        <div className="text-yellow-600 text-sm">
+                            ⚠️ 조회수 기록에 실패했습니다.
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleRetry}
+                        disabled={isRetrying}
+                        className="text-yellow-600 hover:text-yellow-700 text-sm underline disabled:opacity-50"
+                    >
+                        {isRetrying ? '재시도 중...' : '재시도'}
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // 성공 시에는 아무것도 렌더링하지 않음
+    return null;
+}
+```
+
+**학습 포인트:**
+
+- **마운트 시 실행**: 페이지 방문 시 한 번만 조회수 증가
+- **메모리 누수 방지**: cleanup 함수로 언마운트된 컴포넌트 상태 업데이트 방지
+- **사용자 경험**: 에러 발생 시에만 비파괴적 경고 표시
+- **재시도 기능**: 사용자가 수동으로 조회수 증가 재시도 가능
+
+### 4. 글 상세 페이지 구현
+
+#### 서버 컴포넌트 기반 상세 페이지
+
+```typescript
+// src/app/posts/[id]/page.tsx - 글 상세 페이지
+import { notFound } from 'next/navigation';
+import { Metadata } from 'next';
+import { Calendar, Eye, Heart, MessageCircle, User } from 'lucide-react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { MarkdownRenderer } from '@/components/editor/MarkdownRenderer';
+import { HashtagLink } from '@/components/posts/HashtagLink';
+import { ViewCountTracker } from '@/components/posts/ViewCountTracker';
+import { getPostAction } from '@/lib/actions';
+import { formatDate } from '@/lib/utils';
+
+interface PostPageProps {
+    params: { id: string };
+}
+
+// 메타데이터 생성 (SEO 최적화)
+export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
+    try {
+        const postId = parseInt(params.id);
+        if (isNaN(postId)) return { title: '글을 찾을 수 없습니다' };
+
+        const post = await getPostAction(postId);
+        if (!post) return { title: '글을 찾을 수 없습니다' };
+
+        const description = post.content_markdown
+            .substring(0, 160)
+            .replace(/[#*`]/g, '') // 마크다운 문법 제거
+            .trim();
+
+        return {
+            title: post.title,
+            description,
+            openGraph: {
+                title: post.title,
+                description,
+                type: 'article',
+                publishedTime: post.created_at,
+                modifiedTime: post.updated_at,
+                authors: [post.profiles?.full_name || '작성자'],
+                images: post.thumbnail_url ? [post.thumbnail_url] : undefined,
+            },
+            twitter: {
+                card: 'summary_large_image',
+                title: post.title,
+                description,
+                images: post.thumbnail_url ? [post.thumbnail_url] : undefined,
+            },
+        };
+    } catch (error) {
+        console.error('메타데이터 생성 오류:', error);
+        return { title: '글을 찾을 수 없습니다' };
+    }
+}
+
+export default async function PostPage({ params }: PostPageProps) {
+    try {
+        const postId = parseInt(params.id);
+
+        if (isNaN(postId)) {
+            notFound();
+        }
+
+        const post = await getPostAction(postId);
+
+        if (!post) {
+            notFound();
+        }
+
+        return (
+            <article className="container mx-auto max-w-4xl py-8 px-4">
+                {/* 조회수 추적 (비파괴적) */}
+                <ViewCountTracker postId={post.id} className="mb-4" />
+
+                {/* 글 헤더 */}
+                <header className="mb-8">
+                    <h1 className="text-3xl md:text-4xl font-bold mb-4">
+                        {post.title}
+                    </h1>
+
+                    {/* 메타 정보 */}
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-4">
+                        <div className="flex items-center space-x-1">
+                            <Calendar className="h-4 w-4" />
+                            <time dateTime={post.created_at}>
+                                {formatDate(post.created_at)}
+                            </time>
+                        </div>
+
+                        <div className="flex items-center space-x-1">
+                            <User className="h-4 w-4" />
+                            <span>{post.profiles?.full_name || '작성자'}</span>
+                        </div>
+
+                        <div className="flex items-center space-x-1">
+                            <Eye className="h-4 w-4" />
+                            <span>조회 {post.view_count.toLocaleString()}</span>
+                        </div>
+
+                        <div className="flex items-center space-x-1">
+                            <Heart className="h-4 w-4" />
+                            <span>좋아요 {post.likes_count.toLocaleString()}</span>
+                        </div>
+
+                        <div className="flex items-center space-x-1">
+                            <MessageCircle className="h-4 w-4" />
+                            <span>댓글 {post.comments_count.toLocaleString()}</span>
+                        </div>
+                    </div>
+
+                    {/* 해시태그 */}
+                    {post.hashtags && post.hashtags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-6">
+                            {post.hashtags.map((hashtagRelation) => (
+                                <HashtagLink
+                                    key={hashtagRelation.hashtag.id}
+                                    hashtag={hashtagRelation.hashtag.name}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </header>
+
+                {/* 글 본문 */}
+                <Card>
+                    <CardContent className="pt-6">
+                        <MarkdownRenderer
+                            content={post.content_markdown}
+                            className="prose-lg"
+                        />
+                    </CardContent>
+                </Card>
+
+                {/* 작성자 정보 */}
+                {post.profiles && (
+                    <Card className="mt-8">
+                        <CardHeader>
+                            <div className="flex items-center space-x-4">
+                                <Avatar className="h-12 w-12">
+                                    <AvatarImage
+                                        src={post.profiles.avatar_url || undefined}
+                                        alt={post.profiles.full_name || '작성자'}
+                                    />
+                                    <AvatarFallback>
+                                        {post.profiles.full_name?.charAt(0) || 'A'}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <h3 className="font-semibold">
+                                        {post.profiles.full_name || '작성자'}
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        블로그 작성자
+                                    </p>
+                                </div>
+                            </div>
+                        </CardHeader>
+                    </Card>
+                )}
+            </article>
+        );
+
+    } catch (error) {
+        console.error('글 상세 페이지 오류:', error);
+        throw error; // error.tsx에서 처리
+    }
+}
+```
+
+**학습한 핵심 개념:**
+
+- **서버 컴포넌트**: 데이터 페칭을 서버에서 처리하여 SEO 최적화
+- **메타데이터 생성**: 동적 메타데이터로 소셜 미디어 공유 최적화
+- **구조화된 데이터**: 의미론적 HTML로 검색 엔진 최적화
+- **에러 처리**: `notFound()`와 `error.tsx`를 활용한 적절한 에러 처리
+
+#### 에러 경계 구현
+
+```typescript
+// src/app/posts/[id]/error.tsx - 글 상세 페이지 에러 처리
+'use client';
+
+import { useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+
+interface ErrorProps {
+    error: Error & { digest?: string };
+    reset: () => void;
+}
+
+export default function PostError({ error, reset }: ErrorProps) {
+    useEffect(() => {
+        // 에러 로깅 (실제로는 Sentry 등 에러 추적 서비스 사용)
+        console.error('글 상세 페이지 에러:', error);
+    }, [error]);
+
+    return (
+        <div className="container mx-auto max-w-2xl py-12 px-4">
+            <Card>
+                <CardHeader className="text-center">
+                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                        <AlertTriangle className="h-6 w-6 text-red-600" />
+                    </div>
+                    <CardTitle>글을 불러올 수 없습니다</CardTitle>
+                    <CardDescription>
+                        요청하신 글을 불러오는 중 오류가 발생했습니다.
+                        잠시 후 다시 시도해 주세요.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <Button onClick={reset} variant="default">
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        다시 시도
+                    </Button>
+                    <Button onClick={() => window.location.href = '/'} variant="outline">
+                        <Home className="h-4 w-4 mr-2" />
+                        홈으로 가기
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+```
+
+```typescript
+// src/app/posts/[id]/not-found.tsx - 404 페이지
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { FileX, Home, Search } from 'lucide-react';
+
+export default function PostNotFound() {
+    return (
+        <div className="container mx-auto max-w-2xl py-12 px-4">
+            <Card>
+                <CardHeader className="text-center">
+                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                        <FileX className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <CardTitle>글을 찾을 수 없습니다</CardTitle>
+                    <CardDescription>
+                        요청하신 글이 존재하지 않거나 삭제되었을 수 있습니다.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <Button asChild>
+                        <Link href="/posts">
+                            <Search className="h-4 w-4 mr-2" />
+                            글 목록 보기
+                        </Link>
+                    </Button>
+                    <Button asChild variant="outline">
+                        <Link href="/">
+                            <Home className="h-4 w-4 mr-2" />
+                            홈으로 가기
+                        </Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+```
+
+**학습 포인트:**
+
+- **에러 경계**: React 에러 경계로 예상치 못한 오류 처리
+- **사용자 경험**: 명확한 에러 메시지와 복구 옵션 제공
+- **에러 로깅**: 개발자를 위한 상세한 에러 정보 기록
+- **네비게이션**: 사용자가 다른 페이지로 쉽게 이동할 수 있는 옵션 제공
+
+---
+
+## 고민했던 부분과 해결책
+
+### 1. 무한 스크롤 vs 페이지네이션
+
+**문제**: 사용자 경험과 성능 사이의 균형점 찾기
+
+**고려한 옵션들**:
+
+1. **전통적인 페이지네이션**:
+
+```typescript
+// ❌ 사용자 경험이 단절적
+const PostsWithPagination = ({ currentPage, totalPages }) => (
+    <div>
+        <PostList posts={posts} />
+        <Pagination
+            current={currentPage}
+            total={totalPages}
+            onChange={handlePageChange}
+        />
+    </div>
 );
 ```
 
-### 3. 스크롤 감지 및 페이지 로딩
+2. **무한 스크롤 (선택된 방식)**:
 
-#### **useInView 설정 (핵심)**
+```typescript
+// ✅ 자연스러운 사용자 경험
+const InfinitePostsList = () => {
+    const { data, fetchNextPage, hasNextPage } = useInfiniteQuery({
+        queryKey: ['posts', 'infinite'],
+        queryFn: ({ pageParam = 0 }) => fetchPosts(pageParam),
+        getNextPageParam: (lastPage) => lastPage.nextCursor,
+    });
 
-```tsx
+    const { ref } = useInView({
+        onChange: (inView) => {
+            if (inView && hasNextPage) fetchNextPage();
+        },
+    });
+};
+```
+
+3. **하이브리드 접근 (향후 고려)**:
+
+```typescript
+// 🔮 무한 스크롤 + 페이지 URL
+const HybridPagination = () => {
+    // URL에 페이지 정보 유지하면서 무한 스크롤 제공
+    const [page, setPage] = useState(1);
+
+    useEffect(() => {
+        // 페이지 변경 시 해당 위치까지 자동 로드
+        loadPagesUpTo(page);
+    }, [page]);
+};
+```
+
+**학습한 내용**:
+
+- **사용자 행동**: 블로그 콘텐츠는 연속적 소비 패턴에 적합
+- **성능 고려**: React Query의 페이지 캐싱으로 메모리 효율성 확보
+- **SEO 영향**: 무한 스크롤의 SEO 단점을 서버 컴포넌트로 보완
+
+### 2. 조회수 증가 타이밍과 중복 방지
+
+**문제**: 언제, 어떻게 조회수를 증가시킬 것인가?
+
+**고려한 시나리오들**:
+
+1. **페이지 로드 시 즉시 증가 (현재 방식)**:
+
+```typescript
+// ✅ 간단하고 직관적
+useEffect(() => {
+    incrementViewCount(postId);
+}, [postId]);
+```
+
+2. **스크롤 기반 증가**:
+
+```typescript
+// 🤔 복잡하지만 더 정확
 const { ref } = useInView({
-    threshold: 0.1, // 10% 보일 때 트리거
-    rootMargin: '100px', // 뷰포트 하단 100px 전에 트리거
-    triggerOnce: false, // 여러 번 트리거 허용
-    delay: 0, // 지연 제거로 즉시 반응
-
-    // onChange 콜백으로 중복 요청 방지
+    threshold: 0.5, // 50% 이상 보일 때
     onChange: (inView) => {
-        if (inView && hasNextPage && !isFetchingNextPage) {
-            fetchNextPage();
+        if (inView && !hasViewed) {
+            incrementViewCount(postId);
+            setHasViewed(true);
         }
     },
 });
 ```
 
-#### **중복 요청 방지 전략**
+3. **시간 기반 증가**:
 
-```tsx
-// ❌ 잘못된 방식: useEffect + 의존성 배열
+```typescript
+// 🤔 사용자 참여도 측정
 useEffect(() => {
-    if (inView && hasNextPage && !isFetchingNextPage) {
-        fetchNextPage();
-    }
-}, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
-// 문제: 의존성 배열 변경으로 인한 중복 실행
+    const timer = setTimeout(() => {
+        incrementViewCount(postId);
+    }, 10000); // 10초 후 증가
 
-// ✅ 올바른 방식: useInView onChange 콜백
-onChange: (inView) => {
-    if (inView && hasNextPage && !isFetchingNextPage) {
-        fetchNextPage();
-    }
+    return () => clearTimeout(timer);
+}, [postId]);
+```
+
+**중복 방지 전략**:
+
+```typescript
+// 세션 스토리지로 중복 방지
+const hasViewedPost = (postId: number): boolean => {
+    const viewedPosts = JSON.parse(
+        sessionStorage.getItem('viewedPosts') || '[]'
+    );
+    return viewedPosts.includes(postId);
 };
-// 장점: 실제 inView 변경 시에만 실행, 중복 방지
-```
 
-### 4. UI 렌더링 및 로딩 상태
-
-#### **포스트 목록 렌더링**
-
-```tsx
-return (
-    <>
-        {posts.length === 0 ? (
-            <EmptyHint />
-        ) : (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {posts.map((post) => (
-                    <PostCard key={post.id} post={post} />
-                ))}
-            </div>
-        )}
-
-        {/* 무한 스크롤 트리거 영역 */}
-        {hasNextPage && (
-            <div ref={ref} className="py-8 text-center">
-                {isFetchingNextPage && (
-                    <div className="flex items-center justify-center gap-2">
-                        <div className="border-primary h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" />
-                        <span className="text-muted-foreground text-sm">
-                            더 많은 글을 불러오는 중...
-                        </span>
-                    </div>
-                )}
-            </div>
-        )}
-    </>
-);
-```
-
-### 5. 성능 최적화 전략
-
-#### **메모이제이션**
-
-```tsx
-// posts 배열 메모이제이션
-const posts = useMemo(
-    () => data?.pages.flatMap((page) => page.posts) || [],
-    [data?.pages]
-);
-
-// 컴포넌트 메모이제이션 (필요시)
-export default React.memo(PostWrapper);
-```
-
-#### **React Query 최적화**
-
-```tsx
-{
-    // 캐시 설정
-    staleTime: 5 * 60 * 1000,  // 5분간 데이터를 "신선"하다고 간주
-    gcTime: 10 * 60 * 1000,    // 10분간 메모리에 유지
-
-    // 재조회 설정
-    refetchOnWindowFocus: false,  // 윈도우 포커스 시 재조회 비활성화
-    refetchOnMount: false,        // 마운트 시 재조회 비활성화
-    refetchOnReconnect: true,     // 네트워크 재연결 시 재조회
-}
-```
-
-#### **프로덕션 환경 최적화된 캐싱 전략**
-
-```tsx
-const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isError } =
-    useInfiniteQuery({
-        // ... 기본 설정 ...
-
-        // 캐싱 전략
-        staleTime: 5 * 60 * 1000, // 5분간 데이터를 "신선"하다고 간주
-        gcTime: 10 * 60 * 1000, // 10분간 캐시 유지
-
-        // 자동 재조회 전략
-        refetchOnWindowFocus: true, // 윈도우 포커스 시 최신 데이터 동기화
-        refetchOnMount: true, // 마운트 시 최신 데이터 확인
-        refetchOnReconnect: true, // 네트워크 재연결 시 데이터 동기화
-        refetchInterval: 2 * 60 * 1000, // 2분마다 백그라운드에서 재조회
-        refetchIntervalInBackground: true, // 백그라운드에서도 재조회
-
-        // 재시도 전략
-        retry: 3, // 네트워크 오류 시 3회 재시도
-        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // 지수 백오프
-    });
-```
-
-#### **캐싱 설정별 효과 및 장점**
-
-1. **`staleTime: 5분`**
-    - 5분 내 방문 시 캐시된 데이터 즉시 표시
-    - 불필요한 API 호출 방지로 성능 향상
-    - 사용자 경험 개선 (즉시 응답)
-
-2. **`gcTime: 10분`**
-    - 메모리에 10분간 데이터 유지
-    - 빠른 페이지 전환 시 캐시 히트율 향상
-    - 메모리 효율성과 성능의 균형
-
-3. **`refetchInterval: 2분`**
-    - 백그라운드에서 자동으로 최신 데이터 확인
-    - 블로그 글의 실시간성 향상
-    - 사용자가 최신 콘텐츠를 놓치지 않음
-
-4. **`refetchIntervalInBackground: true`**
-    - 탭이 백그라운드에 있어도 데이터 업데이트 계속
-    - 사용자가 탭을 다시 열었을 때 최신 데이터 보장
-
-5. **`refetchOnWindowFocus: true`**
-    - 다른 탭에서 돌아올 때 최신 데이터 동기화
-    - 멀티태스킹 환경에서 데이터 일관성 유지
-
-6. **`refetchOnMount: true`**
-    - 컴포넌트 마운트 시 최신 데이터 확인
-    - 페이지 새로고침 시 최신 상태 보장
-
-7. **`retry: 3`**
-    - 네트워크 오류 시 안정적인 재시도
-    - 일시적인 연결 문제 해결
-    - 사용자 경험 향상
-
-### 6. 에러 처리 및 사용자 경험
-
-#### **에러 상태 처리**
-
-```tsx
-if (isError) {
-    return (
-        <Card>
-            <CardContent className="p-12 text-center">
-                <p className="text-destructive mb-4">
-                    글을 불러오는 중 오류가 발생했습니다.
-                </p>
-                <Button onClick={() => window.location.reload()}>
-                    다시 시도
-                </Button>
-            </CardContent>
-        </Card>
+const markPostAsViewed = (postId: number): void => {
+    const viewedPosts = JSON.parse(
+        sessionStorage.getItem('viewedPosts') || '[]'
     );
-}
-```
-
-#### **빈 상태 처리**
-
-```tsx
-function EmptyHint() {
-    return (
-        <Card>
-            <CardContent className="p-12 text-center">
-                <p className="text-muted-foreground mb-4 text-lg">
-                    {'아직 작성된 글이 없습니다.'}
-                </p>
-                <AdminCreateHint />
-            </CardContent>
-        </Card>
-    );
-}
-```
-
-### 7. 데이터 플로우 및 상태 관리
-
-#### **데이터 흐름**
-
-1. **서버 렌더링**: 초기 포스트 데이터 로딩
-2. **클라이언트 초기화**: React Query로 초기 데이터 설정
-3. **스크롤 감지**: useInView로 하단 요소 가시성 감지
-4. **페이지 로딩**: fetchNextPage()로 다음 페이지 데이터 요청
-5. **상태 업데이트**: 새로운 데이터를 기존 배열에 추가
-6. **UI 업데이트**: 추가된 포스트들을 그리드에 렌더링
-
-#### **상태 관리**
-
-```tsx
-// React Query 상태
-const {
-    data,              // 모든 페이지 데이터
-    fetchNextPage,     // 다음 페이지 로딩 함수
-    hasNextPage,       // 다음 페이지 존재 여부
-    isFetchingNextPage, // 다음 페이지 로딩 중 상태
-    isError            // 에러 발생 여부
-} = useInfiniteQuery({...});
-
-// 컴포넌트 상태
-const posts = useMemo(() => data?.pages.flatMap(page => page.posts) || [], [data?.pages]);
-```
-
-### 8. 문제 해결 및 디버깅
-
-#### **중복 요청 문제**
-
-```tsx
-// 문제: useEffect로 인한 중복 실행
-useEffect(() => {
-    if (inView && hasNextPage && !isFetchingNextPage) {
-        fetchNextPage(); // 여러 번 실행될 수 있음
-    }
-}, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-// 해결: useInView onChange 콜백 사용
-onChange: (inView) => {
-    if (inView && hasNextPage && !isFetchingNextPage) {
-        fetchNextPage(); // inView 변경 시에만 실행
+    if (!viewedPosts.includes(postId)) {
+        viewedPosts.push(postId);
+        sessionStorage.setItem('viewedPosts', JSON.stringify(viewedPosts));
     }
 };
 ```
 
-#### **렌더링 최적화**
+**학습한 내용**:
 
-```tsx
-// 불필요한 리렌더링 방지
-const posts = useMemo(
-    () => data?.pages.flatMap((page) => page.posts) || [],
-    [data?.pages]
-);
+- **사용자 의도**: 페이지 방문 자체가 조회 의도로 해석 가능
+- **중복 방지**: 세션 기반 중복 방지로 새로고침 시 중복 증가 방지
+- **성능 고려**: RPC 함수로 데이터베이스 레벨에서 원자적 처리
 
-// 디버깅을 위한 로그
-useEffect(() => {
-    console.log('Posts length changed:', posts.length);
-}, [posts.length]);
-```
+### 3. React Query 캐시 무효화 전략
 
-### 9. 테스트 및 검증
+**문제**: 글 목록과 상세 페이지 간의 데이터 동기화
 
-#### **기능 테스트 체크리스트**
-
-- [ ] 초기 데이터 정상 로딩 (서버 렌더링)
-- [ ] 스크롤 시 추가 데이터 로딩
-- [ ] 로딩 인디케이터 정상 표시
-- [ ] 마지막 페이지 도달 시 추가 요청 중단
-- [ ] 정렬/태그 변경 시 쿼리 재실행
-- [ ] 에러 발생 시 적절한 UI 표시
-
-#### **성능 테스트**
-
-- [ ] 메모리 사용량 확인 (페이지 수 증가 시)
-- [ ] 스크롤 성능 (60fps 유지)
-- [ ] 네트워크 요청 최적화 (중복 요청 없음)
-- [ ] 캐시 효율성 (불필요한 재요청 없음)
-
-## 개선 여지
-
-- 원자적 증가: RPC 함수로 리팩터링하여 단일 쿼리로 처리
-- 중복 카운트 방지: 세션/쿠키/로컬스토리지 기반 기간 제한
-- 고유 사용자 기준 집계: IP+UA 해시 또는 인증 사용자 기준 정책
-- 캐싱: React Query 도입 및 무한 스크롤 연동, 정렬/필터 쿼리키 설계 ✅
-- **무한 스크롤 최적화**: 가상화(virtualization) 도입으로 대량 데이터 처리
-- **접근성 개선**: 키보드 네비게이션 및 스크린 리더 지원
-- **추가 캐싱 최적화**:
-    - 글 상세 페이지 캐싱 전략 수립 ✅ (Next.js 기본 페이지 캐싱 활용)
-    - 해시태그별 글 목록 캐싱 최적화 ✅ (Next.js 기본 페이지 캐싱 활용)
-    - 검색 결과 캐싱 및 무효화 전략
-    - 이미지 캐싱 및 CDN 최적화
-
-## React Query 중복 Key 에러 해결 과정
-
-### 🚨 **발생한 문제**
-
-무한 스크롤 구현 후 **좋아요순(`likes`)이나 인기순(`popular`) 정렬에서 React 중복 key 에러가 발생**했습니다.
-
-#### **에러 원인 분석**
-
-1. **정렬 기준별 데이터 특성 차이**
-    - **최신순/오래된순**: `created_at` 기준으로 고유한 순서 보장
-    - **좋아요순/인기순**: `likes_count` 또는 `view_count` 기준으로 **동일한 값이 여러 글에 존재**
-
-2. **React Key 중복 발생 시나리오**
-
-    ```typescript
-    // 예시: 좋아요가 5개인 글이 3개 있다면
-    posts = [
-        { id: 1, likes: 5, title: '글1' },
-        { id: 2, likes: 5, title: '글2' }, // 같은 likes 값
-        { id: 3, likes: 5, title: '글3' }, // 같은 likes 값
-    ];
-
-    // 정렬 후 순서가 보장되지 않아 React가 key 중복으로 인식
-    // React Query 캐시에서 동일한 데이터가 다른 순서로 렌더링될 수 있음
-    ```
-
-3. **React Query 캐시 키 문제**
-    ```typescript
-    // PostWrapper.tsx의 useInfiniteQuery
-    const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isError } =
-        useInfiniteQuery({
-            queryKey: ['posts', sort, tag], // sort가 변경되어도 캐시가 혼재됨
-            // ...
-        });
-    ```
-
-### 🤔 **고민한 해결 방법들**
-
-#### **방법 1: React Query 캐시 키에 고유 식별자 추가**
+**발생 시나리오**:
 
 ```typescript
-queryKey: ['posts', sort, tag, 'infinite'], // 고유 키 추가
+// 1. 글 목록에서 조회수 100인 글 확인
+// 2. 글 상세 페이지 방문 → 조회수 101로 증가
+// 3. 뒤로가기 → 글 목록에서 여전히 조회수 100 표시 (캐시된 데이터)
 ```
 
-- ✅ React Query 캐시 분리
-- ❌ 데이터 자체의 정렬 안정성은 보장되지 않음
-- ❌ 서버에서 전달되는 데이터 순서가 여전히 불안정
-
-#### **방법 2: 정렬 기준 변경 시 캐시 초기화**
+**해결책**:
 
 ```typescript
-useEffect(() => {
-    queryClient.removeQueries({
-        queryKey: ['posts', sort, tag],
+// 조회수 증가 후 관련 캐시 무효화
+const incrementViewCount = async (postId: number) => {
+    await incrementViewCountAction(postId);
+
+    // 관련 쿼리 캐시 무효화
+    queryClient.invalidateQueries({
+        queryKey: ['posts'], // 모든 글 목록 쿼리
     });
-}, [sort, tag, queryClient]);
+
+    queryClient.invalidateQueries({
+        queryKey: ['post', postId], // 해당 글 상세 쿼리
+    });
+};
 ```
 
-- ✅ 캐시 혼재 문제 해결
-- ❌ 불필요한 API 재호출
-- ❌ 사용자 경험 저하 (로딩 상태 반복)
-
-#### **방법 3: 서버 사이드에서 정렬 안정성 보장 (최종 선택)**
+**최적화된 접근**:
 
 ```typescript
-// Supabase 쿼리에서 2차 정렬 추가
-case 'popular':
-    // 인기순: 조회수 내림차순 → id 오름차순 (2차 정렬로 안정성 보장)
-    sortedQuery = query
-        .order('view_count', { ascending: false })
-        .order('id', { ascending: true });
-    break;
-case 'likes':
-    // 좋아요순: 좋아요 수 내림차순 → id 오름차순 (2차 정렬로 안정성 보장)
-    sortedQuery = query
-        .order('likes_count', { ascending: false })
-        .order('id', { ascending: true });
-    break;
+// 낙관적 업데이트로 즉시 UI 반영
+const incrementViewCountOptimistic = async (postId: number) => {
+    // 1. 즉시 UI 업데이트
+    queryClient.setQueryData(['post', postId], (old: Post) => ({
+        ...old,
+        view_count: old.view_count + 1,
+    }));
+
+    // 2. 서버 업데이트
+    try {
+        await incrementViewCountAction(postId);
+    } catch (error) {
+        // 3. 실패 시 롤백
+        queryClient.invalidateQueries({ queryKey: ['post', postId] });
+        throw error;
+    }
+};
 ```
 
-### ✅ **최종 해결책 및 적용**
+**학습한 내용**:
 
-#### **1. 데이터베이스 레벨에서 해결**
+- **캐시 일관성**: 관련된 모든 쿼리의 캐시 무효화 필요
+- **낙관적 업데이트**: 즉시 UI 반영으로 사용자 경험 향상
+- **에러 복구**: 실패 시 캐시 롤백으로 데이터 일관성 유지
 
-- **2차 정렬 추가**: `id` 오름차순으로 정렬 안정성 보장
-- **서버에서 일관된 순서**: React Query 캐시와 무관하게 데이터 자체가 안정적
+### 4. 정렬과 필터링의 URL 상태 관리
 
-#### **2. 수정된 코드**
+**문제**: 복잡한 쿼리 파라미터의 타입 안전한 관리
 
-```typescript:src/lib/posts.ts
-// 정렬 기준에 따른 쿼리 구성
-let sortedQuery = query;
-switch (sortBy) {
-    case 'latest':
-        sortedQuery = query.order('created_at', { ascending: false });
-        break;
-    case 'oldest':
-        sortedQuery = query.order('created_at', { ascending: true });
-        break;
-    case 'popular':
-        // 인기순: 조회수 내림차순 → id 오름차순 (2차 정렬로 안정성 보장)
-        sortedQuery = query
-            .order('view_count', { ascending: false })
-            .order('id', { ascending: true });
-        break;
-    case 'likes':
-        // 좋아요순: 좋아요 수 내림차순 → id 오름차순 (2차 정렬로 안정성 보장)
-        sortedQuery = query
-            .order('likes_count', { ascending: false })
-            .order('id', { ascending: true });
-        break;
-    default:
-        sortedQuery = query.order('created_at', { ascending: false });
+**초기 구현 (타입 안전성 부족)**:
+
+```typescript
+// ❌ 타입 검증 없는 URL 파라미터 처리
+const searchParams = useSearchParams();
+const sort = searchParams.get('sort'); // string | null
+const hashtag = searchParams.get('hashtag'); // string | null
+```
+
+**개선된 구현**:
+
+```typescript
+// ✅ Zod 스키마로 URL 파라미터 검증
+const SearchParamsSchema = z.object({
+    sort: z.enum(['latest', 'oldest', 'popular', 'likes']).default('latest'),
+    hashtag: z.string().optional(),
+    page: z.coerce.number().min(1).default(1),
+});
+
+const useValidatedSearchParams = () => {
+    const searchParams = useSearchParams();
+
+    const rawParams = {
+        sort: searchParams.get('sort'),
+        hashtag: searchParams.get('hashtag'),
+        page: searchParams.get('page'),
+    };
+
+    const validatedParams = SearchParamsSchema.parse(rawParams);
+    return validatedParams;
+};
+```
+
+**URL 업데이트 헬퍼**:
+
+```typescript
+// URL 상태 업데이트 유틸리티
+const useUpdateSearchParams = () => {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    return useCallback(
+        (updates: Partial<SearchParams>) => {
+            const params = new URLSearchParams(searchParams);
+
+            Object.entries(updates).forEach(([key, value]) => {
+                if (value === undefined || value === null) {
+                    params.delete(key);
+                } else {
+                    params.set(key, String(value));
+                }
+            });
+
+            const newUrl = params.toString() ? `?${params.toString()}` : '';
+            router.push(`/posts${newUrl}`);
+        },
+        [router, searchParams]
+    );
+};
+```
+
+**학습한 내용**:
+
+- **타입 안전성**: Zod 스키마로 URL 파라미터 검증
+- **기본값 처리**: 스키마 레벨에서 기본값 정의
+- **URL 정규화**: 기본값은 URL에서 제거하여 깔끔한 URL 유지
+
+---
+
+## 기존 Phase에서 활용한 기술
+
+### Phase 1-5 기반 기술의 확장
+
+#### React Query 고급 패턴 활용
+
+- **Phase 2-4**: 기본 쿼리와 뮤테이션
+- **Phase 6**: useInfiniteQuery와 복잡한 캐시 관리
+- **확장 내용**: 무한 스크롤, 낙관적 업데이트, 캐시 무효화 전략
+
+#### Server Actions 보안 강화
+
+- **Phase 5**: 관리자 전용 글 작성 기능
+- **Phase 6**: 비로그인 사용자도 사용 가능한 조회수 증가
+- **확장 내용**: Service Role 클라이언트와 RLS 우회 패턴
+
+#### UI 컴포넌트 재사용성 향상
+
+- **Phase 3-5**: 기본 UI 컴포넌트
+- **Phase 6**: 복잡한 상태를 가진 무한 스크롤과 필터링 UI
+- **확장 내용**: 스켈레톤 UI, 에러 경계, 상태 기반 조건부 렌더링
+
+#### PostgreSQL 고급 기능 활용
+
+- **Phase 2**: 기본 RLS 정책
+- **Phase 6**: RPC 함수와 원자적 연산
+- **확장 내용**: 경쟁 조건 방지와 성능 최적화된 데이터베이스 함수
+
+---
+
+## 핵심 의사결정과 그 이유
+
+### 1. 무한 스크롤 vs 페이지네이션
+
+**결정**: 무한 스크롤 구현
+
+**이유**:
+
+- **사용자 경험**: 블로그 콘텐츠의 연속적 소비 패턴에 적합
+- **모바일 친화적**: 터치 기반 스크롤 인터페이스에 자연스러움
+- **성능**: React Query의 페이지 캐싱으로 효율적인 메모리 관리
+- **확장성**: 향후 개인화 추천 시스템 도입 시 유리
+
+### 2. PostgreSQL RPC vs 클라이언트 사이드 업데이트
+
+**결정**: PostgreSQL RPC 함수 사용
+
+**이유**:
+
+- **원자성**: 경쟁 조건 없는 안전한 카운터 증가
+- **성능**: 데이터베이스 레벨에서 처리로 네트워크 오버헤드 최소화
+- **일관성**: 여러 클라이언트에서 동시 접근 시에도 정확한 카운팅
+- **확장성**: 향후 복잡한 비즈니스 로직 추가 시 유연성 확보
+
+### 3. 조회수 증가 타이밍
+
+**결정**: 페이지 로드 시 즉시 증가
+
+**이유**:
+
+- **단순성**: 구현과 디버깅이 간단함
+- **일관성**: 모든 사용자에게 동일한 기준 적용
+- **성능**: 추가적인 이벤트 리스너나 타이머 불필요
+- **사용자 의도**: 페이지 방문 자체가 조회 의도로 해석 가능
+
+### 4. URL 기반 상태 관리
+
+**결정**: 검색 파라미터로 정렬/필터 상태 관리
+
+**이유**:
+
+- **공유 가능성**: URL로 특정 필터/정렬 상태 공유 가능
+- **브라우저 호환성**: 뒤로가기/앞으로가기 버튼 지원
+- **SEO**: 검색 엔진이 다양한 정렬/필터 상태 인덱싱 가능
+- **사용자 경험**: 새로고침 시에도 상태 유지
+
+---
+
+## 성능 및 사용자 경험 고려사항
+
+### 성능 최적화
+
+#### 무한 스크롤 최적화
+
+```typescript
+// Intersection Observer 최적화
+const { ref } = useInView({
+    threshold: 0.1, // 10%만 보여도 트리거
+    rootMargin: '100px', // 100px 전에 미리 로드
+    triggerOnce: false, // 여러 번 트리거 가능
+});
+
+// 디바운싱으로 과도한 API 호출 방지
+const debouncedFetchNextPage = useMemo(
+    () => debounce(fetchNextPage, 300),
+    [fetchNextPage]
+);
+```
+
+#### 이미지 최적화
+
+```typescript
+// Next.js Image 컴포넌트 활용
+<Image
+    src={post.thumbnail_url}
+    alt={post.title}
+    width={400}
+    height={300}
+    className="rounded-lg object-cover"
+    loading="lazy" // 지연 로딩
+    placeholder="blur" // 블러 플레이스홀더
+    blurDataURL="data:image/jpeg;base64,..." // 블러 이미지
+/>
+```
+
+#### 캐시 전략 최적화
+
+```typescript
+// 계층적 캐시 전략
+const cacheConfig = {
+    // 글 목록: 5분간 신선, 30분간 백그라운드 업데이트
+    postsList: {
+        staleTime: 5 * 60 * 1000,
+        gcTime: 30 * 60 * 1000,
+    },
+    // 글 상세: 10분간 신선, 1시간간 백그라운드 업데이트
+    postDetail: {
+        staleTime: 10 * 60 * 1000,
+        gcTime: 60 * 60 * 1000,
+    },
+};
+```
+
+### 사용자 경험 향상
+
+#### 로딩 상태 개선
+
+```typescript
+// 스켈레톤 UI로 로딩 경험 향상
+const PostCardSkeleton = () => (
+    <Card>
+        <CardHeader>
+            <div className="h-6 bg-muted animate-pulse rounded w-3/4 mb-2" />
+            <div className="h-4 bg-muted animate-pulse rounded w-1/2" />
+        </CardHeader>
+        <CardContent>
+            <div className="space-y-2">
+                <div className="h-4 bg-muted animate-pulse rounded w-full" />
+                <div className="h-4 bg-muted animate-pulse rounded w-5/6" />
+                <div className="h-4 bg-muted animate-pulse rounded w-4/6" />
+            </div>
+        </CardContent>
+    </Card>
+);
+```
+
+#### 에러 복구 기능
+
+```typescript
+// 사용자 친화적 에러 처리
+const ErrorBoundary = ({ error, reset }: ErrorBoundaryProps) => (
+    <div className="text-center py-12">
+        <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+        <h2 className="text-xl font-semibold mb-2">문제가 발생했습니다</h2>
+        <p className="text-muted-foreground mb-4">
+            {getErrorMessage(error)}
+        </p>
+        <div className="space-x-2">
+            <Button onClick={reset}>다시 시도</Button>
+            <Button variant="outline" onClick={() => window.location.href = '/'}>
+                홈으로 가기
+            </Button>
+        </div>
+    </div>
+);
+```
+
+#### 접근성 개선
+
+```typescript
+// ARIA 속성과 키보드 네비게이션
+<button
+    onClick={handleLoadMore}
+    disabled={isFetchingNextPage}
+    aria-label={isFetchingNextPage ? '글을 불러오는 중' : '더 많은 글 불러오기'}
+    className="focus:outline-none focus:ring-2 focus:ring-primary"
+>
+    {isFetchingNextPage ? '로딩 중...' : '더 보기'}
+</button>
+
+// 스크린 리더를 위한 상태 안내
+<div aria-live="polite" className="sr-only">
+    {isFetchingNextPage && '새로운 글을 불러오고 있습니다.'}
+    {!hasNextPage && '모든 글을 불러왔습니다.'}
+</div>
+```
+
+---
+
+## 향후 개선 방향
+
+### 1. 고급 검색 기능
+
+#### 전문 검색 구현
+
+```typescript
+// PostgreSQL Full Text Search 활용
+const searchPosts = async (query: string) => {
+    const { data } = await supabase
+        .from('posts')
+        .select('*')
+        .textSearch('title_content', query, {
+            type: 'websearch',
+            config: 'korean', // 한국어 검색 최적화
+        })
+        .order('ts_rank', { ascending: false });
+
+    return data;
+};
+
+// 검색 결과 하이라이팅
+const highlightSearchTerm = (text: string, query: string) => {
+    const regex = new RegExp(`(${query})`, 'gi');
+    return text.replace(regex, '<mark>$1</mark>');
+};
+```
+
+#### 고급 필터링
+
+```typescript
+// 다중 조건 필터링
+interface AdvancedFilters {
+    hashtags: string[];
+    dateRange: { start: Date; end: Date };
+    author: string;
+    minViewCount: number;
+    hasImages: boolean;
+}
+
+const useAdvancedFilters = (filters: AdvancedFilters) => {
+    return useQuery({
+        queryKey: ['posts', 'advanced', filters],
+        queryFn: () => fetchPostsWithFilters(filters),
+        enabled: Object.values(filters).some(Boolean),
+    });
+};
+```
+
+### 2. 개인화 추천 시스템
+
+#### 사용자 행동 추적
+
+```typescript
+// 사용자 관심사 분석
+interface UserInteraction {
+    postId: number;
+    action: 'view' | 'like' | 'comment' | 'share';
+    duration: number; // 체류 시간
+    timestamp: Date;
+}
+
+const trackUserInteraction = async (interaction: UserInteraction) => {
+    await supabase.from('user_interactions').insert(interaction);
+
+    // 실시간 추천 업데이트
+    updateRecommendations(interaction.userId);
+};
+```
+
+#### 콘텐츠 기반 추천
+
+```typescript
+// 유사 글 추천 알고리즘
+const getSimilarPosts = async (postId: number) => {
+    // 1. 현재 글의 해시태그 추출
+    const currentPost = await getPost(postId);
+    const hashtags = currentPost.hashtags.map((h) => h.name);
+
+    // 2. 유사한 해시태그를 가진 글 검색
+    const { data } = await supabase
+        .from('posts')
+        .select('*, hashtags(*)')
+        .neq('id', postId)
+        .overlaps('hashtags.name', hashtags)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+    return data;
+};
+```
+
+### 3. 성능 모니터링 및 최적화
+
+#### Core Web Vitals 추적
+
+```typescript
+// 성능 메트릭 수집
+const trackWebVitals = (metric: Metric) => {
+    switch (metric.name) {
+        case 'CLS':
+        case 'FID':
+        case 'FCP':
+        case 'LCP':
+        case 'TTFB':
+            // 성능 데이터를 분석 서비스로 전송
+            analytics.track('web-vital', {
+                name: metric.name,
+                value: metric.value,
+                page: window.location.pathname,
+            });
+            break;
+    }
+};
+
+// Next.js에서 Web Vitals 추적
+export function reportWebVitals(metric: NextWebVitalsMetric) {
+    trackWebVitals(metric);
 }
 ```
 
-### 🎯 **해결 효과**
+#### 이미지 최적화 고도화
 
-1. **중복 key 에러 완전 해결**
-    - React가 항상 동일한 순서로 렌더링
-    - 컴포넌트 재사용 및 업데이트 최적화
+```typescript
+// 적응형 이미지 로딩
+const AdaptiveImage = ({ src, alt, ...props }) => {
+    const [imageSrc, setImageSrc] = useState(src);
+    const [isLoading, setIsLoading] = useState(true);
 
-2. **데이터 일관성 보장**
-    - 같은 정렬 기준으로 조회 시 항상 동일한 결과
-    - 사용자 경험 향상 (예측 가능한 정렬)
+    useEffect(() => {
+        // 네트워크 상태에 따른 이미지 품질 조정
+        const connection = navigator.connection;
+        if (connection && connection.effectiveType === '2g') {
+            setImageSrc(src.replace('/w_800/', '/w_400/')); // 저화질
+        }
+    }, [src]);
 
-3. **성능 최적화**
-    - 클라이언트에서 추가 정렬 로직 불필요
-    - 데이터베이스 인덱스 활용으로 빠른 정렬
+    return (
+        <Image
+            src={imageSrc}
+            alt={alt}
+            onLoad={() => setIsLoading(false)}
+            className={`transition-opacity ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+            {...props}
+        />
+    );
+};
+```
 
-4. **캐시 일관성**
-    - React Query 캐시와 데이터베이스 결과 일치
-    - 정렬 기준 변경 시에도 안정적인 동작
+### 4. 소셜 기능 확장
 
-### 🔍 **학습한 교훈**
+#### 공유 기능 고도화
 
-1. **React Key 중복 문제의 근본 원인 파악**
-    - 단순히 key 값만 변경하는 것이 아닌 **데이터 자체의 안정성** 확보 필요
+```typescript
+// 네이티브 공유 API 활용
+const sharePost = async (post: Post) => {
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: post.title,
+                text: post.content_markdown.substring(0, 100),
+                url: `${window.location.origin}/posts/${post.id}`,
+            });
+        } catch (error) {
+            // 폴백: 클립보드 복사
+            await navigator.clipboard.writeText(
+                `${window.location.origin}/posts/${post.id}`
+            );
+        }
+    }
+};
+```
 
-2. **서버 사이드 vs 클라이언트 사이드 해결책 선택**
-    - 데이터 정렬은 **서버에서 처리**하는 것이 더 효율적
-    - 클라이언트에서의 우회책보다 **근본적인 해결**이 중요
+#### 댓글 시스템 고도화
 
-3. **데이터베이스 정렬의 중요성**
-    - 단일 정렬 기준만으로는 **동일 값에 대한 순서 보장 불가**
-    - **2차 정렬**을 통한 안정성 확보 필요
+```typescript
+// 실시간 댓글 시스템
+const useRealtimeComments = (postId: number) => {
+    const [comments, setComments] = useState<Comment[]>([]);
 
-4. **React Query 캐싱과 데이터 일관성의 균형**
-    - 캐싱 최적화도 중요하지만 **데이터 정확성**이 우선
-    - 서버에서 안정적인 데이터를 제공하는 것이 클라이언트 최적화의 기반
+    useEffect(() => {
+        const subscription = supabase
+            .channel(`post-${postId}-comments`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'comments',
+                    filter: `post_id=eq.${postId}`,
+                },
+                (payload) => {
+                    setComments((prev) => [...prev, payload.new as Comment]);
+                }
+            )
+            .subscribe();
 
-### 📚 **관련 기술적 개념**
+        return () => subscription.unsubscribe();
+    }, [postId]);
 
-- **정렬 안정성 (Sort Stability)**: 동일한 키 값에 대해 순서가 일정하게 유지되는 성질
-- **2차 정렬 (Secondary Sort)**: 주 정렬 기준이 동일할 때 사용하는 보조 정렬 기준
-- **React Key 중복**: React가 컴포넌트를 식별할 때 동일한 key가 여러 개 존재하는 문제
-- **데이터베이스 정렬 최적화**: 인덱스 활용을 통한 효율적인 정렬 처리
+    return comments;
+};
+```
 
-## 테스트 체크리스트
+---
 
-- 비로그인/로그인 상태 모두에서 조회수 증가 동작
-- 증가 실패 시 경고 배너 표시 및 본문 정상 렌더링
-- 심각 오류 시 `posts/[id]/error.tsx`에서 우아한 처리
-- 목록/카드/상세의 조회수 UI 일관성 유지
-- **무한 스크롤 동작 검증**
-    - 초기 데이터 정상 로딩
-    - 스크롤 시 추가 데이터 로딩
-    - 로딩 상태 및 에러 처리
-    - 정렬/태그 필터링 시 쿼리 재실행
-- **정렬 기능 검증** ✅
-    - 최신순/오래된순 정렬 정상 동작 ✅
-    - 좋아요순/인기순 정렬 시 React Key 중복 에러 없음 ✅
-    - 정렬 기준 변경 시 데이터 일관성 유지 ✅
-- **성능 및 사용자 경험**
-    - 중복 요청 방지
-    - 부드러운 스크롤 경험
-    - 적절한 로딩 인디케이터
-    - 정렬 기준별 캐시 최적화
+## 결론
 
-## 원자적 증가(Atomic Increment)와 동시성
+Phase 6 글 목록 및 상세 페이지 시스템 구축을 통해 **완전한 블로그 읽기 경험**을 제공하는 사용자 대면 시스템을 완성할 수 있었습니다.
 
-### 문제: Lost Update와 경쟁 조건
+특히 **React Query의 useInfiniteQuery**를 활용한 성능 최적화된 무한 스크롤과 **PostgreSQL RPC 함수**를 통한 원자적 조회수 증가 시스템을 통해 대용량 트래픽에도 안정적으로 동작하는 확장 가능한 아키텍처를 구축했습니다.
 
-- read-modify-write(읽고-증가-쓰기) 패턴은 동시 요청 시 마지막 쓰기만 반영될 수 있음.
-- 두 요청이 같은 `view_count`를 읽고 각자 `+1` 후 업데이트하면 1회만 증가하는 "lost update"가 발생.
+**정렬 및 필터링 시스템**과 **URL 기반 상태 관리**를 통해 사용자가 원하는 콘텐츠를 쉽게 찾을 수 있는 환경을 제공했으며, **에러 경계와 스켈레톤 UI**를 통해 견고하고 사용자 친화적인 인터페이스를 완성했습니다.
 
-### 해결: DB-side RPC로 원자적 증가
+이러한 경험은 향후 **대규모 콘텐츠 플랫폼 구축**과 **복잡한 상태 관리가 필요한 사용자 인터페이스 설계**에서도 활용할 수 있는 실무 역량이 될 것입니다.
 
-- Postgres 단일 UPDATE: `SET view_count = COALESCE(view_count, 0) + 1`
-- DB 함수(`increment_view_count`) + RPC로 한 번의 호출에 원자 수행
-- 장점:
-    - 경쟁 조건 제거(단일 UPDATE는 원자적)
-    - 네트워크 호출 1회로 단축(성능 및 지연시간 감소)
-    - 서버에 로직 집중(보안·유지보수 유리)
+---
 
-### PostgreSQL 함수 설계 포인트
+## 다음 단계 (Phase 7)
 
-- `SECURITY DEFINER`: 함수 소유자 권한으로 실행되어 RLS 우회 가능
-- 반환값: `RETURN FOUND;`로 대상 행 존재 여부(true/false) 전달
-- 권한: `GRANT EXECUTE ON FUNCTION increment_view_count(INTEGER) TO anon, authenticated, service_role`
-- 안전성:
-    - 입력은 단일 정수 `post_id`만 허용(주입 위험 낮음)
-    - 본문은 단일 UPDATE로 최소 권한 원칙에 부합
-- 성능:
-    - `posts.id` 기본키/인덱스 존재 → O(1) 수준 탐색
-    - 동시성: MVCC + row-level lock으로 충돌 없이 누적 증가
+### Phase 7에서 구현할 기능들
 
-### Supabase RPC 호출과 에러 전파
+#### 1. 좋아요 시스템 구현
 
-- 호출 흐름(서버 액션):
-    - `supabase.rpc('increment_view_count', { post_id })` 호출
-    - `error` 발생 시 의미있는 메시지(`'조회수 증가 실패'`, `'해당 글을 찾을 수 없습니다'`)로 throw
-    - `page.tsx`의 기존 try/catch 및 `viewCountErrorMessage` 경고 배너와 자연스럽게 연동
-- 왜 Service Role인가?
-    - 비로그인 사용자도 증가 가능해야 함
-    - RLS 우회를 안전하게 허용(서버에서만 사용)
+- 사용자별 좋아요 상태 관리
+- 낙관적 업데이트로 즉시 UI 반영
+- PostgreSQL RPC 함수로 원자적 좋아요 토글
 
-### 대안 및 선택 기준
+#### 2. 댓글 시스템 기본 구조
 
-- 대안 1: 클라이언트에서 단일 UPDATE 직접 실행
-    - RLS, 권한, 보안 고려 필요 → 서버-사이드에 집중하는 편이 안전
-- 대안 2: Trigger/Materialized View
-    - 과도한 복잡도. 단순 카운트 증가는 RPC가 적합
-- 대안 3: Advisory Lock
-    - 불필요(단일 UPDATE 원자성으로 충분)
+- 댓글 작성, 수정, 삭제 기능
+- 실시간 댓글 업데이트
+- 댓글 수 자동 동기화
 
-### 트랜잭션/격리 레벨 이해
+#### 3. 사용자 상호작용 최적화
 
-- Postgres는 UPDATE 시 해당 행에 대한 row-level lock 확보
-- 동시 요청이 와도 각 요청은 순차적으로 증가 → 누락 없음
-- 추가적인 명시적 잠금은 불필요
+- 인증 상태 기반 UI 조건부 렌더링
+- 로그인 유도 모달 및 플로우
+- 상호작용 피드백 애니메이션
 
-### 테스트 체크리스트(동시성)
+**Phase 6에서 구축한 기반이 Phase 7에서 활용되는 방식:**
 
-- 단일 요청: 1 증가 확인
-- N개의 동시 요청: 정확히 N 증가
-- 존재하지 않는 `post_id`: false 반환 → 에러 메시지 매핑 확인
-- 비로그인 상태: 정상 증가
-- 에러 시 `page.tsx` 경고 배너 표시 유지
+- 조회수 시스템 → 좋아요/댓글 수 동기화 패턴 재사용
+- 무한 스크롤 → 댓글 목록 페이지네이션 적용
+- 에러 처리 → 상호작용 실패 시 적절한 사용자 피드백
+- React Query 캐싱 → 좋아요/댓글 상태 실시간 동기화
 
-### 운영·배포/마이그레이션
+---
 
-- SQL 마이그레이션 파일을 저장/버전관리(재현성, 롤백)
-- `CREATE OR REPLACE FUNCTION` + `GRANT`는 안전하게 재실행 가능
-- 프리뷰/프로덕션/팀원 로컬 환경에 동일하게 배포
+## 참고 자료
 
-### 보안 유의점
+### 공식 문서
 
-- `SECURITY DEFINER` 사용 시 함수 본문은 최소 작업만 수행(UPDATE 1문)
-- 함수 소유자/스키마 권한을 관리하고 불필요한 권한 부여 금지
-- 서비스 키는 서버에서만 사용(클라이언트 번들 포함 금지)
+- [React Query Infinite Queries](https://tanstack.com/query/latest/docs/react/guides/infinite-queries) - 무한 스크롤 구현
+- [React Intersection Observer](https://github.com/thebuilder/react-intersection-observer) - 스크롤 감지
+- [Next.js Error Handling](https://nextjs.org/docs/app/building-your-application/routing/error-handling) - 에러 경계
+- [PostgreSQL Functions](https://www.postgresql.org/docs/current/sql-createfunction.html) - RPC 함수
 
-## 글 상세 조회 에러 처리 (PostgREST .single())
+### 성능 & UX
 
-### 왜 수정이 필요했나?
+- [Core Web Vitals](https://web.dev/vitals/) - 웹 성능 메트릭
+- [Intersection Observer API](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) - 뷰포트 감지
+- [React Performance](https://react.dev/learn/render-and-commit) - React 렌더링 최적화
+- [Web Accessibility](https://www.w3.org/WAI/WCAG21/quickref/) - 접근성 가이드라인
 
-- Supabase PostgREST의 `.single()`는 행이 없을 때도 오류를 발생시킴
-- 이 오류를 그대로 throw하면 애플리케이션 레벨에서 500류로 처리될 위험
-- 의도는 "존재하지 않는 글"을 404(notFound)로 처리하는 것 → `null` 반환이 더 정확
+### 데이터베이스 & 백엔드
 
-### 적용한 전략
+- [Supabase RPC](https://supabase.com/docs/guides/database/functions) - PostgreSQL 함수 호출
+- [PostgreSQL Performance](https://wiki.postgresql.org/wiki/Performance_Optimization) - 데이터베이스 최적화
+- [Database Indexing](https://use-the-index-luke.com/) - 인덱스 최적화 가이드
 
-- `getPost(postId): Promise<Post | null>`에서 오류를 유형화하여 처리
-- PostgREST 오류 중 "row not found" 신호만 `null`로 반환, 나머지는 `throw`
+### 사용자 경험
 
-### 구현 포인트
-
-- 타입 협소화: `import type { PostgrestError } from '@supabase/supabase-js'`
-- "row not found" 판별(방어적 체크):
-    - 코드: `PGRST116`
-    - details: 포함 문자열 `"0 rows"`
-    - message: 포함 문자열 `"no rows"`
-- 그 외 오류는 `throw new Error('글 상세 조회에 실패했습니다.', { cause: error })`
-- 상위(페이지)에서는 `null` → `notFound()`로 일관 처리 가능
-
-### 테스트 체크리스트
-
-- 존재하는 ID: 정상 조회 및 해시태그 매핑
-- 존재하지 않는 ID: `null` 반환 → 페이지에서 `notFound()` 호출
-- DB 오류(권한 문제 등): 의미있는 에러 throw, 로깅 가능
-
-### 입력 검증과 에러 네이밍 규약
-
-- 입력 검증: `PostIdSchema.safeParse({ id: String(postId) })`로 숫자 ID 보장
-- 실패 시 단일 에러 네임 사용: `error.name = 'VIEW_COUNT_ERROR'`
-    - 호출부에서 `if (error.name === 'VIEW_COUNT_ERROR')`로 일관 분기 가능
-    - 메시지는 사용자 친화적으로, cause에는 원본 오류 첨부(디버깅 용)
-- 결과 검증: RPC가 `false` 반환 시 "대상 없음"으로 간주하여 동일 네임으로 throw
+- [Infinite Scroll UX](https://www.nngroup.com/articles/infinite-scrolling/) - 무한 스크롤 UX 가이드
+- [Loading States](https://uxdesign.cc/good-to-great-ui-animation-tips-7850805c12e5) - 로딩 상태 UX
+- [Error Message Design](https://uxwritinghub.com/error-message-examples/) - 에러 메시지 작성법

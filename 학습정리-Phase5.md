@@ -1,1890 +1,2009 @@
-# Phase 5: 글 작성 및 편집 (Admin 전용) - 학습 정리
+# Phase 5 학습정리: 글 작성 및 편집 시스템 (관리자 전용)
 
-## 구현 완료된 기능
+## 개요
 
-### ✅ 마크다운 에디터 컴포넌트
+Phase 5에서는 **관리자 전용 글 작성 및 편집 시스템**을 구축했습니다. 실시간 미리보기가 있는 **마크다운 에디터**와 **해시태그 관리 시스템**을 통해 효율적인 콘텐츠 작성 환경을 완성했으며, **Zod 스키마 기반 데이터 검증**과 **트랜잭션 안전성**을 확보한 견고한 백엔드 시스템을 구현했습니다.
 
-- **파일**: `src/components/editor/MarkdownEditor.tsx` (24KB, 522줄)
-- **기능**:
-    - 제목, 내용, 해시태그 입력 폼
-    - 실시간 미리보기 (우측 패널)
-    - 반응형 디자인 (모바일/데스크탑)
-    - 해시태그 자동완성 및 관리
-    - 유효성 검사 (제목, 내용, 해시태그 필수)
-    - 디바운싱을 적용한 실시간 해시태그 검색 (300ms)
+특히 **반응형 에디터 인터페이스**와 **실시간 해시태그 자동완성** 기능을 통해 사용자 경험을 극대화했으며, Phase 1-4에서 구축한 기반 위에 **완전한 콘텐츠 관리 시스템**을 완성했습니다.
 
-### ✅ 실시간 미리보기 (우측 패널)
+---
 
-- **구현 방식**:
-    - 데스크탑: 좌측 편집기 + 우측 미리보기 (CSS Grid 2열 레이아웃)
-    - 모바일/태블릿: 편집/미리보기 토글 버튼
-- **컴포넌트**: `src/components/editor/MarkdownRenderer.tsx` (3.2KB, 87줄)
-- **라이브러리**: `react-markdown` 사용
+## 핵심 학습 내용
 
-### ✅ 해시태그 자동완성 및 관리
+### 1. 마크다운 에디터 시스템 구축
 
-- **기능**:
-    - 실시간 검색 (디바운싱 300ms 적용)
-    - 최소 2글자 이상 입력 시 검색 시작
-    - 기존 해시태그 재사용 (중복 방지)
-    - 해시태그 추가/제거
-    - 유효성 검사 (2-20글자, #문자 제한)
-    - 최대 10개 해시태그 제한
-
-### ✅ 글 작성/수정/삭제 API
-
-- **Server Actions**: `src/lib/actions.ts` (9.1KB, 298줄)
-    - `createPostAction`: 새 글 생성 (JWT 토큰 직접 검증)
-    - `updatePostAction`: 글 수정 (Admin 권한 확인)
-    - `deletePostAction`: 글 삭제 (Admin 권한 확인)
-    - `getPostsAction`: 글 목록 조회 (읽기 전용)
-    - `getPostAction`: 글 상세 조회 (읽기 전용)
-    - `searchHashtagsAction`: 해시태그 검색 (읽기 전용)
-
-### ✅ 글 작성 페이지 UI/UX
-
-- **페이지**: `src/app/admin/posts/new/page.tsx` (486B, 18줄)
-- **기능**: 마크다운 에디터를 사용한 글 작성 폼
-  // (구) `ProtectedRoute`는 미들웨어 기반 라우트 보호로 대체되었습니다.
-
-### ✅ 글 관리 페이지
-
-- **페이지**: `src/app/admin/posts/page.tsx` (10KB, 217줄)
-- **기능**:
-    - 글 목록 표시 (최대 50개)
-    - 글 작성/수정/삭제/보기 기능
-    - 로딩 상태 및 에러 처리
-    - 반응형 디자인
-
-### ✅ 마크다운 렌더링
-
-- **컴포넌트**: `src/components/editor/MarkdownRenderer.tsx`
-- **라이브러리**: `react-markdown` 사용
-
-### ✅ 데이터 검증 시스템
-
-- **파일**: `src/lib/schemas.ts` (3.0KB, 91줄)
-- **스키마**:
-    - `HashtagSchema`: 해시태그 검증 (2-20글자, #/공백 제한)
-    - `CreatePostSchema`: 글 생성 검증 (제목 1-100글자, 내용 1-50,000글자, 해시태그 1-10개)
-    - `UpdatePostSchema`: 글 수정 검증 (모든 필드 선택적)
-    - `SearchHashtagSchema`: 해시태그 검색 검증 (2-50글자)
-    - `PostIdSchema`: 글 ID 검증 (숫자, 1 이상)
-    - `PaginationSchema`: 페이지네이션 검증 (페이지 1 이상, 크기 1-100)
-
-### ✅ 해시태그 관리 시스템
-
-- **파일**: `src/lib/hashtags.ts` (1.9KB, 74줄)
-- **기능**:
-    - 해시태그 중복 방지 (정규화된 이름 사용)
-    - 일괄 해시태그 생성
-    - Service Role 클라이언트로 RLS 우회
-
-### ✅ 글 데이터 관리
-
-- **파일**: `src/lib/posts.ts` (7.5KB, 269줄)
-- **기능**:
-    - 글 CRUD 작업
-    - 해시태그 연결 관리
-    - 트랜잭션 안전성 (글 생성 실패 시 해시태그 연결도 롤백)
-
-### ✅ Supabase 서버 클라이언트
-
-- **파일**: `src/lib/supabase-server.ts` (1.6KB, 51줄)
-- **기능**: 서버 사이드에서 Supabase 클라이언트 생성
-
-### ✅ 미들웨어
-
-- **파일**: `src/middleware.ts` (1.3KB, 44줄)
-- **기능**: 인증 및 라우팅 미들웨어
-
-### ✅ 이미지/비디오 업로드 기능
-
-- **파일**: `src/components/editor/MarkdownEditor.tsx` (파일 업로드 기능 포함)
-- **기능**:
-    - Supabase Storage 활용한 파일 업로드
-    - 드래그 앤 드롭 지원
-    - 어드민 권한 확인 (일반 사용자 업로드 차단)
-    - 파일 개수 제한 (최대 20개)
-    - 파일 타입 검증 (이미지: jpg, png, webp, gif)
-    - 파일 크기 제한 (이미지: 5MB)
-    - 임시 파일 관리 (취소 시 삭제, 저장 시 영구화)
-    - 이미지 미리보기 (실제 이미지 표시)
-    - temp 폴더 자동 초기화 (페이지 진입/이탈 시)
-    - **GitHub 스타일 드래그앤드롭**: textarea에 직접 파일 드롭
-    - **마크다운 링크 자동 삽입**: `![name](url)` 형식으로 자동 생성
-    - **이미지 렌더링 최적화**: HTML 구조 문제 해결 및 반응형 디자인
-    - **서명된 URL**: Supabase Storage 권한 문제 해결
-    - **이미지 최종 업로드**: 글 저장 시 temp → permanent 폴더로 자동 이동
-    - **사용되지 않는 이미지 제거**: 마크다운에서 제거된 이미지 자동 정리
-    - **썸네일 자동 생성**: 첫 번째 이미지를 자동으로 썸네일로 설정
-
-### ✅ 썸네일 업로드 기능
-
-- **기능**:
-    - 글 작성 시 마크다운 내 첫 번째 이미지를 자동으로 썸네일로 선정
-    - 썸네일 URL을 posts 테이블에 자동 저장
-    - 글 수정 시에도 썸네일 자동 업데이트
-
-### ✅ 글 상세 페이지
-
-- **페이지**: `src/app/posts/[id]/page.tsx`
-- **기능**:
-    - MarkdownRenderer를 활용한 마크다운 렌더링
-    - 썸네일 이미지 표시
-    - 해시태그 표시
-    - 메타 정보 표시 (작성일, 수정일, 조회수, 좋아요, 댓글 수)
-    - Admin 사용자를 위한 수정 버튼
-
-### ✅ 글 수정 페이지
-
-- **페이지**: `src/app/admin/posts/[id]/edit/page.tsx`
-- **기능**:
-    - 기존 글 데이터 로딩 및 표시
-    - MarkdownEditor를 활용한 수정 폼
-    - 수정 시 이미지 처리 및 썸네일 업데이트
-    - temp 폴더 자동 초기화
-
-### ✅ 홈페이지 및 글 목록 페이지
-
-- **홈페이지**: `src/app/page.tsx`
-    - 최신 글 6개 표시
-    - 반응형 그리드 레이아웃 (모바일 1열, 데스크탑 3열)
-    - 썸네일 이미지 및 해시태그 표시
-    - 글 상세 페이지로 연결
-
-- **글 목록 페이지**: `src/app/posts/page.tsx`
-    - 모든 글 표시 (최대 50개)
-    - 동일한 카드 레이아웃
-    - 글 개수 표시
-
-### ✅ 이미지 관리 시스템
-
-- **파일**: `src/lib/actions.ts`의 `manageImageFiles` 함수
-- **기능**:
-    - 글 수정 시 이미지 추가/삭제 추적
-    - 사라진 이미지 permanent에서 자동 제거
-    - 새로 추가된 temp 이미지 permanent로 자동 이동
-    - 마크다운 내용의 temp URL을 permanent URL로 자동 업데이트
-    - 이미지 순서 변경 시 썸네일 자동 업데이트
-    - 이미지가 없을 때 썸네일 URL 자동 제거
-
-### ✅ 코드 중복 제거 및 재사용성 향상
-
-- **파일**: `src/lib/actions.ts`에서 `src/lib/file-upload.ts` 함수 재사용
-- **개선사항**:
-    - `extractImagePathsFromMarkdown` 함수 중복 제거
-    - `updateImageUrlsInMarkdown` 함수 중복 제거
-    - `file-upload.ts`의 함수들을 import하여 재사용
-    - 약 25줄의 중복 코드 제거
-    - 유지보수성 및 일관성 향상
-
-### ✅ 글 수정 페이지 최적화
-
-- **페이지**: `src/app/admin/posts/[id]/edit/page.tsx`
-- **개선사항**:
-    - Server Component로 변환하여 성능 최적화
-    - 페이지 진입 시 temp 폴더 자동 초기화
-    - 서버 사이드에서 기존 글 데이터 로딩
-    - SEO 및 초기 로딩 성능 향상
-
-## 아직 구현되지 않은 기능
-
-### ❌ 이미지 최적화 (Next.js Image)
-
-- **계획**:
-    - Next.js Image 컴포넌트 활용
-    - 자동 이미지 최적화 및 lazy loading
-    - 반응형 이미지 크기 조정
-
-### ❌ 댓글 시스템
-
-- **계획**: Phase 8에서 구현 예정
-
-### ❌ 좋아요 시스템
-
-- **계획**: Phase 9에서 구현 예정
-
-### ❌ 검색 및 필터링
-
-- **계획**: Phase 7에서 구현 예정
-
-## 기술적 학습 내용
-
-### 🔐 인증 아키텍처 업데이트 (최종)
-
-- 서버 콜백(Route Handler): `src/app/auth/callback/route.ts`에서 `supabase.auth.exchangeCodeForSession(code)` 호출로 서버가 httpOnly 쿠키에 세션을 설정합니다. 별도의 토큰 동기화 API가 필요 없습니다. 참고: [Supabase Google Auth 가이드](https://supabase.com/docs/guides/auth/social-login/auth-google)
-- 브라우저 클라이언트: `src/utils/supabase/client.ts`는 `@supabase/ssr`의 `createBrowserClient`를 사용합니다. 서버가 설정한 쿠키 기반 세션을 그대로 인식합니다.
-- 서버 클라이언트: `src/utils/supabase/server.ts`의 `createClient()`는 요청별 `createServerClient`를 생성합니다(싱글톤 아님). `getAuthenticatedUser()`, `requireAdmin()`로 권한을 확인합니다.
-- 미들웨어: `src/utils/supabase/middleware.ts`에서 `cookies.getAll/setAll`을 구현하고, 반드시 `supabase.auth.getUser()`를 호출하여 토큰 만료 시 자동 리프레시를 트리거하고 갱신 쿠키를 응답에 반영합니다. 보호 경로(`/admin`, `/profile`) 비로그인 접근 시 `/auth/login`으로 이동시킵니다.
-- React Query + Zustand: `useAuth` 훅에서 세션(`auth.getSession`)과 프로필(`profiles` 조회)을 React Query로 가져오고, 성공 시 Zustand로 사용자 상태를 동기화합니다.
-
-보안 메모
-
-- refresh token은 httpOnly 쿠키에서만 관리합니다(클라이언트 전송 금지).
-- 토큰을 API body로 보내 세션을 동기화하지 않습니다. 표준 플로우는 서버 콜백에서 세션을 확립하는 것입니다.
-
-### 1. Server Actions 활용
+#### 실시간 미리보기 에디터 구현
 
 ```typescript
-// 서버에서 인증 확인 및 권한 검증
-export async function createPostAction(formData: FormData) {
-    // JWT 토큰 직접 검증
-    const payload = JSON.parse(atob(accessToken.split('.')[1]));
+// src/components/editor/MarkdownEditor.tsx - 핵심 에디터 컴포넌트
+'use client';
 
-    // Admin 권한 확인
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', user.id)
-        .single();
-}
-```
+import { useState, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { X, Eye, Edit, Save, ArrowLeft } from 'lucide-react';
+import { MarkdownRenderer } from './MarkdownRenderer';
+import { useDebounce } from 'use-debounce';
+import { createClient } from '@/utils/supabase/client';
+import type { CreatePostData, UpdatePostData, Post, Hashtag } from '@/types';
 
-**학습 포인트**:
-
-- `'use server'` 지시어로 서버 전용 함수 생성
-- FormData를 통한 클라이언트-서버 데이터 전송
-- JWT 토큰 직접 파싱하여 사용자 정보 추출
-- Supabase RLS 정책과 연동한 권한 관리
-
-### 2. 어드민 인증 및 권한 관리의 복잡성 ⚠️
-
-**가장 어려웠던 부분**: 로그인한 정보를 가져오지 못해 어드민 처리를 못했던 문제
-
-#### 문제 상황
-
-- 클라이언트에서 로그인은 성공했지만 서버에서 사용자 정보를 가져올 수 없음
-- Supabase 세션과 쿠키 간의 동기화 문제
-- Next.js App Router에서 서버 컴포넌트와 클라이언트 컴포넌트 간 인증 상태 공유의 어려움
-
-#### 해결 방법
-
-**1단계: 쿠키 기반 JWT 토큰 직접 파싱**
-
-```typescript
-// createPostAction에서 사용
-const cookieStore = await cookies();
-const accessToken = cookieStore.get('sb-access-token')?.value;
-
-if (!accessToken) {
-    throw new Error('인증 토큰을 찾을 수 없습니다. 다시 로그인해주세요.');
+interface MarkdownEditorProps {
+    initialTitle?: string;
+    initialContent?: string;
+    initialHashtags?: string[];
+    action: (formData: FormData) => Promise<void>;
+    mode?: 'create' | 'edit';
+    postId?: number;
 }
 
-// JWT 토큰 직접 검증
-const payload = JSON.parse(atob(accessToken.split('.')[1]));
-const currentTime = Math.floor(Date.now() / 1000);
+export function MarkdownEditor({
+    initialTitle = '',
+    initialContent = '',
+    initialHashtags = [],
+    action,
+    mode = 'create',
+    postId,
+}: MarkdownEditorProps) {
+    // 폼 상태 관리
+    const [title, setTitle] = useState(initialTitle);
+    const [content, setContent] = useState(initialContent);
+    const [hashtags, setHashtags] = useState<string[]>(initialHashtags);
+    const [hashtagInput, setHashtagInput] = useState('');
 
-if (payload.exp < currentTime) {
-    throw new Error('인증 토큰이 만료되었습니다. 다시 로그인해주세요.');
-}
+    // UI 상태 관리
+    const [isPreviewMode, setIsPreviewMode] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
-// 사용자 정보 구성
-user = {
-    id: payload.sub,
-    email: payload.email,
-    user_metadata: payload.user_metadata || {},
-};
-```
+    // 해시태그 자동완성
+    const [hashtagSuggestions, setHashtagSuggestions] = useState<Hashtag[]>([]);
+    const [debouncedHashtagInput] = useDebounce(hashtagInput, 300);
 
-**2단계: 세션 기반 인증 (updatePostAction, deletePostAction)**
+    const router = useRouter();
+    const supabase = createClient();
 
-```typescript
-// 세션에서 사용자 정보 직접 가져오기
-const {
-    data: { session },
-    error: sessionError,
-} = await supabase.auth.getSession();
+    // 해시태그 검색 (디바운싱 적용)
+    useEffect(() => {
+        const searchHashtags = async () => {
+            if (debouncedHashtagInput.length < 2) {
+                setHashtagSuggestions([]);
+                return;
+            }
 
-if (sessionError || !session?.user) {
-    throw new Error('세션을 찾을 수 없습니다. 다시 로그인해주세요.');
-}
+            try {
+                const { data, error } = await supabase
+                    .from('hashtags')
+                    .select('id, name')
+                    .ilike('name', `%${debouncedHashtagInput}%`)
+                    .limit(10);
 
-const user = session.user;
-```
+                if (error) throw error;
+                setHashtagSuggestions(data || []);
+            } catch (error) {
+                console.error('해시태그 검색 오류:', error);
+                setHashtagSuggestions([]);
+            }
+        };
 
-**3단계: API 라우트를 통한 세션 쿠키 설정**
+        searchHashtags();
+    }, [debouncedHashtagInput, supabase]);
 
-```typescript
-// src/app/api/auth/set-session/route.ts
-export async function POST(request: NextRequest) {
-    const { accessToken, refreshToken } = await request.json();
+    // 해시태그 추가
+    const addHashtag = useCallback((tag: string) => {
+        const normalizedTag = tag.trim().toLowerCase();
 
-    // Supabase 세션 설정
-    const { data, error } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-    });
-
-    // 응답에 쿠키 설정
-    const response = NextResponse.json({
-        success: true,
-        user: data.session.user,
-    });
-
-    response.cookies.set('sb-access-token', accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 3600, // 1시간
-        path: '/',
-    });
-
-    return response;
-}
-```
-
-**4단계: 미들웨어를 통한 세션 동기화**
-
-```typescript
-// src/middleware.ts
-export async function middleware(request: NextRequest) {
-    const res = NextResponse.next();
-
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                getAll() {
-                    return request.cookies.getAll();
-                },
-                setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) => {
-                        res.cookies.set(name, value, options);
-                    });
-                },
-            },
+        // 유효성 검사
+        if (!normalizedTag) return;
+        if (normalizedTag.length < 2 || normalizedTag.length > 20) {
+            setErrors(prev => ({ ...prev, hashtags: '해시태그는 2-20글자여야 합니다.' }));
+            return;
         }
-    );
-
-    // 세션을 새로고침하여 최신 상태 유지
-    await supabase.auth.getSession();
-
-    return res;
-}
-```
-
-#### 학습 포인트
-
-- **JWT 토큰 직접 파싱**: `atob()`와 `JSON.parse()`를 사용한 토큰 검증
-- **쿠키와 세션의 이중 관리**: Supabase 세션과 커스텀 쿠키의 동기화
-- **미들웨어 활용**: 모든 요청에서 세션 상태 유지
-- **API 라우트와 Server Actions의 조합**: 클라이언트-서버 인증 상태 공유
-- **에러 처리의 중요성**: 인증 실패 시 명확한 에러 메시지 제공
-
-#### 인증 흐름
-
-1. **클라이언트 로그인** → Supabase OAuth
-2. **콜백 페이지** → 토큰 추출 및 API 호출
-3. **API 라우트** → 세션 설정 및 쿠키 생성
-4. **미들웨어** → 세션 동기화
-5. **Server Actions** → 쿠키 또는 세션에서 사용자 정보 추출
-6. **권한 확인** → profiles 테이블에서 is_admin 확인
-7. **작업 수행** → 인증된 사용자로 작업 진행
-
-### 3. 해시태그 관리 시스템
-
-```typescript
-// 해시태그 중복 방지 및 자동 생성
-async function createHashtag(name: string): Promise<Hashtag | null> {
-    const normalizedName = name.toLowerCase().trim();
-
-    // 기존 해시태그 확인
-    const { data: existing } = await supabase
-        .from('hashtags')
-        .select('id, name, created_at')
-        .eq('name', normalizedName)
-        .single();
-
-    if (existing) return existing;
-
-    // 새 해시태그 생성
-    const { data } = await supabase
-        .from('hashtags')
-        .insert([{ name: normalizedName }])
-        .select('id, name, created_at')
-        .single();
-}
-```
-
-**학습 포인트**:
-
-- 정규화된 이름으로 중복 방지
-- Service Role 클라이언트로 RLS 우회
-- 트랜잭션 안전성 (글 생성 실패 시 해시태그 연결도 롤백)
-
-### 4. 실시간 해시태그 검색
-
-```typescript
-// 디바운싱을 적용한 실시간 검색
-const [debouncedHashtagQuery] = useDebounce(newHashtag, 300);
-
-useEffect(() => {
-    const searchHashtagSuggestions = async () => {
-        if (!debouncedHashtagQuery.trim() || debouncedHashtagQuery.length < 2) {
-            setSuggestions([]);
-            setShowSuggestions(false);
+        if (normalizedTag.includes('#') || normalizedTag.includes(' ')) {
+            setErrors(prev => ({ ...prev, hashtags: '해시태그에는 #이나 공백을 포함할 수 없습니다.' }));
+            return;
+        }
+        if (hashtags.length >= 10) {
+            setErrors(prev => ({ ...prev, hashtags: '해시태그는 최대 10개까지 추가할 수 있습니다.' }));
+            return;
+        }
+        if (hashtags.some(h => h.toLowerCase() === normalizedTag)) {
+            setErrors(prev => ({ ...prev, hashtags: '이미 추가된 해시태그입니다.' }));
             return;
         }
 
-        const results = await searchHashtagsAction(debouncedHashtagQuery);
-        setSuggestions(results);
-        setShowSuggestions(results.length > 0);
+        setHashtags(prev => [...prev, normalizedTag]);
+        setHashtagInput('');
+        setHashtagSuggestions([]);
+        setErrors(prev => ({ ...prev, hashtags: '' }));
+    }, [hashtags]);
+
+    // 해시태그 제거
+    const removeHashtag = useCallback((tagToRemove: string) => {
+        setHashtags(prev => prev.filter(tag => tag !== tagToRemove));
+    }, []);
+
+    // 폼 검증
+    const validateForm = useCallback(() => {
+        const newErrors: Record<string, string> = {};
+
+        if (!title.trim()) {
+            newErrors.title = '제목을 입력해주세요.';
+        } else if (title.trim().length > 100) {
+            newErrors.title = '제목은 100글자 이하여야 합니다.';
+        }
+
+        if (!content.trim()) {
+            newErrors.content = '내용을 입력해주세요.';
+        } else if (content.trim().length > 50000) {
+            newErrors.content = '내용은 50,000글자 이하여야 합니다.';
+        }
+
+        if (hashtags.length === 0) {
+            newErrors.hashtags = '최소 하나의 해시태그가 필요합니다.';
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    }, [title, content, hashtags]);
+
+    // 폼 제출
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!validateForm()) return;
+
+        try {
+            setIsSubmitting(true);
+
+            const formData = new FormData();
+            formData.append('title', title.trim());
+            formData.append('content', content.trim());
+            formData.append('hashtags', hashtags.join(','));
+
+            if (mode === 'edit' && postId) {
+                formData.append('postId', postId.toString());
+            }
+
+            await action(formData);
+
+        } catch (error) {
+            console.error('글 저장 오류:', error);
+            setErrors({ submit: '글 저장 중 오류가 발생했습니다.' });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
-    searchHashtagSuggestions();
-}, [debouncedHashtagQuery]);
-```
-
-**학습 포인트**:
-
-- `use-debounce` 라이브러리로 불필요한 API 호출 방지
-- 최소 2글자 이상 입력 시 검색 시작
-- 실시간 검색 결과 표시 및 선택
-
-### 5. 반응형 에디터 레이아웃
-
-```typescript
-// 화면 크기에 따른 레이아웃 변경
-const [isDesktop, setIsDesktop] = useState(false);
-
-useEffect(() => {
-    const checkScreenSize = () => {
-        setIsDesktop(window.innerWidth >= 1024);
-    };
-
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-
-    return () => window.removeEventListener('resize', checkScreenSize);
-}, []);
-
-// 조건부 렌더링
-{isDesktop ? (
-    <div className="grid grid-cols-2 gap-6">
-        {/* 편집기 + 미리보기 */}
-    </div>
-) : (
-    <div>
-        {/* 토글 버튼 + 단일 패널 */}
-    </div>
-)}
-```
-
-**학습 포인트**:
-
-- `useEffect`와 `addEventListener`를 활용한 반응형 처리
-- CSS Grid를 활용한 2열 레이아웃
-- 모바일 친화적인 토글 방식
-
-### 6. 데이터 검증 및 에러 처리
-
-```typescript
-// Zod 스키마를 통한 데이터 검증
-const validationResult = CreatePostSchema.safeParse(rawData);
-if (!validationResult.success) {
-    const errors = formatZodError(validationResult.error);
-    const errorMessage = errors
-        .map((err) => `${err.field}: ${err.message}`)
-        .join(', ');
-    throw new Error(`데이터 검증 실패: ${errorMessage}`);
-}
-```
-
-**학습 포인트**:
-
-- Zod 스키마로 런타임 타입 검증
-- 사용자 친화적인 에러 메시지 생성
-- 폼 데이터의 안전한 처리
-- **Zod 최신 버전 호환성**: `error.errors` → `error.issues`로 변경됨
-- **타입 안전성**: `z.ZodError` 타입을 활용한 에러 처리
-
-### 7. 디바운싱 라이브러리 활용
-
-```typescript
-// use-debounce 라이브러리 활용
-import { useDebounce } from 'use-debounce';
-
-// 디바운싱된 해시태그 검색어 (300ms 지연)
-const [debouncedHashtagQuery] = useDebounce(newHashtag, 300);
-```
-
-**학습 포인트**:
-
-- 외부 라이브러리를 활용한 안정적인 디바운싱
-- 튜플 구조분해를 통한 값 추출 (`const [debouncedValue]`)
-- TypeScript 제네릭을 활용한 타입 안전성
-
-### 8. 이미지 업로드 시스템 ⚠️
-
-**구현 과정에서 발생한 문제들과 해결 방법**:
-
-#### 문제 1: 이미지 미리보기 깨짐 현상
-
-**문제 상황**:
-
-- `FileUploadZone`에서 이미지 파일을 단순 아이콘으로만 표시
-- 실제 이미지를 볼 수 없어 사용자 경험 저하
-
-**해결 방법**:
-
-```typescript
-// 파일 아이콘 렌더링 함수 수정
-const getFileIcon = (file: UploadedFile) => {
-    // 이미지인 경우 실제 이미지 표시
     return (
-        <div className="relative">
-            <img
-                src={file.url}
-                alt={file.name}
-                className="h-6 w-6 object-cover rounded"
-                onError={(e) => {
-                    // 이미지 로드 실패 시 기본 아이콘 표시
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    target.nextElementSibling?.classList.remove('hidden');
-                }}
-            />
-            {/* 이미지 로드 실패 시 표시할 기본 아이콘 */}
-            <Image className="h-6 w-6 text-blue-500 hidden" />
+        <div className="container mx-auto max-w-7xl py-6 px-4">
+            {/* 헤더 */}
+            <div className="mb-6 flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.back()}
+                    >
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        뒤로가기
+                    </Button>
+                    <h1 className="text-2xl font-bold">
+                        {mode === 'create' ? '새 글 작성' : '글 편집'}
+                    </h1>
+                </div>
+
+                {/* 모바일 미리보기 토글 */}
+                <div className="lg:hidden">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsPreviewMode(!isPreviewMode)}
+                    >
+                        {isPreviewMode ? (
+                            <>
+                                <Edit className="h-4 w-4 mr-2" />
+                                편집
+                            </>
+                        ) : (
+                            <>
+                                <Eye className="h-4 w-4 mr-2" />
+                                미리보기
+                            </>
+                        )}
+                    </Button>
+                </div>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* 편집기 패널 */}
+                    <div className={`space-y-6 ${isPreviewMode ? 'hidden lg:block' : ''}`}>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>글 정보</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {/* 제목 입력 */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="title">제목 *</Label>
+                                    <Input
+                                        id="title"
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                        placeholder="글 제목을 입력하세요"
+                                        className={errors.title ? 'border-red-500' : ''}
+                                    />
+                                    {errors.title && (
+                                        <p className="text-sm text-red-600">{errors.title}</p>
+                                    )}
+                                </div>
+
+                                {/* 해시태그 입력 */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="hashtags">해시태그 *</Label>
+                                    <div className="space-y-2">
+                                        <Input
+                                            id="hashtags"
+                                            value={hashtagInput}
+                                            onChange={(e) => setHashtagInput(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    addHashtag(hashtagInput);
+                                                }
+                                            }}
+                                            placeholder="해시태그를 입력하고 Enter를 누르세요"
+                                            className={errors.hashtags ? 'border-red-500' : ''}
+                                        />
+
+                                        {/* 해시태그 자동완성 */}
+                                        {hashtagSuggestions.length > 0 && (
+                                            <div className="border rounded-md bg-background shadow-md">
+                                                {hashtagSuggestions.map((suggestion) => (
+                                                    <button
+                                                        key={suggestion.id}
+                                                        type="button"
+                                                        className="w-full px-3 py-2 text-left hover:bg-muted"
+                                                        onClick={() => addHashtag(suggestion.name)}
+                                                    >
+                                                        {suggestion.name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* 선택된 해시태그 */}
+                                        {hashtags.length > 0 && (
+                                            <div className="flex flex-wrap gap-2">
+                                                {hashtags.map((tag) => (
+                                                    <Badge
+                                                        key={tag}
+                                                        variant="secondary"
+                                                        className="flex items-center gap-1"
+                                                    >
+                                                        #{tag}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeHashtag(tag)}
+                                                            className="ml-1 hover:text-red-600"
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </button>
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {errors.hashtags && (
+                                        <p className="text-sm text-red-600">{errors.hashtags}</p>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* 내용 편집기 */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>내용 *</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Textarea
+                                    value={content}
+                                    onChange={(e) => setContent(e.target.value)}
+                                    placeholder="마크다운 형식으로 글을 작성하세요..."
+                                    className={`min-h-[400px] font-mono ${errors.content ? 'border-red-500' : ''}`}
+                                />
+                                {errors.content && (
+                                    <p className="text-sm text-red-600 mt-2">{errors.content}</p>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* 제출 버튼 */}
+                        <div className="flex justify-end space-x-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => router.back()}
+                            >
+                                취소
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? (
+                                    <>저장 중...</>
+                                ) : (
+                                    <>
+                                        <Save className="h-4 w-4 mr-2" />
+                                        {mode === 'create' ? '글 작성' : '글 수정'}
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+
+                        {errors.submit && (
+                            <p className="text-sm text-red-600 text-center">{errors.submit}</p>
+                        )}
+                    </div>
+
+                    {/* 미리보기 패널 */}
+                    <div className={`${!isPreviewMode ? 'hidden lg:block' : ''}`}>
+                        <Card className="sticky top-6">
+                            <CardHeader>
+                                <CardTitle>미리보기</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    {/* 제목 미리보기 */}
+                                    <div>
+                                        <h1 className="text-2xl font-bold">
+                                            {title || '제목을 입력하세요'}
+                                        </h1>
+                                        {hashtags.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                {hashtags.map((tag) => (
+                                                    <Badge key={tag} variant="outline">
+                                                        #{tag}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* 내용 미리보기 */}
+                                    <div className="border-t pt-4">
+                                        <MarkdownRenderer content={content || '*내용을 입력하세요*'} />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            </form>
         </div>
     );
-};
+}
 ```
 
-**학습 포인트**:
+**학습한 핵심 개념:**
 
-- `onError` 이벤트를 활용한 이미지 로드 실패 처리
-- fallback 아이콘을 통한 사용자 경험 개선
-- `object-cover` 클래스로 이미지 비율 유지
+- **실시간 미리보기**: 입력과 동시에 마크다운 렌더링 결과 표시
+- **디바운싱**: `use-debounce`로 해시태그 검색 API 호출 최적화
+- **반응형 UI**: 데스크탑은 분할 화면, 모바일은 토글 방식
+- **폼 검증**: 실시간 유효성 검사와 사용자 피드백
+- **상태 관리**: 복잡한 폼 상태의 효율적인 관리
 
-#### 문제 2: 페이지 이탈 시 임시 파일 자동 삭제
-
-**문제 상황**:
-
-- 사용자가 글 작성 중 페이지를 나가면 임시 파일이 Storage에 남아있음
-- 불필요한 Storage 용량 사용 및 보안 문제
-
-**해결 방법**:
+#### 마크다운 렌더러 구현
 
 ```typescript
-// 페이지 이탈 시 temp 폴더 정리
-useEffect(() => {
-    const handleBeforeUnload = async () => {
-        try {
-            await clearTempFolder();
-        } catch (error) {
-            console.error('페이지 이탈 시 temp 폴더 정리 실패:', error);
-        }
-    };
+// src/components/editor/MarkdownRenderer.tsx - 마크다운 렌더링
+'use client';
 
-    const handleVisibilityChange = async () => {
-        if (document.visibilityState === 'hidden') {
-            await handleBeforeUnload();
-        }
-    };
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import rehypeRaw from 'rehype-raw';
+import { cn } from '@/lib/utils';
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+interface MarkdownRendererProps {
+    content: string;
+    className?: string;
+}
 
-    return () => {
-        window.removeEventListener('beforeunload', handleBeforeUnload);
-        document.removeEventListener(
-            'visibilitychange',
-            handleVisibilityChange
-        );
-    };
-}, []);
-```
-
-**학습 포인트**:
-
-- `beforeunload` 이벤트로 페이지 이탈 감지
-- `visibilitychange` 이벤트로 탭 전환 감지
-- 비동기 함수를 이벤트 리스너에서 처리하는 방법
-- 메모리 누수 방지를 위한 이벤트 리스너 정리
-
-#### 문제 3: temp 폴더 자동 초기화
-
-**문제 상황**:
-
-- 페이지 진입 시마다 이전 임시 파일들이 남아있음
-- 사용자가 혼란스러워할 수 있음
-
-**해결 방법**:
-
-```typescript
-// 페이지 진입 시 temp 폴더 초기화
-useEffect(() => {
-    const initializeTempFolder = async () => {
-        try {
-            await clearTempFolder();
-            console.log('temp 폴더가 초기화되었습니다.');
-        } catch (error) {
-            console.error('temp 폴더 초기화 실패:', error);
-        }
-    };
-
-    initializeTempFolder();
-}, []);
-```
-
-**학습 포인트**:
-
-- 컴포넌트 마운트 시 자동 초기화
-- 에러 처리 및 로깅을 통한 디버깅
-- 사용자 경험 개선을 위한 사전 정리
-
-#### 문제 4: GitHub 스타일 드래그앤드롭 구현
-
-**문제 상황**:
-
-- 기존의 별도 파일 업로드 영역이 아닌 textarea에 직접 파일을 드롭하는 기능 필요
-- 드래그앤드롭 후 마크다운 링크가 자동으로 삽입되어야 함
-- 이미지가 미리보기에서 제대로 렌더링되어야 함
-
-**해결 방법**:
-
-```typescript
-// MarkdownEditor.tsx에서 textarea에 직접 드래그앤드롭 이벤트 추가
-<Textarea
-    id="content"
-    value={content}
-    onChange={(e) => setContent(e.target.value)}
-    onDragOver={(e) => {
-        e.preventDefault();
-        e.currentTarget.classList.add('border-primary', 'bg-primary/5');
-    }}
-    onDragLeave={(e) => {
-        e.currentTarget.classList.remove('border-primary', 'bg-primary/5');
-    }}
-    onDrop={onDrop}
-/>
-
-// onDrop 핸들러에서 파일 업로드 및 마크다운 링크 삽입
-const onDrop = useCallback(async (e: React.DragEvent<HTMLTextAreaElement>) => {
-    e.preventDefault();
-    const files = Array.from(e.dataTransfer.files);
-
-    for (const file of files) {
-        // 이미지 파일 검증
-        if (!file.type.startsWith('image/')) {
-            toast.error(`${file.name}: 이미지 파일만 업로드 가능합니다.`);
-            continue;
-        }
-
-        const result = await uploadFile(file, true);
-        if (result.success && result.file) {
-            // 마크다운 링크 생성 및 삽입
-            const markdownLink = `![${file.name}](${result.file.url})`;
-
-            // 커서 위치에 링크 삽입
-            const textarea = document.getElementById('content') as HTMLTextAreaElement;
-            const start = textarea.selectionStart || 0;
-            const end = textarea.selectionEnd || 0;
-            const text = textarea.value || '';
-            const before = text.substring(0, start);
-            const after = text.substring(end);
-            const newText = before + markdownLink + after;
-
-            setContent(newText);
-
-            // 커서 위치 조정
-            setTimeout(() => {
-                textarea.focus();
-                textarea.setSelectionRange(
-                    start + markdownLink.length,
-                    start + markdownLink.length
-                );
-            }, 0);
-        }
-    }
-}, []);
-```
-
-**학습 포인트**:
-
-- **textarea에 드래그앤드롭**: `onDragOver`, `onDragLeave`, `onDrop` 이벤트 활용
-- **마크다운 링크 자동 삽입**: `selectionStart`, `selectionEnd`를 활용한 커서 위치 기반 텍스트 삽입
-- **비동기 파일 업로드**: `uploadFile` 함수와 연동하여 실시간 링크 생성
-- **사용자 경험 개선**: 드래그 시 시각적 피드백 제공
-
-#### 문제 5: 이미지 렌더링 최적화
-
-**문제 상황**:
-
-- 마크다운 렌더링 시 `<p>` 태그 안에 `<div>` 태그가 들어가서 hydration 에러 발생
-- 이미지 로드 실패 시 적절한 fallback 처리 필요
-- Supabase Storage 권한 문제로 이미지를 불러올 수 없음
-
-**해결 방법**:
-
-```typescript
-// MarkdownRenderer.tsx에서 이미지 커스텀 렌더링
-img: ({ src, alt, ...props }) => {
-    // src가 string인지 확인
-    if (typeof src !== 'string') {
-        return null;
-    }
-
-    // p 태그와의 충돌 방지를 위해 span 사용
+export function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
     return (
-        <span className="block my-4">
-            <img
-                src={src}
-                alt={alt || '이미지'}
-                className="mx-auto h-auto max-w-full rounded-lg border border-gray-200 shadow-md dark:border-gray-700"
-                style={{
-                    display: 'block',
-                    maxWidth: '100%',
-                    height: 'auto',
-                    objectFit: 'contain',
-                }}
-                onError={(e) => {
-                    console.error('이미지 로드 실패:', src);
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
+        <div className={cn('prose prose-slate max-w-none dark:prose-invert', className)}>
+            <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeHighlight, rehypeRaw]}
+                components={{
+                    // 코드 블록 커스터마이징
+                    code: ({ node, inline, className, children, ...props }) => {
+                        const match = /language-(\w+)/.exec(className || '');
+                        const language = match ? match[1] : '';
 
-                    // 에러 시 fallback 텍스트 표시
-                    const parent = target.parentElement;
-                    if (parent) {
-                        parent.innerHTML = `
-                            <div class="flex items-center justify-center p-4 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600">
-                                <span class="text-gray-500 dark:text-gray-400 text-sm">
-                                    이미지를 불러올 수 없습니다: ${alt || '알 수 없는 이미지'}
-                                </span>
+                        if (inline) {
+                            return (
+                                <code
+                                    className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono"
+                                    {...props}
+                                >
+                                    {children}
+                                </code>
+                            );
+                        }
+
+                        return (
+                            <div className="relative">
+                                {language && (
+                                    <div className="absolute top-2 right-2 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                                        {language}
+                                    </div>
+                                )}
+                                <pre className="bg-muted p-4 rounded-lg overflow-x-auto">
+                                    <code className={className} {...props}>
+                                        {children}
+                                    </code>
+                                </pre>
                             </div>
-                        `;
-                    }
+                        );
+                    },
+
+                    // 링크 보안 강화
+                    a: ({ href, children, ...props }) => (
+                        <a
+                            href={href}
+                            target={href?.startsWith('http') ? '_blank' : undefined}
+                            rel={href?.startsWith('http') ? 'noopener noreferrer' : undefined}
+                            className="text-primary hover:underline"
+                            {...props}
+                        >
+                            {children}
+                        </a>
+                    ),
+
+                    // 이미지 최적화
+                    img: ({ src, alt, ...props }) => (
+                        <img
+                            src={src}
+                            alt={alt}
+                            className="rounded-lg shadow-md max-w-full h-auto"
+                            loading="lazy"
+                            {...props}
+                        />
+                    ),
+
+                    // 테이블 스타일링
+                    table: ({ children, ...props }) => (
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full border-collapse border border-border" {...props}>
+                                {children}
+                            </table>
+                        </div>
+                    ),
+
+                    th: ({ children, ...props }) => (
+                        <th className="border border-border bg-muted p-2 text-left font-semibold" {...props}>
+                            {children}
+                        </th>
+                    ),
+
+                    td: ({ children, ...props }) => (
+                        <td className="border border-border p-2" {...props}>
+                            {children}
+                        </td>
+                    ),
                 }}
-                onLoad={(e) => {
-                    console.log('이미지 로드 성공:', {
-                        src,
-                        naturalWidth: (e.target as HTMLImageElement).naturalWidth,
-                        naturalHeight: (e.target as HTMLImageElement).naturalHeight
-                    });
-                }}
-                {...props}
-            />
-        </span>
+            >
+                {content}
+            </ReactMarkdown>
+        </div>
     );
 }
 ```
 
-**학습 포인트**:
+**학습 포인트:**
 
-- **HTML 구조 최적화**: `<span>` 태그를 사용하여 `<p>` 태그와의 충돌 방지
-- **이미지 에러 처리**: `onError` 이벤트를 활용한 fallback UI 제공
-- **로딩 상태 추적**: `onLoad` 이벤트로 이미지 로드 성공/실패 모니터링
-- **반응형 디자인**: `max-w-full`, `h-auto` 클래스로 이미지 크기 자동 조정
-- **접근성 향상**: `alt` 속성과 fallback 텍스트로 이미지 설명 제공
+- **플러그인 시스템**: `remarkGfm`, `rehypeHighlight` 등으로 기능 확장
+- **컴포넌트 커스터마이징**: 기본 HTML 요소를 React 컴포넌트로 대체
+- **보안 고려사항**: 외부 링크에 `noopener noreferrer` 속성 추가
+- **접근성**: `loading="lazy"`로 이미지 지연 로딩, `alt` 속성 필수
 
-#### 문제 6: Supabase Storage 권한 문제 해결
+### 2. 해시태그 관리 시스템
 
-**문제 상황**:
-
-- 이미지 파일은 업로드되지만 미리보기에서 로드되지 않음
-- "이미지를 불러올 수 없습니다" 에러 메시지 표시
-- Storage 버킷의 RLS 정책으로 인한 접근 권한 문제
-
-**해결 방법**:
+#### 실시간 해시태그 자동완성
 
 ```typescript
-// file-upload.ts에서 서명된 URL 생성
-export async function uploadFile(file: File, isTemporary: boolean = true) {
-    // ... 파일 업로드 로직 ...
+// src/lib/hashtags.ts - 해시태그 관리 로직
+import { createClient } from '@/utils/supabase/client';
+import { createServiceClient } from '@/utils/supabase/service';
+import type { Hashtag } from '@/types';
 
-    // 공개 URL 생성
-    const { data: urlData } = supabase.storage
-        .from(FILE_UPLOAD_CONFIG.storageBucket)
-        .getPublicUrl(filePath);
+export class HashtagManager {
+    private supabase = createClient();
+    private serviceSupabase = createServiceClient();
 
-    // 서명된 URL 생성 (권한 문제 해결을 위해)
-    const { data: signedUrlData } = await supabase.storage
-        .from(FILE_UPLOAD_CONFIG.storageBucket)
-        .createSignedUrl(filePath, 3600); // 1시간 유효
+    // 해시태그 검색 (사용자용)
+    async searchHashtags(query: string, limit = 10): Promise<Hashtag[]> {
+        if (query.length < 2) return [];
 
-    const uploadedFile: UploadedFile = {
-        id: fileId,
-        name: file.name,
-        url: signedUrlData?.signedUrl || urlData.publicUrl, // 서명된 URL 우선 사용
-        type: fileType,
-        size: file.size,
-        path: filePath,
-        uploaded_at: new Date().toISOString(),
-        is_temporary: isTemporary,
-    };
+        try {
+            const { data, error } = await this.supabase
+                .from('hashtags')
+                .select('id, name, created_at')
+                .ilike('name', `%${query}%`)
+                .order('name')
+                .limit(limit);
 
-    return { success: true, file: uploadedFile };
-}
-```
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('해시태그 검색 오류:', error);
+            return [];
+        }
+    }
 
-**학습 포인트**:
+    // 해시태그 일괄 생성 (관리자용)
+    async createHashtags(names: string[]): Promise<Hashtag[]> {
+        if (names.length === 0) return [];
 
-- **서명된 URL**: `createSignedUrl`을 사용하여 RLS 정책 우회
-- **권한 관리**: 임시 파일에 대한 제한된 접근 권한 제공
-- **URL 우선순위**: 서명된 URL을 우선 사용하고, 실패 시 공개 URL fallback
-- **보안 강화**: 서명된 URL의 만료 시간 설정 (1시간)
+        try {
+            // 중복 제거 및 정규화
+            const normalizedNames = [
+                ...new Set(
+                    names
+                        .map((name) => name.trim().toLowerCase())
+                        .filter(Boolean)
+                ),
+            ];
 
-#### 파일 업로드 시스템 아키텍처
+            // 기존 해시태그 확인
+            const { data: existingHashtags } = await this.serviceSupabase
+                .from('hashtags')
+                .select('id, name')
+                .in('name', normalizedNames);
 
-```typescript
-// 파일 업로드 설정
-export const FILE_UPLOAD_CONFIG: FileUploadConfig = {
-    maxImageSize: 5 * 1024 * 1024, // 5MB
-    maxVideoSize: 50 * 1024 * 1024, // 50MB
-    allowedImageTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-    allowedVideoTypes: ['video/mp4', 'video/webm', 'video/quicktime'],
-    storageBucket: 'files',
-};
+            const existingNames = new Set(
+                existingHashtags?.map((h) => h.name.toLowerCase()) || []
+            );
 
-// 임시 파일 관리
-export async function clearTempFolder(): Promise<void> {
-    try {
-        // temp 폴더 내 모든 파일 조회
-        const { data: tempFiles, error: listError } = await supabase.storage
-            .from(FILE_UPLOAD_CONFIG.storageBucket)
-            .list('temp');
+            // 새로운 해시태그만 필터링
+            const newNames = normalizedNames.filter(
+                (name) => !existingNames.has(name)
+            );
 
-        if (tempFiles && tempFiles.length > 0) {
-            // 모든 temp 파일 경로 생성
-            const tempFilePaths = tempFiles.map((file) => `temp/${file.name}`);
-
-            // 일괄 삭제
-            const { error: deleteError } = await supabase.storage
-                .from(FILE_UPLOAD_CONFIG.storageBucket)
-                .remove(tempFilePaths);
-
-            if (deleteError) {
-                console.error('temp 폴더 정리 오류:', deleteError);
+            if (newNames.length === 0) {
+                return existingHashtags || [];
             }
+
+            // 새 해시태그 생성
+            const { data: newHashtags, error } = await this.serviceSupabase
+                .from('hashtags')
+                .insert(newNames.map((name) => ({ name })))
+                .select('id, name, created_at');
+
+            if (error) throw error;
+
+            // 기존 + 새로운 해시태그 반환
+            return [...(existingHashtags || []), ...(newHashtags || [])];
+        } catch (error) {
+            console.error('해시태그 생성 오류:', error);
+            throw error;
         }
-    } catch (error) {
-        console.error('temp 폴더 정리 중 예외 발생:', error);
+    }
+
+    // 글과 해시태그 연결
+    async linkPostHashtags(
+        postId: number,
+        hashtagIds: number[]
+    ): Promise<void> {
+        if (hashtagIds.length === 0) return;
+
+        try {
+            // 기존 연결 삭제
+            await this.serviceSupabase
+                .from('post_hashtags')
+                .delete()
+                .eq('post_id', postId);
+
+            // 새 연결 생성
+            const { error } = await this.serviceSupabase
+                .from('post_hashtags')
+                .insert(
+                    hashtagIds.map((hashtag_id) => ({
+                        post_id: postId,
+                        hashtag_id,
+                    }))
+                );
+
+            if (error) throw error;
+        } catch (error) {
+            console.error('해시태그 연결 오류:', error);
+            throw error;
+        }
+    }
+
+    // 사용되지 않는 해시태그 정리
+    async cleanupUnusedHashtags(): Promise<number> {
+        try {
+            const { data: unusedHashtags } = await this.serviceSupabase
+                .from('hashtags')
+                .select('id')
+                .filter('post_hashtags.post_id', 'is', null);
+
+            if (!unusedHashtags || unusedHashtags.length === 0) {
+                return 0;
+            }
+
+            const { error } = await this.serviceSupabase
+                .from('hashtags')
+                .delete()
+                .in(
+                    'id',
+                    unusedHashtags.map((h) => h.id)
+                );
+
+            if (error) throw error;
+
+            return unusedHashtags.length;
+        } catch (error) {
+            console.error('해시태그 정리 오류:', error);
+            return 0;
+        }
     }
 }
+
+// 싱글톤 인스턴스
+export const hashtagManager = new HashtagManager();
 ```
 
-**학습 포인트**:
+**학습한 핵심 개념:**
 
-- Supabase Storage의 폴더 구조 활용
-- 일괄 파일 삭제를 통한 성능 최적화
-- 에러 처리 및 로깅의 중요성
-- 설정 객체를 통한 유지보수성 향상
+- **Service Client**: RLS를 우회하는 관리자 권한 클라이언트
+- **중복 방지**: Set을 활용한 해시태그 중복 제거
+- **트랜잭션 안전성**: 기존 연결 삭제 후 새 연결 생성
+- **정규화**: 대소문자 통일과 공백 제거로 일관성 확보
+- **성능 최적화**: 배치 처리로 데이터베이스 호출 최소화
 
-### 9. Supabase 클라이언트 관리 및 중복 인스턴스 문제 해결 ✅
-
-**구현 과정에서 발생한 문제들과 해결 방법**:
-
-#### 문제: Multiple GoTrueClient instances 경고
-
-**문제 상황**:
-
-- `Multiple GoTrueClient instances detected in the same browser context` 경고 발생
-- `SupabaseProvider`에서 `useState`로 매번 새로운 클라이언트 생성
-- 세션 관리 및 인증 상태의 일관성 문제
-- 시스템 성능 저하 및 예측 불가능한 동작
-
-**해결 방법**:
-
-**1단계: 싱글톤 패턴 적용**
+#### 해시태그 유효성 검증
 
 ```typescript
-// src/utils/supabase/client.ts
-import { createClient as _createClient } from '@supabase/supabase-js';
+// src/lib/schemas.ts - Zod 스키마 기반 검증
+import { z } from 'zod';
 
-// 모듈 레벨에서 단일 인스턴스 생성 (싱글톤 패턴)
-const supabase = _createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// 해시태그 개별 검증
+export const HashtagSchema = z
+    .string()
+    .min(2, '해시태그는 최소 2글자여야 합니다.')
+    .max(20, '해시태그는 최대 20글자여야 합니다.')
+    .regex(
+        /^[a-zA-Z0-9가-힣]+$/,
+        '해시태그는 한글, 영문, 숫자만 사용할 수 있습니다.'
+    )
+    .transform((val) => val.trim().toLowerCase());
 
-// 동일한 인스턴스를 반환하는 함수
-export const createClient = () => supabase;
-```
-
-**(제거됨) SupabaseProvider 관련 단계**
-
-```typescript
-// src/app/layout.tsx
-export default function RootLayout({
-    children,
-}: Readonly<{
-    children: React.ReactNode;
-}>) {
-    return (
-        <html lang="ko" suppressHydrationWarning>
-            <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-                <ThemeProvider>
-                    <QueryProvider>
-                        {/* TODO: 인증 시스템 재구현 예정 */}
-                        {/* <SupabaseProvider> */}
-                        <div className="flex min-h-screen flex-col">
-                            <Header />
-                            <main className="flex-1">{children}</main>
-                            <Footer />
-                        </div>
-                        {/* </SupabaseProvider> */}
-                    </QueryProvider>
-                </ThemeProvider>
-            </body>
-        </html>
+// 해시태그 배열 검증
+export const HashtagArraySchema = z
+    .array(HashtagSchema)
+    .min(1, '최소 하나의 해시태그가 필요합니다.')
+    .max(10, '해시태그는 최대 10개까지 추가할 수 있습니다.')
+    .refine(
+        (hashtags) => new Set(hashtags).size === hashtags.length,
+        '중복된 해시태그가 있습니다.'
     );
-}
+
+// 글 생성 스키마
+export const CreatePostSchema = z.object({
+    title: z
+        .string()
+        .min(1, '제목을 입력해주세요.')
+        .max(100, '제목은 100글자 이하여야 합니다.')
+        .transform((val) => val.trim()),
+
+    content: z
+        .string()
+        .min(1, '내용을 입력해주세요.')
+        .max(50000, '내용은 50,000글자 이하여야 합니다.')
+        .transform((val) => val.trim()),
+
+    hashtags: HashtagArraySchema,
+});
+
+// 글 수정 스키마 (모든 필드 선택적)
+export const UpdatePostSchema = CreatePostSchema.partial().extend({
+    postId: z.number().int().positive('유효하지 않은 글 ID입니다.'),
+});
+
+// 해시태그 검색 스키마
+export const SearchHashtagSchema = z.object({
+    query: z
+        .string()
+        .min(2, '검색어는 최소 2글자여야 합니다.')
+        .max(50, '검색어는 최대 50글자여야 합니다.')
+        .transform((val) => val.trim()),
+
+    limit: z.number().int().min(1).max(50).default(10),
+});
 ```
 
-**(삭제됨) 임시 Provider 구현**: SSR 인증 구조 전환으로 SupabaseProvider는 제거되었습니다.
+**학습 포인트:**
 
-#### 학습 포인트
+- **체이닝 검증**: 여러 검증 규칙을 체인으로 연결
+- **변환 함수**: `transform`으로 데이터 정규화
+- **커스텀 검증**: `refine`으로 복잡한 비즈니스 로직 검증
+- **재사용성**: 작은 스키마를 조합하여 큰 스키마 구성
+- **타입 안전성**: Zod 스키마에서 TypeScript 타입 자동 추론
 
-- **useState의 함정**: 초기화 함수가 매번 새로운 인스턴스 생성 가능
-- **싱글톤 패턴**: 모듈 레벨에서 단일 인스턴스 보장
-- **전역 상태 관리**: React Context와 싱글톤의 조합
-- **중복 클라이언트 방지**: Supabase GoTrueClient 인스턴스 중복 생성 방지
-- **시스템 안정화**: 세션 관리 및 인증 상태 일관성 유지
+### 3. Server Actions 기반 백엔드 로직
 
-#### 해결 결과
-
-- ✅ **중복 클라이언트 해결**: `Multiple GoTrueClient instances` 경고 완전 해결
-- ✅ **단일 인스턴스**: 전역에서 하나의 Supabase 클라이언트만 관리
-- ✅ **시스템 안정화**: 세션 관리 및 인증 상태 일관성 유지
-- ✅ **이미지 업로드**: 정상 작동
-- ✅ **성능 향상**: 불필요한 클라이언트 생성 방지
-- 🔄 **인증 시스템**: 현재 임시 구현 상태, 향후 재구현 예정
-
-#### 향후 개선 방향
-
-1. (삭제) SupabaseProvider 재구현: 미사용
-2. **세션 관리 최적화**: React Query와 Zustand 간의 상태 동기화 개선
-3. **에러 처리 강화**: 인증 실패 시 더 명확한 에러 메시지 및 복구 방법 제공
-4. **성능 모니터링**: 인증 관련 성능 지표 추적 및 최적화
-
-### 10. Supabase Storage 용량 관리 및 설정 동기화 ⚠️
-
-**구현 과정에서 발생한 문제들과 해결 방법**:
-
-#### 문제: Storage 용량 제한과 코드 설정 불일치
-
-**문제 상황**:
-
-- `StorageApiError: The object exceeded the maximum allowed size` 에러 발생
-- 코드에서는 5MB 이미지, 50MB 비디오 업로드 설정
-- 실제 Supabase Dashboard에서는 100 bytes로 제한
-- RLS 정책은 올바르게 설정되어 있음
-
-**해결 방법**:
-
-**1단계: Dashboard 설정 확인 및 수정**
+#### 글 작성 Server Action
 
 ```typescript
-// Supabase Dashboard → Storage → Buckets → files → Edit bucket
-// 기존 설정 (문제)
-"Restrict file upload size for bucket": ON
-Size limit: 100 bytes  // ← 너무 작음!
+// src/lib/actions.ts - 글 관련 Server Actions
+'use server';
 
-// 수정된 설정 (해결)
-"Restrict file upload size for bucket": ON
-Size limit: 52428800   // 50MB
-Unit: MB
-```
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { createServiceClient } from '@/utils/supabase/service';
+import { createServerClient } from '@/utils/supabase/server';
+import { CreatePostSchema, UpdatePostSchema } from '@/lib/schemas';
+import { hashtagManager } from '@/lib/hashtags';
+import type { CreatePostData, UpdatePostData } from '@/types';
 
-**2단계: 코드 설정과 Dashboard 설정 동기화**
-
-```typescript
-// src/lib/supabase-client.ts - 클라이언트 설정
-export const supabaseConfig = {
-    storageBucket: 'files',
-    maxFileSize: 50 * 1024 * 1024, // 50MB (Dashboard와 일치)
-    allowedImageTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-    maxFiles: 20,
-};
-
-// src/lib/file-upload.ts - 파일 업로드 설정
-export const FILE_UPLOAD_CONFIG: FileUploadConfig = {
-    maxImageSize: 5 * 1024 * 1024, // 5MB (이미지 전용)
-    maxVideoSize: 50 * 1024 * 1024, // 50MB (비디오 전용)
-    allowedImageTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-    allowedVideoTypes: ['video/mp4', 'video/webm', 'video/quicktime'],
-    storageBucket: 'files',
-};
-```
-
-**3단계: 에러 처리 및 사용자 피드백 개선**
-
-```typescript
-// 파일 크기 검증 함수
-export function validateFileSize(file: File, maxSize: number): boolean {
-    if (file.size > maxSize) {
-        const maxSizeMB = Math.round(maxSize / (1024 * 1024));
-        const fileSizeMB = Math.round(file.size / (1024 * 1024));
-        throw new Error(
-            `파일 크기가 너무 큽니다. 최대 ${maxSizeMB}MB까지 업로드 가능합니다. (현재: ${fileSizeMB}MB)`
-        );
-    }
-    return true;
-}
-
-// 업로드 전 검증
-export async function uploadFile(file: File, isTemporary: boolean = true) {
-    try {
-        // 파일 크기 검증
-        const maxSize = file.type.startsWith('image/')
-            ? FILE_UPLOAD_CONFIG.maxImageSize
-            : FILE_UPLOAD_CONFIG.maxVideoSize;
-
-        validateFileSize(file, maxSize);
-
-        // ... 업로드 로직
-    } catch (error) {
-        console.error('파일 업로드 실패:', error);
-        return { success: false, error: error.message };
-    }
-}
-```
-
-**학습 포인트**:
-
-- **Dashboard 설정 우선순위**: Supabase Dashboard 설정이 코드 설정보다 우선 적용
-- **용량 단위 이해**: bytes, KB, MB, GB 단위의 정확한 변환
-- **설정 동기화**: 코드와 Dashboard 설정의 일치성 확인
-- **에러 메시지 분석**: "Object exceeded maximum size"는 용량 제한 문제
-- **사용자 경험 개선**: 명확한 에러 메시지와 파일 크기 제한 안내
-
-#### 용량 관리 아키텍처
-
-```typescript
-// 파일 업로드 설정 계층 구조
-interface FileUploadConfig {
-    // 1. 기본 설정 (Supabase 클라이언트)
-    storageBucket: string;
-    maxFileSize: number; // 전체 파일 최대 크기
-
-    // 2. 파일 타입별 설정
-    maxImageSize: number; // 이미지 전용 최대 크기
-    maxVideoSize: number; // 비디오 전용 최대 크기
-
-    // 3. 허용 타입 및 개수
-    allowedImageTypes: string[];
-    allowedVideoTypes: string[];
-    maxFiles: number; // 최대 파일 개수
-}
-
-// 설정 우선순위
-const configPriority = {
-    dashboard: 1, // Supabase Dashboard 설정 (최우선)
-    code: 2, // 코드 설정
-    default: 3, // 기본값
-};
-```
-
-#### 향후 개선 방향
-
-1. **자동 설정 동기화**: Dashboard 설정 변경 시 코드에 자동 반영
-2. **용량 모니터링**: 업로드된 파일 크기 및 Storage 사용량 추적
-3. **동적 제한 조정**: 사용량에 따른 자동 용량 제한 조정
-4. **사용자 알림**: 용량 제한에 도달했을 때 적절한 안내 메시지
-
-### 11. 글 업로드 인증 문제 해결 ⚠️
-
-**구현 과정에서 발생한 문제들과 해결 방법**:
-
-#### 문제: Server Actions에서 세션 기반 인증 실패
-
-**문제 상황**:
-
-- `createPostAction`에서 `supabase.auth.getSession()` 호출 시 세션을 찾을 수 없음
-- 서버 사이드에서 클라이언트의 인증 상태를 읽을 수 없는 문제
-- 로그: `hasSession: false, hasUser: false`
-
-**해결 방법**:
-
-**1단계: 폼 데이터 기반 인증으로 변경**
-
-```typescript
-// MarkdownEditor.tsx에서 useAuth 훅 사용
-const { user, isAuthenticated } = useAuth();
-
-// 폼에 사용자 ID를 hidden input으로 추가
-<form action={action}>
-    <input
-        type="hidden"
-        name="userId"
-        value={user?.id || ''}
-    />
-    {/* 다른 폼 필드들 */}
-</form>
-```
-
-**2단계: Server Action에서 폼 데이터로 사용자 ID 받기**
-
-```typescript
-// actions.ts에서 폼 데이터 기반 인증
+// 글 생성 Action
 export async function createPostAction(formData: FormData) {
-    // 폼 데이터에서 사용자 ID 추출
-    const userId = formData.get('userId') as string;
-
-    if (!userId) {
-        throw new Error('사용자 ID가 제공되지 않았습니다.');
-    }
-
-    // Supabase 클라이언트 생성
-    const supabase = await createServerClient();
-
-    // 사용자 프로필에서 admin 권한 확인
-    const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('is_admin, email')
-        .eq('id', userId)
-        .single();
-
-    if (profileError || !profile?.is_admin) {
-        throw new Error('관리자 권한이 필요합니다.');
-    }
-
-    // 사용자 정보 구성
-    const user = {
-        id: userId,
-        email: profile.email || '',
-        user_metadata: {},
-    };
-}
-```
-
-**3단계: 인증 상태 확인 로직 추가**
-
-```typescript
-// MarkdownEditor.tsx에서 인증 상태 확인
-const canSave =
-    title.trim() &&
-    content.trim() &&
-    hashtags.length > 0 &&
-    isAuthenticated &&
-    user?.is_admin;
-
-// 에러 상태 관리
-const [authError, setAuthError] = useState(false);
-const hasAuthError = !isAuthenticated || !user?.is_admin;
-
-// 저장 시도 시 인증 상태 에러 활성화
-if (hasAuthError) {
-    setAuthError(true);
-    return;
-}
-```
-
-**학습 포인트**:
-
-- **세션 기반 vs 폼 데이터 기반 인증**: 서버 사이드에서 클라이언트 세션을 읽을 수 없는 경우의 대안
-- **useAuth 훅 활용**: 클라이언트에서 사용자 정보를 가져와서 서버로 전달
-- **권한 검증**: `profiles.is_admin` 필드를 통한 관리자 권한 확인
-- **에러 처리**: 인증 실패 시 명확한 에러 메시지 및 상태 관리
-- **보안 강화**: 클라이언트와 서버 양쪽에서 권한 확인
-
-#### 인증 흐름 비교
-
-**기존 방식 (세션 기반)**:
-
-1. 클라이언트 로그인 → Supabase OAuth
-2. 서버에서 `supabase.auth.getSession()` 호출
-3. 세션에서 사용자 정보 추출
-4. 권한 확인 및 작업 수행
-
-**새로운 방식 (폼 데이터 기반)**:
-
-1. 클라이언트 로그인 → `useAuth` 훅으로 사용자 정보 가져오기
-2. 폼 제출 시 사용자 ID를 hidden input으로 전달
-3. 서버에서 폼 데이터로 사용자 ID 받기
-4. `profiles` 테이블에서 admin 권한 확인
-5. 권한 확인 후 작업 수행
-
-**장점**:
-
-- 서버 사이드 세션 문제 해결
-- 더 안정적인 인증 처리
-- 명확한 권한 검증 흐름
-- 디버깅 용이성 향상
-
-## 성능 최적화 기법
-
-### 1. 디바운싱
-
-- 해시태그 검색 시 300ms 지연으로 불필요한 API 호출 방지
-- `useDebounce` 커스텀 훅 활용
-
-### 2. 조건부 렌더링
-
-- 화면 크기에 따른 컴포넌트 렌더링 최적화
-- 불필요한 DOM 요소 생성 방지
-
-### 3. 메모이제이션
-
-- `useCallback`을 활용한 함수 재생성 방지
-- `useState`의 함수형 업데이트로 최적화
-
-### 4. 지연 로딩
-
-- 해시태그 검색 시 최소 2글자 이상 입력 시에만 API 호출
-- 불필요한 네트워크 요청 최소화
-
-### 5. 파일 업로드 최적화
-
-- 드래그 앤 드롭을 통한 직관적인 파일 선택
-- 파일 타입 및 크기 사전 검증
-- 임시 파일 관리를 통한 Storage 효율성
-- 자동 정리를 통한 메모리 누수 방지
-
-## 보안 고려사항
-
-### 1. 인증 및 권한 관리
-
-- JWT 토큰 기반 사용자 인증
-- Admin 권한 확인을 통한 글 작성 제한
-- Supabase RLS 정책과 연동
-
-### 2. 데이터 검증
-
-- 클라이언트 및 서버 양쪽에서 데이터 검증
-- Zod 스키마를 통한 타입 안전성 확보
-- SQL Injection 방지를 위한 Supabase 클라이언트 활용
-
-### 3. XSS 방지
-
-- 마크다운 렌더링 시 안전한 HTML 생성
-- 사용자 입력 데이터의 적절한 이스케이프 처리
-
-### 4. 입력 제한
-
-- 해시태그 길이 제한 (2-20글자)
-- 글 제목 길이 제한 (1-100글자)
-- 글 내용 길이 제한 (1-50,000글자)
-- 해시태그 개수 제한 (1-10개)
-
-### 5. 파일 업로드 보안
-
-- 파일 타입 검증 (MIME 타입 확인)
-- 파일 크기 제한 (이미지 5MB, 비디오 50MB)
-- 어드민 권한 확인을 통한 업로드 제한
-- 임시 파일 자동 정리를 통한 보안 강화
-
-### 6. Storage 용량 및 설정 보안
-
-- **Dashboard 설정 우선순위**: Supabase Dashboard 설정이 코드 설정보다 우선 적용
-- **용량 제한 검증**: 클라이언트와 서버 양쪽에서 파일 크기 검증
-- **설정 동기화**: 코드 설정과 Dashboard 설정의 일치성 정기 점검
-- **용량 모니터링**: Storage 사용량 추적 및 제한 도달 시 알림
-- **단위 변환 정확성**: bytes, KB, MB, GB 단위의 정확한 계산 및 검증
-
-## 프로젝트 구조 분석
-
-### 디렉토리 구조
-
-```
-src/
-├── app/
-│   ├── admin/
-│   │   └── posts/
-│   │       ├── page.tsx          # 글 관리 페이지
-│   │       └── new/
-│   │           └── page.tsx      # 새 글 작성 페이지
-│   ├── posts/
-│   │   ├── page.tsx              # 글 목록 페이지
-│   │   └── [id]/
-│   │       └── page.tsx          # 글 상세 페이지
-│   └── api/
-│       └── auth/
-│           └── set-session/
-│               └── route.ts      # 세션 설정 API
-├── components/
-│   ├── editor/
-│   │   ├── MarkdownEditor.tsx    # 마크다운 에디터
-│   │   ├── MarkdownRenderer.tsx  # 마크다운 렌더러
-│   │   └── (파일 업로드 기능은 MarkdownEditor에 통합)
-│   ├── providers/ (SupabaseProvider 제거됨)
-│   └── ui/
-│       └── badge.tsx             # 배지 컴포넌트
-├── lib/
-│   ├── actions.ts                # Server Actions
-│   ├── hashtags.ts               # 해시태그 관리
-│   ├── posts.ts                  # 글 데이터 관리
-│   ├── file-upload.ts            # 클라이언트 파일 업로드 관리
-│   ├── file-upload-server.ts     # 서버 파일 업로드 관리
-│   ├── supabase-client.ts        # 클라이언트 Supabase 클라이언트
-│   ├── supabase-server.ts        # 서버 Supabase 클라이언트
-│   ├── schemas.ts                # Zod 검증 스키마
-│   └── supabase.ts               # 타입 정의
-├── hooks/
-│   └── useAuth.ts                # 인증 상태 관리 훅
-├── stores/
-│   └── auth-store.ts             # Zustand 인증 상태 관리
-└── middleware.ts                  # 미들웨어
-```
-
-### 파일 크기 및 복잡도
-
-- **가장 복잡한 파일**: `MarkdownEditor.tsx` (24KB, 740줄)
-- **핵심 비즈니스 로직**: `actions.ts` (9.1KB, 298줄) - 이미지 관리 시스템 포함
-- **데이터 관리**: `posts.ts` (7.5KB, 269줄)
-- **파일 업로드**: `file-upload.ts` (9.5KB, 240줄) - 공통 함수 export
-- **UI 페이지**: `admin/posts/page.tsx` (10KB, 217줄)
-- **이미지 관리**: `actions.ts`의 `manageImageFiles` 함수 (이미지 생명주기 관리)
-
-### 코드 구조 개선
-
-#### 함수 재사용 구조
-
-```
-src/lib/file-upload.ts (클라이언트용)
-├─ extractImagePathsFromMarkdown ✅ export
-├─ updateImageUrlsInMarkdown ✅ export
-└─ 기타 파일 업로드 함수들
-
-src/lib/actions.ts (서버용)
-├─ import { extractImagePathsFromMarkdown } ✅ 재사용
-├─ import { updateImageUrlsInMarkdown } ✅ 재사용
-├─ manageImageFiles (이미지 관리 시스템)
-└─ updateThumbnailUrl (썸네일 업데이트)
-```
-
-#### 이미지 관리 시스템
-
-```
-글 수정 제출
-    ↓
-manageImageFiles 실행
-    ├─ 이미지 경로 비교 및 분석
-    ├─ 사라진 이미지 제거
-    ├─ 새 temp 이미지 permanent로 이동
-    ├─ 마크다운 URL 업데이트
-    └─ 업데이트된 내용 반환
-    ↓
-썸네일 자동 업데이트
-    ↓
-글 수정 완료
-```
-
-## 트러블슈팅 경험
-
-### 1. 이미지 미리보기 문제
-
-**문제**: 이미지 파일이 아이콘으로만 표시됨
-**원인**: 이미지 타입을 단순 아이콘으로 처리
-**해결**: 실제 이미지 태그를 사용하고 로드 실패 시 fallback 아이콘 표시
-
-### 2. 임시 파일 관리 문제
-
-**문제**: 페이지 이탈 시 임시 파일이 Storage에 남아있음
-**원인**: 파일 업로드 후 자동 정리 로직 부재
-**해결**: `beforeunload`와 `visibilitychange` 이벤트를 활용한 자동 정리
-
-### 3. temp 폴더 초기화 문제
-
-**문제**: 페이지 진입 시마다 이전 임시 파일들이 남아있음
-**원인**: 컴포넌트 마운트 시 초기화 로직 부재
-**해결**: `useEffect`를 활용한 컴포넌트 마운트 시 자동 초기화
-
-### 4. 파일 업로드 권한 문제
-
-**문제**: 일반 사용자도 파일 업로드 가능
-**원인**: 권한 확인 로직 부재
-**해결**: `useAuth` 훅을 통한 어드민 권한 확인 및 조건부 렌더링
-
-### 5. Supabase 클라이언트 중복 인스턴스 문제 ✅
-
-**문제**: `Multiple GoTrueClient instances detected in the same browser context` 경고 발생
-**원인**: `SupabaseProvider`에서 `useState`로 매번 새로운 클라이언트 생성
-**해결**: 싱글톤 패턴을 적용하여 모듈 레벨에서 단일 인스턴스 보장
-
-#### 문제 상황
-
-```
-Multiple GoTrueClient instances detected in the same browser context.
-It is not an error, but this should be avoided as it may produce
-undefined behavior when used concurrently under the same storage key.
-
-에러 스택 트레이스:
-SupabaseProvider.useState ← 여기가 문제!
-SupabaseProvider
-RootLayout
-```
-
-#### 해결 과정
-
-**1단계: 싱글톤 패턴 적용**
-
-```typescript
-// src/utils/supabase/client.ts
-import { createClient as _createClient } from '@supabase/supabase-js';
-
-// 모듈 레벨에서 단일 인스턴스 생성 (싱글톤 패턴)
-const supabase = _createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
-// 동일한 인스턴스를 반환하는 함수
-export const createClient = () => supabase;
-```
-
-**2단계: SupabaseProvider 주석 처리**
-
-```typescript
-// src/app/layout.tsx
-export default function RootLayout({
-    children,
-}: Readonly<{
-    children: React.ReactNode;
-}>) {
-    return (
-        <html lang="ko" suppressHydrationWarning>
-            <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-                <ThemeProvider>
-                    <QueryProvider>
-                        {/* TODO: 인증 시스템 재구현 예정 */}
-                        {/* <SupabaseProvider> */}
-                        <div className="flex min-h-screen flex-col">
-                            <Header />
-                            <main className="flex-1">{children}</main>
-                            <Footer />
-                        </div>
-                        {/* </SupabaseProvider> */}
-                    </QueryProvider>
-                </ThemeProvider>
-            </body>
-        </html>
-    );
-}
-```
-
-**3단계: 임시 Provider 구현**
-
-```typescript
-// src/components/providers/supabase-provider.tsx
-// TODO: 인증 시스템 재구현 예정
-// 임시로 기본 컨텍스트와 훅 생성
-export function SupabaseProvider({ children }: { children: React.ReactNode }) {
-    return (
-        <SupabaseContext.Provider value={{ supabase: null }}>
-            {children}
-        </SupabaseContext.Provider>
-    );
-}
-```
-
-#### 학습 포인트
-
-- **useState의 함정**: 초기화 함수가 매번 새로운 인스턴스 생성 가능
-- **싱글톤 패턴**: 모듈 레벨에서 단일 인스턴스 보장
-- **전역 상태 관리**: React Context와 싱글톤의 조합
-- **중복 클라이언트 방지**: Supabase GoTrueClient 인스턴스 중복 생성 방지
-- **시스템 안정화**: 세션 관리 및 인증 상태 일관성 유지
-
-#### 해결 결과
-
-- ✅ **중복 클라이언트 해결**: `Multiple GoTrueClient instances` 경고 완전 해결
-- ✅ **단일 인스턴스**: 전역에서 하나의 Supabase 클라이언트만 관리
-- ✅ **시스템 안정화**: 세션 관리 및 인증 상태 일관성 유지
-- ✅ **이미지 업로드**: 정상 작동
-- ✅ **성능 향상**: 불필요한 클라이언트 생성 방지
-- 🔄 **인증 시스템**: 현재 임시 구현 상태, 향후 재구현 예정
-
-#### 향후 개선 방향
-
-1. **SupabaseProvider 재구현**: 인증 시스템 완성 후 Provider 패턴 적용
-2. **세션 관리 최적화**: React Query와 Zustand 간의 상태 동기화 개선
-3. **에러 처리 강화**: 인증 실패 시 더 명확한 에러 메시지 및 복구 방법 제공
-4. **성능 모니터링**: 인증 관련 성능 지표 추적 및 최적화
-
-### 12. 이미지 관리 시스템 구현 ⚠️
-
-**구현 과정에서 발생한 문제들과 해결 방법**:
-
-#### 문제: 글 수정 시 이미지 URL 업데이트 누락
-
-**문제 상황**:
-
-- temp 이미지가 permanent로 이동되었지만 마크다운 내용의 URL은 그대로 남아있음
-- 썸네일은 업데이트되었지만 실제 이미지 렌더링 실패
-- 사용자가 이미지를 삭제했지만 Storage에서 제거되지 않음
-
-**해결 방법**:
-
-**1단계: 이미지 파일 관리 함수 구현**
-
-```typescript
-// src/lib/actions.ts의 manageImageFiles 함수
-async function manageImageFiles(oldContent: string, newContent: string) {
     try {
-        const supabase = await createServiceRoleClient();
+        // 폼 데이터 추출
+        const rawData = {
+            title: formData.get('title') as string,
+            content: formData.get('content') as string,
+            hashtags:
+                (formData.get('hashtags') as string)
+                    ?.split(',')
+                    .map((tag) => tag.trim())
+                    .filter((tag) => tag.length > 0) || [],
+        };
 
-        // 1. 이전 글과 새 글의 이미지 경로 비교
-        const oldImagePaths = extractImagePathsFromMarkdown(oldContent);
-        const newImagePaths = extractImagePathsFromMarkdown(newContent);
+        // 데이터 검증
+        const validationResult = CreatePostSchema.safeParse(rawData);
+        if (!validationResult.success) {
+            const errorMessage = validationResult.error.issues
+                .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+                .join(', ');
+            throw new Error(`데이터 검증 실패: ${errorMessage}`);
+        }
 
-        // 2. 사라진 이미지 찾기 및 제거
-        const removedImages = oldImagePaths.filter(
-            (oldPath) => !newImagePaths.includes(oldPath)
+        const validatedData = validationResult.data;
+
+        // 인증 확인
+        const supabase = createServerClient();
+        const {
+            data: { user },
+            error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            throw new Error('인증이 필요합니다.');
+        }
+
+        // 관리자 권한 확인
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_admin')
+            .eq('id', user.id)
+            .single();
+
+        if (!profile?.is_admin) {
+            throw new Error('관리자 권한이 필요합니다.');
+        }
+
+        // 트랜잭션 시작
+        const serviceSupabase = createServiceClient();
+
+        // 1. 해시태그 생성/조회
+        const hashtags = await hashtagManager.createHashtags(
+            validatedData.hashtags
         );
 
-        if (removedImages.length > 0) {
-            await supabase.storage.from('files').remove(removedImages);
+        // 2. 글 생성
+        const { data: post, error: postError } = await serviceSupabase
+            .from('posts')
+            .insert({
+                title: validatedData.title,
+                content_markdown: validatedData.content,
+                author_id: user.id,
+            })
+            .select('id, title')
+            .single();
+
+        if (postError) {
+            throw new Error(`글 생성 실패: ${postError.message}`);
         }
 
-        // 3. 새로 추가된 temp 이미지 처리
-        const newTempImages = newImagePaths.filter(
-            (path) => path.includes('temp/') && !oldImagePaths.includes(path)
+        // 3. 해시태그 연결
+        await hashtagManager.linkPostHashtags(
+            post.id,
+            hashtags.map((h) => h.id)
         );
 
-        let updatedContent = newContent;
-        const movedTempPaths: string[] = [];
+        // 캐시 무효화
+        revalidatePath('/admin/posts');
+        revalidatePath('/posts');
+        revalidatePath('/'); // 홈페이지 캐시 무효화
 
-        for (const tempPath of newTempImages) {
-            const permanentPath = tempPath.replace('temp/', 'permanent/');
-
-            // 파일 복사 (temp → permanent)
-            await supabase.storage.from('files').copy(tempPath, permanentPath);
-
-            // temp 파일 삭제
-            await supabase.storage.from('files').remove([tempPath]);
-
-            movedTempPaths.push(tempPath);
-        }
-
-        // 4. 마크다운 내용의 URL 업데이트
-        if (movedTempPaths.length > 0) {
-            const permanentPaths = movedTempPaths.map((path) =>
-                path.replace('temp/', 'permanent/')
-            );
-            updatedContent = updateImageUrlsInMarkdown(
-                newContent,
-                permanentPaths
-            );
-        }
-
-        return updatedContent;
+        // 성공 시 글 상세 페이지로 리디렉션
+        redirect(`/posts/${post.id}`);
     } catch (error) {
-        console.error('이미지 파일 관리 중 오류:', error);
+        console.error('글 생성 오류:', error);
+        throw error;
+    }
+}
+
+// 글 수정 Action
+export async function updatePostAction(formData: FormData) {
+    try {
+        const rawData = {
+            postId: parseInt(formData.get('postId') as string),
+            title: formData.get('title') as string,
+            content: formData.get('content') as string,
+            hashtags:
+                (formData.get('hashtags') as string)
+                    ?.split(',')
+                    .map((tag) => tag.trim())
+                    .filter((tag) => tag.length > 0) || [],
+        };
+
+        // 데이터 검증
+        const validationResult = UpdatePostSchema.safeParse(rawData);
+        if (!validationResult.success) {
+            const errorMessage = validationResult.error.issues
+                .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+                .join(', ');
+            throw new Error(`데이터 검증 실패: ${errorMessage}`);
+        }
+
+        const { postId, ...validatedData } = validationResult.data;
+
+        // 인증 및 권한 확인
+        const supabase = createServerClient();
+        const {
+            data: { user },
+            error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            throw new Error('인증이 필요합니다.');
+        }
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_admin')
+            .eq('id', user.id)
+            .single();
+
+        if (!profile?.is_admin) {
+            throw new Error('관리자 권한이 필요합니다.');
+        }
+
+        // 글 존재 확인
+        const { data: existingPost } = await supabase
+            .from('posts')
+            .select('id, title')
+            .eq('id', postId)
+            .single();
+
+        if (!existingPost) {
+            throw new Error('존재하지 않는 글입니다.');
+        }
+
+        const serviceSupabase = createServiceClient();
+
+        // 1. 해시태그 처리
+        if (validatedData.hashtags) {
+            const hashtags = await hashtagManager.createHashtags(
+                validatedData.hashtags
+            );
+            await hashtagManager.linkPostHashtags(
+                postId,
+                hashtags.map((h) => h.id)
+            );
+        }
+
+        // 2. 글 업데이트
+        const updateData: any = {
+            updated_at: new Date().toISOString(),
+        };
+
+        if (validatedData.title) updateData.title = validatedData.title;
+        if (validatedData.content)
+            updateData.content_markdown = validatedData.content;
+
+        const { error: updateError } = await serviceSupabase
+            .from('posts')
+            .update(updateData)
+            .eq('id', postId);
+
+        if (updateError) {
+            throw new Error(`글 수정 실패: ${updateError.message}`);
+        }
+
+        // 캐시 무효화
+        revalidatePath(`/admin/posts/${postId}/edit`);
+        revalidatePath(`/posts/${postId}`);
+        revalidatePath('/admin/posts');
+        revalidatePath('/posts');
+        revalidatePath('/'); // 홈페이지 캐시 무효화
+
+        // 성공 시 글 상세 페이지로 리디렉션
+        redirect(`/posts/${postId}`);
+    } catch (error) {
+        console.error('글 수정 오류:', error);
+        throw error;
+    }
+}
+
+// 글 삭제 Action
+export async function deletePostAction(formData: FormData) {
+    try {
+        const postId = parseInt(formData.get('postId') as string);
+
+        if (!postId || isNaN(postId)) {
+            throw new Error('유효하지 않은 글 ID입니다.');
+        }
+
+        // 인증 및 권한 확인
+        const supabase = createServerClient();
+        const {
+            data: { user },
+            error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            throw new Error('인증이 필요합니다.');
+        }
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_admin')
+            .eq('id', user.id)
+            .single();
+
+        if (!profile?.is_admin) {
+            throw new Error('관리자 권한이 필요합니다.');
+        }
+
+        // 글 존재 확인
+        const { data: existingPost } = await supabase
+            .from('posts')
+            .select('id, title')
+            .eq('id', postId)
+            .single();
+
+        if (!existingPost) {
+            throw new Error('존재하지 않는 글입니다.');
+        }
+
+        // 글 삭제 (CASCADE로 관련 데이터 자동 삭제)
+        const serviceSupabase = createServiceClient();
+        const { error: deleteError } = await serviceSupabase
+            .from('posts')
+            .delete()
+            .eq('id', postId);
+
+        if (deleteError) {
+            throw new Error(`글 삭제 실패: ${deleteError.message}`);
+        }
+
+        // 사용되지 않는 해시태그 정리
+        await hashtagManager.cleanupUnusedHashtags();
+
+        // 캐시 무효화
+        revalidatePath('/admin/posts');
+        revalidatePath('/posts');
+        revalidatePath('/'); // 홈페이지 캐시 무효화
+
+        // 성공 시 관리자 페이지로 리디렉션
+        redirect('/admin/posts');
+    } catch (error) {
+        console.error('글 삭제 오류:', error);
         throw error;
     }
 }
 ```
 
-**2단계: 썸네일 자동 업데이트**
+**학습한 핵심 개념:**
+
+- **Server Actions**: 서버에서 실행되는 안전한 데이터 변경 함수
+- **트랜잭션 안전성**: 여러 데이터베이스 작업의 원자성 보장
+- **권한 검증**: 각 단계에서 인증과 권한 확인
+- **캐시 무효화**: 관련된 모든 페이지의 캐시 갱신
+- **에러 처리**: 상세한 에러 메시지와 적절한 예외 처리
+
+### 4. 관리자 페이지 UI 구현
+
+#### 글 관리 대시보드
 
 ```typescript
-// updateThumbnailUrl 함수
-async function updateThumbnailUrl(
-    content: string,
-    postId: number
-): Promise<string | null> {
+// src/app/admin/posts/page.tsx - 관리자 글 관리 페이지
+import { Suspense } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Edit, Trash2, Eye, Calendar, User } from 'lucide-react';
+import { getPostsAction } from '@/lib/actions';
+import { DeletePostButton } from '@/components/admin/DeletePostButton';
+import { formatDate } from '@/lib/utils';
+
+export default async function AdminPostsPage() {
+    return (
+        <div className="container mx-auto max-w-6xl py-6 px-4">
+            {/* 헤더 */}
+            <div className="mb-6 flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold">글 관리</h1>
+                    <p className="text-muted-foreground">
+                        블로그 글을 작성, 수정, 삭제할 수 있습니다.
+                    </p>
+                </div>
+                <Button asChild>
+                    <Link href="/admin/posts/new">
+                        <Plus className="h-4 w-4 mr-2" />
+                        새 글 작성
+                    </Link>
+                </Button>
+            </div>
+
+            {/* 글 목록 */}
+            <Suspense fallback={<PostsListSkeleton />}>
+                <PostsList />
+            </Suspense>
+        </div>
+    );
+}
+
+// 글 목록 컴포넌트
+async function PostsList() {
     try {
-        const supabase = await createServerClient();
-        const imagePaths = extractImagePathsFromMarkdown(content);
+        const posts = await getPostsAction({ page: 1, limit: 50 });
 
-        if (imagePaths.length === 0) {
-            // 이미지가 없으면 썸네일 제거
-            await supabase
-                .from('posts')
-                .update({ thumbnail_url: null })
-                .eq('id', postId);
-            return null;
+        if (!posts || posts.length === 0) {
+            return (
+                <Card>
+                    <CardContent className="py-8 text-center">
+                        <p className="text-muted-foreground">아직 작성된 글이 없습니다.</p>
+                        <Button asChild className="mt-4">
+                            <Link href="/admin/posts/new">
+                                <Plus className="h-4 w-4 mr-2" />
+                                첫 번째 글 작성하기
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            );
         }
 
-        // 첫 번째 이미지를 썸네일로 설정
-        const firstImagePath = imagePaths[0];
-        let thumbnailPath = firstImagePath;
+        return (
+            <div className="space-y-4">
+                {posts.map((post) => (
+                    <Card key={post.id} className="hover:shadow-md transition-shadow">
+                        <CardHeader>
+                            <div className="flex items-start justify-between">
+                                <div className="space-y-2">
+                                    <CardTitle className="text-xl">
+                                        <Link
+                                            href={`/posts/${post.id}`}
+                                            className="hover:text-primary transition-colors"
+                                        >
+                                            {post.title}
+                                        </Link>
+                                    </CardTitle>
 
-        // temp 경로인 경우 permanent 경로로 변환
-        if (firstImagePath.includes('temp/')) {
-            thumbnailPath = firstImagePath.replace('temp/', 'permanent/');
-        }
+                                    {/* 메타 정보 */}
+                                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                        <div className="flex items-center space-x-1">
+                                            <Calendar className="h-4 w-4" />
+                                            <span>{formatDate(post.created_at)}</span>
+                                        </div>
+                                        <div className="flex items-center space-x-1">
+                                            <User className="h-4 w-4" />
+                                            <span>{post.profiles?.full_name || '작성자'}</span>
+                                        </div>
+                                        <div className="flex items-center space-x-1">
+                                            <Eye className="h-4 w-4" />
+                                            <span>조회 {post.view_count}</span>
+                                        </div>
+                                    </div>
 
-        const thumbnailUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/files/${thumbnailPath}`;
-        return thumbnailUrl;
+                                    {/* 해시태그 */}
+                                    {post.hashtags && post.hashtags.length > 0 && (
+                                        <div className="flex flex-wrap gap-2">
+                                            {post.hashtags.map((hashtag) => (
+                                                <Badge key={hashtag.id} variant="outline">
+                                                    #{hashtag.name}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* 액션 버튼 */}
+                                <div className="flex items-center space-x-2">
+                                    <Button variant="outline" size="sm" asChild>
+                                        <Link href={`/posts/${post.id}`}>
+                                            <Eye className="h-4 w-4" />
+                                        </Link>
+                                    </Button>
+                                    <Button variant="outline" size="sm" asChild>
+                                        <Link href={`/admin/posts/${post.id}/edit`}>
+                                            <Edit className="h-4 w-4" />
+                                        </Link>
+                                    </Button>
+                                    <DeletePostButton postId={post.id} postTitle={post.title} />
+                                </div>
+                            </div>
+                        </CardHeader>
+
+                        {/* 글 미리보기 */}
+                        <CardContent>
+                            <CardDescription className="line-clamp-3">
+                                {post.content_markdown.substring(0, 200)}
+                                {post.content_markdown.length > 200 && '...'}
+                            </CardDescription>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+        );
+
     } catch (error) {
-        console.error('썸네일 URL 업데이트 중 오류:', error);
-        return null;
+        console.error('글 목록 조회 오류:', error);
+        return (
+            <Card>
+                <CardContent className="py-8 text-center">
+                    <p className="text-red-600">글 목록을 불러오는 중 오류가 발생했습니다.</p>
+                    <Button
+                        variant="outline"
+                        className="mt-4"
+                        onClick={() => window.location.reload()}
+                    >
+                        다시 시도
+                    </Button>
+                </CardContent>
+            </Card>
+        );
     }
 }
-```
 
-**3단계: Server Action에서 통합 처리**
-
-```typescript
-// updatePostAction에서 이미지 관리 통합
-export async function updatePostAction(postId: number, formData: FormData) {
-    // ... 인증 및 검증 로직 ...
-
-    if (content !== undefined) {
-        // 1. 이미지 파일 관리 및 URL 업데이트
-        const updatedContent = await manageImageFiles(
-            existingPost.content_markdown,
-            content
-        );
-        finalContent = updatedContent;
-
-        // 2. 썸네일 URL 업데이트
-        thumbnailUrl = await updateThumbnailUrl(updatedContent, postId);
-    }
-
-    // 3. 글 수정 (업데이트된 내용으로)
-    const post = await updatePost(
-        postId,
-        updateData,
-        existingPost,
-        thumbnailUrl
+// 로딩 스켈레톤
+function PostsListSkeleton() {
+    return (
+        <div className="space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+                <Card key={i}>
+                    <CardHeader>
+                        <div className="space-y-2">
+                            <div className="h-6 bg-muted animate-pulse rounded w-3/4" />
+                            <div className="flex space-x-4">
+                                <div className="h-4 bg-muted animate-pulse rounded w-24" />
+                                <div className="h-4 bg-muted animate-pulse rounded w-20" />
+                                <div className="h-4 bg-muted animate-pulse rounded w-16" />
+                            </div>
+                            <div className="flex space-x-2">
+                                <div className="h-6 bg-muted animate-pulse rounded w-16" />
+                                <div className="h-6 bg-muted animate-pulse rounded w-20" />
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-2">
+                            <div className="h-4 bg-muted animate-pulse rounded w-full" />
+                            <div className="h-4 bg-muted animate-pulse rounded w-5/6" />
+                            <div className="h-4 bg-muted animate-pulse rounded w-4/6" />
+                        </div>
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
     );
 }
 ```
 
-**학습 포인트**:
+**학습한 핵심 개념:**
 
-- **이미지 생명주기 관리**: temp → permanent 이동 및 정리
-- **경로 비교 로직**: 이전 내용과 새 내용의 이미지 경로 비교
-- **URL 자동 업데이트**: 마크다운 내용의 temp URL을 permanent URL로 자동 변경
-- **썸네일 동적 업데이트**: 이미지 순서 변경 시 썸네일 자동 업데이트
-- **에러 처리**: 이미지 관리 실패 시에도 글 수정은 계속 진행
-- **성능 최적화**: Service Role 클라이언트를 사용한 일괄 파일 작업
+- **서버 컴포넌트**: 데이터 페칭을 서버에서 처리하여 SEO 최적화
+- **Suspense 경계**: 로딩 상태를 우아하게 처리
+- **스켈레톤 UI**: 로딩 중에도 레이아웃 구조 유지
+- **에러 경계**: 에러 발생 시 적절한 폴백 UI 제공
+- **접근성**: 의미론적 HTML과 ARIA 속성 활용
 
-#### 이미지 관리 시스템 아키텍처
+---
+
+## 고민했던 부분과 해결책
+
+### 1. 실시간 미리보기 성능 최적화
+
+**문제**: 사용자가 타이핑할 때마다 마크다운 렌더링으로 인한 성능 저하
+
+**시도한 방식들**:
+
+1. **즉시 렌더링 (성능 문제)**:
 
 ```typescript
-// 이미지 관리 흐름
-글 수정 제출
-    ↓
-manageImageFiles 실행
-    ├─ 이전 내용과 새 내용 비교
-    ├─ 사라진 이미지 permanent에서 제거
-    ├─ 새 temp 이미지 permanent로 이동
-    ├─ 마크다운 URL 업데이트 (temp → permanent)
-    └─ 업데이트된 내용 반환
-    ↓
-썸네일 URL 업데이트
-    ↓
-글 수정 (업데이트된 내용으로)
-    ↓
-수정 완료 → 상세 페이지로 리다이렉트
+// ❌ 모든 키 입력마다 렌더링
+const [content, setContent] = useState('');
+
+return (
+    <div>
+        <textarea onChange={(e) => setContent(e.target.value)} />
+        <MarkdownRenderer content={content} />
+    </div>
+);
 ```
 
-### 13. 코드 중복 제거 및 재사용성 향상 ⚠️
-
-**구현 과정에서 발생한 문제들과 해결 방법**:
-
-#### 문제: 동일한 함수의 중복 구현
-
-**문제 상황**:
-
-- `actions.ts`와 `file-upload.ts`에 동일한 `extractImagePathsFromMarkdown` 함수 존재
-- `actions.ts`에 별도로 `updateImageUrlsInMarkdown` 함수 구현
-- 코드 중복으로 인한 유지보수성 저하
-- 두 함수가 다르게 동작할 가능성
-
-**해결 방법**:
-
-**1단계: 중복 함수 식별**
+2. **디바운싱 적용 (선택된 방식)**:
 
 ```typescript
-// src/lib/file-upload.ts (클라이언트용)
-export function extractImagePathsFromMarkdown(content: string): string[] {
-    const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
-    // ... 구현 ...
-}
+// ✅ 300ms 지연 후 렌더링
+import { useDebounce } from 'use-debounce';
 
-// src/lib/actions.ts (서버용) - 중복!
-function extractImagePathsFromMarkdown(content: string): string[] {
-    const imageRegex = /!\[.*?\]\(([^)]+)\)/g;
-    // ... 다른 구현 ...
-}
+const [content, setContent] = useState('');
+const [debouncedContent] = useDebounce(content, 300);
+
+return (
+    <div>
+        <textarea onChange={(e) => setContent(e.target.value)} />
+        <MarkdownRenderer content={debouncedContent} />
+    </div>
+);
 ```
 
-**2단계: 함수 통합 및 재사용**
+3. **가상화 (복잡함)**:
 
 ```typescript
-// src/lib/actions.ts에서 import
-import {
-    updateImageUrlsInMarkdown,
-    extractImagePathsFromMarkdown,
-} from './file-upload';
-
-// 중복 함수 제거 (약 25줄 코드 제거)
-// function extractImagePathsFromMarkdown(content: string): string[] { ... } 삭제
+// 🤔 과도한 최적화
+import { FixedSizeList as List } from 'react-window';
+// 마크다운 렌더링에는 부적합
 ```
 
-**3단계: 함수 시그니처 통일**
+**학습한 내용**:
+
+- **디바운싱**: 사용자 입력 최적화의 핵심 패턴
+- **성능 측정**: React DevTools Profiler로 렌더링 성능 분석
+- **적절한 최적화**: 과도한 최적화보다는 실용적인 접근
+
+### 2. 해시태그 중복 처리 전략
+
+**문제**: 대소문자나 공백 차이로 인한 해시태그 중복 생성
+
+**발생 시나리오**:
 
 ```typescript
-// file-upload.ts의 함수를 서버에서도 사용할 수 있도록 수정
-export function updateImageUrlsInMarkdown(
-    content: string,
-    permanentPaths: string[]
-): string {
-    // temp 경로를 permanent 경로로 교체하는 로직
-    // 클라이언트와 서버 모두에서 사용 가능
-}
+// 사용자가 입력한 해시태그들
+const userInputs = ['React', 'react', ' React ', 'REACT'];
+// 모두 같은 해시태그로 처리해야 함
 ```
 
-**학습 포인트**:
-
-- **코드 중복의 위험성**: 동일한 로직이 여러 곳에 존재할 때 유지보수 어려움
-- **함수 재사용의 중요성**: 클라이언트와 서버에서 공통 로직 공유
-- **import/export 패턴**: 모듈 시스템을 활용한 코드 구조화
-- **시그니처 통일**: 클라이언트와 서버 모두에서 사용할 수 있는 함수 설계
-- **유지보수성 향상**: 한 곳에서만 수정하면 모든 곳에 반영
-
-#### 코드 구조 개선 효과
+**해결책**:
 
 ```typescript
-// 이전: 중복 구현
-src/lib/actions.ts
-├─ extractImagePathsFromMarkdown (25줄)
-└─ updateImageUrlsInMarkdown (30줄)
+// 정규화 함수
+const normalizeHashtag = (tag: string): string => {
+    return tag.trim().toLowerCase();
+};
 
-src/lib/file-upload.ts
-├─ extractImagePathsFromMarkdown (25줄)
-└─ updateImageUrlsInMarkdown (30줄)
+// 중복 제거 로직
+const createUniqueHashtags = (tags: string[]): string[] => {
+    const normalized = tags.map(normalizeHashtag).filter(Boolean);
+    return [...new Set(normalized)];
+};
 
-// 수정 후: 함수 재사용
-src/lib/file-upload.ts
-├─ extractImagePathsFromMarkdown (25줄) ✅ export
-└─ updateImageUrlsInMarkdown (30줄) ✅ export
-
-src/lib/actions.ts
-├─ import { extractImagePathsFromMarkdown } ✅ 재사용
-└─ import { updateImageUrlsInMarkdown } ✅ 재사용
+// 데이터베이스 저장 시 정규화된 이름 사용
+const { data: existingHashtags } = await supabase
+    .from('hashtags')
+    .select('id, name')
+    .in('name', normalizedNames);
 ```
 
-**개선 효과**:
-
-- ✅ **코드 중복 제거**: 약 55줄의 중복 코드 제거
-- 🔧 **유지보수성 향상**: 한 곳에서만 수정하면 됨
-- 🎯 **일관성 보장**: 클라이언트와 서버에서 동일한 로직 사용
-- 🚀 **성능 향상**: 불필요한 함수 정의 제거
-- 📚 **가독성 향상**: 명확한 함수 출처와 책임 분리
-
-### 14. 코드 중복 제거 및 재사용성 향상 ✅
-
-**구현 과정에서 발생한 문제들과 해결 방법**:
-
-#### 문제: 동일한 함수의 중복 구현
-
-**문제 상황**:
-
-- `actions.ts`와 `file-upload.ts`에 동일한 `extractImagePathsFromMarkdown` 함수 존재
-- `actions.ts`에 별도로 `updateImageUrlsInMarkdown` 함수 구현
-- 코드 중복으로 인한 유지보수성 저하
-- 두 함수가 다르게 동작할 가능성
-
-**해결 방법**:
-
-**1단계: 중복 함수 식별**
+**추가 고려사항**:
 
 ```typescript
-// src/lib/file-upload.ts (클라이언트용)
-export function extractImagePathsFromMarkdown(content: string): string[] {
-    const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
-    // ... 구현 ...
-}
+// 한글 해시태그 처리
+const normalizeKoreanHashtag = (tag: string): string => {
+    return tag.trim().toLowerCase().normalize('NFC'); // 한글 정규화
+};
 
-// src/lib/actions.ts (서버용) - 중복!
-function extractImagePathsFromMarkdown(content: string): string[] {
-    const imageRegex = /!\[.*?\]\(([^)]+)\)/g;
-    // ... 다른 구현 ...
-}
+// 특수문자 제거
+const sanitizeHashtag = (tag: string): string => {
+    return tag.replace(/[#\s]/g, ''); // # 기호와 공백 제거
+};
 ```
 
-**2단계: 함수 통합 및 재사용**
+**학습한 내용**:
+
+- **데이터 정규화**: 일관된 데이터 저장을 위한 전처리
+- **Set 활용**: 중복 제거의 효율적인 방법
+- **유니코드 정규화**: 다국어 텍스트 처리 시 고려사항
+
+### 3. 트랜잭션 안전성 확보
+
+**문제**: 글 생성 중 해시태그 연결 실패 시 데이터 불일치
+
+**위험 시나리오**:
 
 ```typescript
-// src/lib/actions.ts에서 import
-import {
-    updateImageUrlsInMarkdown,
-    extractImagePathsFromMarkdown,
-} from './file-upload';
-
-// 중복 함수 제거 (약 25줄 코드 제거)
-// function extractImagePathsFromMarkdown(content: string): string[] { ... } 삭제
+// ❌ 트랜잭션 없이 순차 실행
+const post = await createPost(postData);
+const hashtags = await createHashtags(hashtagNames);
+await linkPostHashtags(post.id, hashtags); // 여기서 실패 시 고아 글 생성
 ```
 
-**3단계: 함수 시그니처 통일**
+**해결책**:
 
 ```typescript
-// file-upload.ts의 함수를 서버에서도 사용할 수 있도록 수정
-export function updateImageUrlsInMarkdown(
-    content: string,
-    permanentPaths: string[]
-): string {
-    // temp 경로를 permanent 경로로 교체하는 로직
-    // 클라이언트와 서버 모두에서 사용 가능
+// ✅ 트랜잭션 패턴 적용
+export async function createPostAction(formData: FormData) {
+    const serviceSupabase = createServiceClient();
+
+    try {
+        // 1. 해시태그 먼저 생성/조회
+        const hashtags = await hashtagManager.createHashtags(
+            validatedData.hashtags
+        );
+
+        // 2. 글 생성
+        const { data: post, error: postError } = await serviceSupabase
+            .from('posts')
+            .insert(postData)
+            .select('id')
+            .single();
+
+        if (postError) {
+            throw new Error(`글 생성 실패: ${postError.message}`);
+        }
+
+        // 3. 해시태그 연결 (실패 시 글도 롤백되도록)
+        await hashtagManager.linkPostHashtags(
+            post.id,
+            hashtags.map((h) => h.id)
+        );
+
+        // 모든 작업 성공 시에만 캐시 무효화
+        revalidatePath('/admin/posts');
+        redirect(`/posts/${post.id}`);
+    } catch (error) {
+        // 에러 발생 시 모든 변경사항 롤백
+        console.error('글 생성 트랜잭션 실패:', error);
+        throw error;
+    }
 }
 ```
 
-**학습 포인트**:
+**PostgreSQL 트랜잭션 활용 (향후 개선)**:
 
-- **코드 중복의 위험성**: 동일한 로직이 여러 곳에 존재할 때 유지보수 어려움
-- **함수 재사용의 중요성**: 클라이언트와 서버에서 공통 로직 공유
-- **import/export 패턴**: 모듈 시스템을 활용한 코드 구조화
-- **시그니처 통일**: 클라이언트와 서버 모두에서 사용할 수 있는 함수 설계
-- **유지보수성 향상**: 한 곳에서만 수정하면 모든 곳에 반영
+```sql
+-- 데이터베이스 레벨 트랜잭션
+BEGIN;
 
-#### 코드 구조 개선 효과
+INSERT INTO posts (title, content_markdown, author_id)
+VALUES ($1, $2, $3)
+RETURNING id;
 
-```typescript
-// 이전: 중복 구현
-src/lib/actions.ts
-├─ extractImagePathsFromMarkdown (25줄)
-└─ updateImageUrlsInMarkdown (30줄)
+INSERT INTO post_hashtags (post_id, hashtag_id)
+VALUES ($4, $5), ($4, $6);
 
-src/lib/file-upload.ts
-├─ extractImagePathsFromMarkdown (25줄)
-└─ updateImageUrlsInMarkdown (30줄)
-
-// 수정 후: 함수 재사용
-src/lib/file-upload.ts
-├─ extractImagePathsFromMarkdown (25줄) ✅ export
-└─ updateImageUrlsInMarkdown (30줄) ✅ export
-
-src/lib/actions.ts
-├─ import { extractImagePathsFromMarkdown } ✅ 재사용
-└─ import { updateImageUrlsInMarkdown } ✅ 재사용
+COMMIT;
 ```
 
-**개선 효과**:
+**학습한 내용**:
 
-- ✅ **코드 중복 제거**: 약 55줄의 중복 코드 제거
-- 🔧 **유지보수성 향상**: 한 곳에서만 수정하면 됨
-- 🎯 **일관성 보장**: 클라이언트와 서버에서 동일한 로직 사용
-- 🚀 **성능 향상**: 불필요한 함수 정의 제거
-- 📚 **가독성 향상**: 명확한 함수 출처와 책임 분리
+- **트랜잭션 패턴**: 여러 데이터베이스 작업의 원자성 보장
+- **에러 처리**: 부분 실패 시 전체 롤백 전략
+- **데이터 일관성**: 관련 데이터 간의 무결성 유지
 
-## 다음 단계 계획
+### 4. 반응형 에디터 UI 설계
 
-### Phase 6: 글 목록 및 상세 페이지
+**문제**: 데스크탑과 모바일에서 다른 에디터 경험 제공
 
-- 홈페이지 글 목록 표시
-- 반응형 그리드 레이아웃
-- 무한 스크롤 구현
-- React Query 캐싱 전략
+**고려사항**:
 
-### Phase 5 보완 (썸네일 업로드)
+- 데스크탑: 분할 화면으로 편집과 미리보기 동시 표시
+- 모바일: 화면 공간 부족으로 토글 방식 필요
+- 태블릿: 중간 크기에서의 적절한 경험
 
-- 썸네일 이미지 선택 및 크롭
-- 이미지 최적화 (Next.js Image)
-- 글 수정 페이지 UI 구현
+**해결책**:
+
+```typescript
+// 반응형 레이아웃 구현
+const [isPreviewMode, setIsPreviewMode] = useState(false);
+
+return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 편집기 패널 */}
+        <div className={`space-y-6 ${isPreviewMode ? 'hidden lg:block' : ''}`}>
+            <MarkdownEditor />
+        </div>
+
+        {/* 미리보기 패널 */}
+        <div className={`${!isPreviewMode ? 'hidden lg:block' : ''}`}>
+            <MarkdownRenderer />
+        </div>
+    </div>
+);
+
+// 모바일 토글 버튼
+<div className="lg:hidden">
+    <Button onClick={() => setIsPreviewMode(!isPreviewMode)}>
+        {isPreviewMode ? '편집' : '미리보기'}
+    </Button>
+</div>
+```
+
+**CSS Grid 활용**:
+
+```css
+/* 반응형 그리드 레이아웃 */
+.editor-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+    .editor-container {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+```
+
+**학습한 내용**:
+
+- **모바일 우선**: 작은 화면부터 설계하여 점진적 향상
+- **CSS Grid**: 복잡한 레이아웃의 효율적인 구현
+- **상태 기반 UI**: 화면 크기와 사용자 선택에 따른 동적 UI
+
+---
+
+## 기존 Phase에서 활용한 기술
+
+### Phase 1-4 기반 기술의 확장
+
+#### TypeScript 타입 시스템 고도화
+
+- **Phase 1-4**: 기본 타입 정의와 인터페이스
+- **Phase 5**: 복잡한 폼 상태와 제네릭 타입 활용
+- **확장 내용**: Zod 스키마와 TypeScript 타입의 완벽한 통합
+
+#### React Query 캐싱 전략 심화
+
+- **Phase 2-4**: 인증 상태 관리
+- **Phase 5**: 해시태그 검색과 글 목록 캐싱 최적화
+- **확장 내용**: 디바운싱과 조건부 쿼리의 고급 활용
+
+#### shadcn/ui 컴포넌트 시스템 확장
+
+- **Phase 3**: 기본 UI 컴포넌트
+- **Phase 5**: 복잡한 폼 컴포넌트와 에디터 UI 구성
+- **확장 내용**: 카드, 배지, 텍스트에어리어 등 고급 컴포넌트 활용
+
+#### 인증 및 권한 시스템 활용
+
+- **Phase 4**: 기본 인증 시스템
+- **Phase 5**: 관리자 전용 기능과 Server Actions 보안
+- **확장 내용**: 세밀한 권한 검증과 보안 강화
+
+---
+
+## 핵심 의사결정과 그 이유
+
+### 1. 마크다운 vs 리치 텍스트 에디터
+
+**결정**: 마크다운 에디터 선택
+
+**이유**:
+
+- **개발자 친화적**: 기술 블로그에 적합한 마크다운 문법
+- **버전 관리**: 텍스트 기반으로 Git 등에서 추적 용이
+- **성능**: HTML 에디터보다 가벼운 렌더링
+- **확장성**: 플러그인으로 기능 확장 가능
+- **호환성**: GitHub, Notion 등 다양한 플랫폼과 호환
+
+### 2. 실시간 미리보기 vs 탭 방식
+
+**결정**: 실시간 미리보기 구현
+
+**이유**:
+
+- **사용자 경험**: 즉시 결과 확인으로 작성 효율성 향상
+- **오류 방지**: 마크다운 문법 오류 즉시 발견
+- **반응형 대응**: 데스크탑은 분할, 모바일은 토글로 최적화
+- **성능 균형**: 디바운싱으로 성능과 실시간성 균형
+
+### 3. Server Actions vs API Routes
+
+**결정**: Server Actions 우선 사용
+
+**이유**:
+
+- **타입 안전성**: 클라이언트와 서버 간 완전한 타입 공유
+- **보안성**: CSRF 보호와 자동 직렬화
+- **개발 효율성**: API 엔드포인트 별도 구현 불필요
+- **캐시 통합**: `revalidatePath`로 Next.js 캐시와 완벽 통합
+
+### 4. 해시태그 정규화 전략
+
+**결정**: 저장 시점 정규화 + 표시 시점 원본 유지
+
+**이유**:
+
+- **검색 효율성**: 정규화된 데이터로 일관된 검색 결과
+- **사용자 경험**: 원본 형태 유지로 자연스러운 표시
+- **중복 방지**: 대소문자/공백 차이로 인한 중복 해시태그 방지
+- **확장성**: 향후 다국어 해시태그 지원 용이
+
+---
+
+## 성능 및 보안 고려사항
 
 ### 성능 최적화
 
-- React Query 캐싱 전략 수립
-- 이미지 lazy loading 구현
-- 코드 스플리팅 및 번들 최적화
+#### 디바운싱 최적화
+
+```typescript
+// 해시태그 검색 디바운싱
+const [debouncedHashtagInput] = useDebounce(hashtagInput, 300);
+
+useEffect(() => {
+    if (debouncedHashtagInput.length < 2) {
+        setHashtagSuggestions([]);
+        return;
+    }
+
+    searchHashtags(debouncedHashtagInput);
+}, [debouncedHashtagInput]);
+```
+
+#### 마크다운 렌더링 최적화
+
+```typescript
+// React.memo로 불필요한 리렌더링 방지
+const MarkdownRenderer = React.memo(({ content }: { content: string }) => {
+    return (
+        <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeHighlight]}
+        >
+            {content}
+        </ReactMarkdown>
+    );
+});
+```
+
+#### 이미지 최적화
+
+```typescript
+// 마크다운 이미지 최적화
+img: ({ src, alt, ...props }) => (
+    <img
+        src={src}
+        alt={alt}
+        className="rounded-lg shadow-md max-w-full h-auto"
+        loading="lazy" // 지연 로딩
+        {...props}
+    />
+),
+```
+
+### 보안 강화
+
+#### 입력 데이터 검증
+
+```typescript
+// Zod 스키마로 서버 사이드 검증
+export const CreatePostSchema = z.object({
+    title: z
+        .string()
+        .min(1)
+        .max(100)
+        .transform((val) => val.trim()),
+    content: z
+        .string()
+        .min(1)
+        .max(50000)
+        .transform((val) => val.trim()),
+    hashtags: z
+        .array(z.string().regex(/^[a-zA-Z0-9가-힣]+$/))
+        .min(1)
+        .max(10),
+});
+```
+
+#### XSS 방지
+
+```typescript
+// 마크다운 렌더링 시 HTML 이스케이프
+<ReactMarkdown
+    remarkPlugins={[remarkGfm]}
+    rehypePlugins={[rehypeHighlight]}
+    components={{
+        // 외부 링크 보안 강화
+        a: ({ href, children, ...props }) => (
+            <a
+                href={href}
+                target={href?.startsWith('http') ? '_blank' : undefined}
+                rel={href?.startsWith('http') ? 'noopener noreferrer' : undefined}
+                {...props}
+            >
+                {children}
+            </a>
+        ),
+    }}
+>
+    {content}
+</ReactMarkdown>
+```
+
+#### 권한 검증 강화
+
+```typescript
+// 다중 권한 검증
+export async function createPostAction(formData: FormData) {
+    // 1. 인증 확인
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error('인증이 필요합니다.');
+
+    // 2. 관리자 권한 확인
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single();
+
+    if (!profile?.is_admin) {
+        throw new Error('관리자 권한이 필요합니다.');
+    }
+
+    // 3. 데이터 검증
+    const validationResult = CreatePostSchema.safeParse(rawData);
+    if (!validationResult.success) {
+        throw new Error('데이터 검증 실패');
+    }
+}
+```
+
+---
+
+## 향후 개선 방향
+
+### 1. 에디터 기능 확장
+
+#### 이미지 업로드 시스템
+
+```typescript
+// Supabase Storage 연동 이미지 업로드
+const uploadImage = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `posts/${fileName}`;
+
+    const { data, error } = await supabase.storage
+        .from('images')
+        .upload(filePath, file);
+
+    if (error) throw error;
+
+    const {
+        data: { publicUrl },
+    } = supabase.storage.from('images').getPublicUrl(filePath);
+
+    return publicUrl;
+};
+
+// 드래그 앤 드롭 이미지 업로드
+const handleImageDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files);
+    const imageFiles = files.filter((file) => file.type.startsWith('image/'));
+
+    for (const file of imageFiles) {
+        const url = await uploadImage(file);
+        const markdown = `![${file.name}](${url})`;
+        insertTextAtCursor(markdown);
+    }
+};
+```
+
+#### 코드 에디터 개선
+
+```typescript
+// Monaco Editor 통합 (VS Code 에디터)
+import { Editor } from '@monaco-editor/react';
+
+const CodeEditor = ({ value, onChange }: CodeEditorProps) => {
+    return (
+        <Editor
+            height="400px"
+            defaultLanguage="markdown"
+            value={value}
+            onChange={onChange}
+            theme="vs-dark"
+            options={{
+                minimap: { enabled: false },
+                wordWrap: 'on',
+                lineNumbers: 'on',
+                folding: true,
+                bracketMatching: 'always',
+            }}
+        />
+    );
+};
+```
+
+#### 실시간 협업 기능
+
+```typescript
+// WebSocket을 통한 실시간 협업
+const useCollaborativeEditor = (postId: number) => {
+    const [collaborators, setCollaborators] = useState<User[]>([]);
+    const [cursors, setCursors] = useState<Map<string, CursorPosition>>(
+        new Map()
+    );
+
+    useEffect(() => {
+        const ws = new WebSocket(`ws://localhost:3001/collaborate/${postId}`);
+
+        ws.onmessage = (event) => {
+            const { type, data } = JSON.parse(event.data);
+
+            switch (type) {
+                case 'user-joined':
+                    setCollaborators((prev) => [...prev, data.user]);
+                    break;
+                case 'cursor-moved':
+                    setCursors((prev) =>
+                        new Map(prev).set(data.userId, data.position)
+                    );
+                    break;
+                case 'content-changed':
+                    // 충돌 해결 로직
+                    handleContentChange(data.content, data.userId);
+                    break;
+            }
+        };
+
+        return () => ws.close();
+    }, [postId]);
+};
+```
+
+### 2. 사용자 경험 향상
+
+#### 자동 저장 기능
+
+```typescript
+// 주기적 자동 저장
+const useAutoSave = (content: string, postId?: number) => {
+    const [lastSaved, setLastSaved] = useState<Date | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        const interval = setInterval(async () => {
+            if (content && content.length > 0) {
+                setIsSaving(true);
+                try {
+                    await saveDraft(postId, content);
+                    setLastSaved(new Date());
+                } catch (error) {
+                    console.error('자동 저장 실패:', error);
+                } finally {
+                    setIsSaving(false);
+                }
+            }
+        }, 30000); // 30초마다 자동 저장
+
+        return () => clearInterval(interval);
+    }, [content, postId]);
+
+    return { lastSaved, isSaving };
+};
+```
+
+#### 키보드 단축키
+
+```typescript
+// 에디터 키보드 단축키
+const useEditorShortcuts = (editorRef: RefObject<HTMLTextAreaElement>) => {
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key) {
+                    case 's':
+                        e.preventDefault();
+                        handleSave();
+                        break;
+                    case 'b':
+                        e.preventDefault();
+                        insertMarkdown('**', '**'); // Bold
+                        break;
+                    case 'i':
+                        e.preventDefault();
+                        insertMarkdown('*', '*'); // Italic
+                        break;
+                    case 'k':
+                        e.preventDefault();
+                        insertMarkdown('[', '](url)'); // Link
+                        break;
+                }
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, []);
+};
+```
+
+### 3. 고급 기능 구현
+
+#### 글 버전 관리
+
+```typescript
+// 글 수정 히스토리 관리
+interface PostVersion {
+    id: number;
+    post_id: number;
+    title: string;
+    content: string;
+    version: number;
+    created_at: string;
+    created_by: string;
+}
+
+const savePostVersion = async (postId: number, content: PostContent) => {
+    const { data: currentVersion } = await supabase
+        .from('post_versions')
+        .select('version')
+        .eq('post_id', postId)
+        .order('version', { ascending: false })
+        .limit(1)
+        .single();
+
+    const nextVersion = (currentVersion?.version || 0) + 1;
+
+    await supabase.from('post_versions').insert({
+        post_id: postId,
+        title: content.title,
+        content: content.content,
+        version: nextVersion,
+        created_by: user.id,
+    });
+};
+```
+
+#### SEO 최적화 도구
+
+```typescript
+// SEO 분석 및 제안
+const useSEOAnalysis = (title: string, content: string) => {
+    const [seoScore, setSeoScore] = useState(0);
+    const [suggestions, setSuggestions] = useState<string[]>([]);
+
+    useEffect(() => {
+        const analysis = {
+            titleLength: title.length,
+            contentLength: content.length,
+            headingCount: (content.match(/^#+\s/gm) || []).length,
+            imageCount: (content.match(/!\[.*?\]\(.*?\)/g) || []).length,
+            linkCount: (content.match(/\[.*?\]\(.*?\)/g) || []).length,
+        };
+
+        const newSuggestions = [];
+        let score = 0;
+
+        if (analysis.titleLength >= 30 && analysis.titleLength <= 60) {
+            score += 20;
+        } else {
+            newSuggestions.push('제목은 30-60자 사이가 SEO에 좋습니다.');
+        }
+
+        if (analysis.contentLength >= 300) {
+            score += 20;
+        } else {
+            newSuggestions.push('내용은 최소 300자 이상 작성하세요.');
+        }
+
+        if (analysis.headingCount >= 2) {
+            score += 15;
+        } else {
+            newSuggestions.push('소제목(헤딩)을 2개 이상 사용하세요.');
+        }
+
+        setSeoScore(score);
+        setSuggestions(newSuggestions);
+    }, [title, content]);
+
+    return { seoScore, suggestions };
+};
+```
+
+---
+
+## 결론
+
+Phase 5 글 작성 및 편집 시스템 구축을 통해 **전문적인 콘텐츠 관리 시스템**의 핵심 기능을 완성할 수 있었습니다.
+
+특히 **실시간 미리보기 마크다운 에디터**와 **해시태그 자동완성 시스템**을 통해 효율적인 글 작성 환경을 제공했으며, **Zod 스키마 기반 데이터 검증**과 **Server Actions를 활용한 안전한 백엔드 처리**로 견고한 시스템을 구축했습니다.
+
+**반응형 에디터 인터페이스**와 **트랜잭션 안전성을 고려한 데이터 처리**를 통해 사용자 경험과 데이터 무결성을 동시에 확보했으며, **성능 최적화된 해시태그 관리**로 확장 가능한 콘텐츠 분류 시스템을 완성했습니다.
+
+이러한 경험은 향후 **대규모 콘텐츠 관리 시스템 구축**과 **복잡한 폼 인터페이스 설계**에서도 활용할 수 있는 실무 역량이 될 것입니다.
+
+---
+
+## 다음 단계 (Phase 6)
+
+### Phase 6에서 구현할 기능들
+
+#### 1. 글 목록 및 상세 페이지
+
+- 무한 스크롤 또는 페이지네이션 글 목록
+- 해시태그별 필터링 및 검색 기능
+- 글 상세 페이지와 마크다운 렌더링
+
+#### 2. 조회수 및 상호작용 시스템
+
+- 글 조회수 자동 증가 시스템
+- 좋아요 기능 기본 구조
+- 댓글 시스템 준비
+
+#### 3. 검색 및 필터링
+
+- 전문 검색 (제목, 내용, 해시태그)
+- 정렬 옵션 (최신순, 인기순, 조회수순)
+- 해시태그 기반 관련 글 추천
+
+**Phase 5에서 구축한 기반이 Phase 6에서 활용되는 방식:**
+
+- 마크다운 렌더러 → 글 상세 페이지 콘텐츠 표시
+- 해시태그 시스템 → 필터링 및 관련 글 추천
+- Server Actions → 조회수 증가 및 상호작용 처리
+- 데이터 검증 → 검색 쿼리 및 필터 파라미터 검증
+
+---
 
 ## 참고 자료
 
-- [Next.js Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)
-- [Supabase Row Level Security](https://supabase.com/docs/guides/auth/row-level-security)
-- [React Markdown](https://github.com/remarkjs/react-markdown)
-- [Zod Schema Validation](https://zod.dev/)
-- [Tailwind CSS Grid](https://tailwindcss.com/docs/grid-template-columns)
-- [React Hooks Best Practices](https://react.dev/learn/reusing-logic-with-custom-hooks)
-- [Supabase Storage](https://supabase.com/docs/guides/storage)
-- [File Upload Best Practices](https://web.dev/file-upload/)
-- [Image Optimization](https://nextjs.org/docs/basic-features/image-optimization)
+### 공식 문서
+
+- [React Markdown](https://github.com/remarkjs/react-markdown) - 마크다운 렌더링 라이브러리
+- [Remark Plugins](https://github.com/remarkjs/remark/blob/main/doc/plugins.md) - 마크다운 파싱 플러그인
+- [Rehype Plugins](https://github.com/rehypejs/rehype/blob/main/doc/plugins.md) - HTML 변환 플러그인
+- [use-debounce](https://github.com/xnimorz/use-debounce) - React 디바운싱 훅
+
+### 에디터 & UX
+
+- [CodeMirror](https://codemirror.net/) - 고급 코드 에디터
+- [Monaco Editor](https://microsoft.github.io/monaco-editor/) - VS Code 에디터 엔진
+- [Tiptap](https://tiptap.dev/) - 현대적인 리치 텍스트 에디터
+- [Editor.js](https://editorjs.io/) - 블록 기반 에디터
+
+### 성능 & 최적화
+
+- [React Performance](https://react.dev/learn/render-and-commit) - React 렌더링 최적화
+- [Web Vitals](https://web.dev/vitals/) - 웹 성능 메트릭
+- [Lighthouse](https://developers.google.com/web/tools/lighthouse) - 성능 분석 도구
+
+### 보안 & 검증
+
+- [Zod Documentation](https://zod.dev/) - 스키마 검증 라이브러리
+- [OWASP XSS Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html) - XSS 방지 가이드
+- [Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP) - CSP 보안 헤더
