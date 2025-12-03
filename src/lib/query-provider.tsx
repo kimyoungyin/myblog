@@ -17,7 +17,7 @@ export default function QueryProvider({
                         staleTime: 60 * 1000, // 1분
                         gcTime: 10 * 60 * 1000, // 10분
                         retry: 1,
-                        refetchOnWindowFocus: false,
+                        refetchOnWindowFocus: true, // 기본적으로 true
                     },
                     mutations: {
                         retry: 1,
