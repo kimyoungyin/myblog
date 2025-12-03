@@ -28,7 +28,7 @@ export function useAuth() {
         },
         staleTime: 60 * 1000, // 1분 동안 캐시 유지
         gcTime: 10 * 60 * 1000, // 10분
-        refetchOnWindowFocus: false,
+        refetchOnWindowFocus: true, // 보안을 위해 윈도우 포커스 시 세션 상태 확인
         retry: false,
     });
 
@@ -55,6 +55,8 @@ export function useAuth() {
         },
         enabled: !!session?.user?.id, // 세션이 변하면 프로필 조회 실행
         staleTime: 5 * 60 * 1000, // 5분
+        gcTime: 10 * 60 * 1000, // 10분
+        refetchOnWindowFocus: true, // 프로필 변경사항 즉시 반영
         retry: false,
     });
 
