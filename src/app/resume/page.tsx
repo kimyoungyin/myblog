@@ -25,7 +25,7 @@ export default function ResumePage() {
                 </div>
 
                 <Card className="border-border bg-card overflow-hidden">
-                    <CardHeader>
+                    <CardHeader className="flex items-center">
                         <CardTitle className="text-foreground">
                             이력서
                         </CardTitle>
