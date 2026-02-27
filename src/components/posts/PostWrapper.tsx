@@ -1,9 +1,10 @@
 'use client';
 
 import { PostCard } from '@/components/post-card';
-import { Post, PostSort } from '@/types';
+import { PostSort } from '@/types';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { getPostsAction } from '@/lib/actions';
+import { postsListQueryKey } from '@/lib/queries';
 import { PAGE_SIZE } from '@/constants';
 import { Card, CardContent } from '@/components/ui/card';
 import { AdminCreateHint } from '@/components/AdminCreateHint';
@@ -26,28 +27,22 @@ function EmptyHint() {
 }
 
 export default function PostWrapper({
-    initialPosts,
     sort,
     tagId,
 }: {
-    initialPosts: Post[];
     sort: PostSort;
     tagId?: string;
 }) {
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isError } =
         useInfiniteQuery({
-            queryKey: ['posts', sort, tagId],
+            queryKey: postsListQueryKey(sort, tagId),
             queryFn: ({ pageParam }) =>
                 getPostsAction(
                     pageParam,
                     sort,
-                    tagId ? [Number(tagId)] : undefined // hashtagIds (ID 배열)
+                    tagId ? [Number(tagId)] : undefined
                 ),
             initialPageParam: 1,
-            initialData: {
-                pages: [{ posts: initialPosts, total: initialPosts.length }],
-                pageParams: [1],
-            },
             getNextPageParam: (lastPage, pages) => {
                 const hasMorePosts = lastPage.posts.length === PAGE_SIZE;
                 return hasMorePosts ? pages.length + 1 : undefined;

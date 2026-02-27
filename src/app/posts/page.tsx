@@ -1,6 +1,9 @@
 import React from 'react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { dehydrate, HydrationBoundary } from '@tanstack/react-query';
+import getQueryClient from '@/lib/get-query-client';
+import { postsListQueryKey } from '@/lib/queries';
 import { getPostsAction, getHashtagsWithCountAction } from '@/lib/actions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -150,106 +153,122 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
             }
         }
 
-        // 모든 글과 인기 해시태그 조회를 병렬로 실행
-        const [result, popularHashtags] = await Promise.all([
-            getPostsAction(
-                1,
-                validSortBy,
-                activeTagId ? [activeTagId] : undefined
-            ),
+        // React Query를 사용한 SSR/Hydration을 위한 QueryClient 생성
+        const queryClient = getQueryClient();
+
+        // 서버에서 첫 페이지 데이터를 prefetch하여 클라이언트 캐시에 전달
+        // prefetchInfiniteQuery와 해시태그 조회를 병렬로 실행하여 성능 최적화
+        const [, popularHashtags] = await Promise.all([
+            queryClient.prefetchInfiniteQuery({
+                queryKey: postsListQueryKey(
+                    validSortBy,
+                    activeTagId?.toString()
+                ),
+                queryFn: () =>
+                    getPostsAction(
+                        1,
+                        validSortBy,
+                        activeTagId ? [activeTagId] : undefined
+                    ),
+                initialPageParam: 1,
+            }),
             getHashtagsWithCountAction(15), // 상위 15개 해시태그
         ]);
-        const posts = result.posts;
+
+        const dehydratedState = dehydrate(queryClient);
 
         return (
-            <div className="bg-background min-h-screen">
-                {/* 전체 레이아웃 컨테이너 */}
-                <div className="relative mx-auto max-w-7xl px-4 py-8">
-                    {/* 헤더 */}
-                    <div className="mb-8 space-y-4">
-                        {/* 홈으로 버튼 */}
-                        <div className="flex justify-start">
-                            <Button
-                                variant="outline"
-                                asChild
-                                className="flex items-center gap-2"
-                            >
-                                <Link href="/">
-                                    <ArrowLeft className="h-4 w-4" />
-                                    홈으로
-                                </Link>
-                            </Button>
-                        </div>
+            <HydrationBoundary state={dehydratedState}>
+                <div className="bg-background min-h-screen">
+                    {/* 전체 레이아웃 컨테이너 */}
+                    <div className="relative mx-auto max-w-7xl px-4 py-8">
+                        {/* 헤더 */}
+                        <div className="mb-8 space-y-4">
+                            {/* 홈으로 버튼 */}
+                            <div className="flex justify-start">
+                                <Button
+                                    variant="outline"
+                                    asChild
+                                    className="flex items-center gap-2"
+                                >
+                                    <Link href="/">
+                                        <ArrowLeft className="h-4 w-4" />
+                                        홈으로
+                                    </Link>
+                                </Button>
+                            </div>
 
-                        {/* 제목/정렬/필터 표시 */}
-                        <div className="flex items-center justify-between gap-4">
-                            <div className="flex flex-col gap-2">
-                                <h1 className="text-3xl font-bold">모든 글</h1>
-                                {activeTagName && (
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-muted-foreground text-sm">
-                                            해시태그 필터:
-                                        </span>
-                                        <span className="bg-accent rounded-full px-3 py-1 text-sm">
-                                            #{activeTagName}
-                                        </span>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            asChild
-                                            className="h-7 px-2 text-xs"
-                                        >
-                                            <Link
-                                                href={`/posts?sort=${validSortBy}`}
+                            {/* 제목/정렬/필터 표시 */}
+                            <div className="flex items-center justify-between gap-4">
+                                <div className="flex flex-col gap-2">
+                                    <h1 className="text-3xl font-bold">
+                                        모든 글
+                                    </h1>
+                                    {activeTagName && (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-muted-foreground text-sm">
+                                                해시태그 필터:
+                                            </span>
+                                            <span className="bg-accent rounded-full px-3 py-1 text-sm">
+                                                #{activeTagName}
+                                            </span>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                asChild
+                                                className="h-7 px-2 text-xs"
                                             >
-                                                <X className="mr-1 h-3 w-3" />
-                                                필터 해제
-                                            </Link>
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
+                                                <Link
+                                                    href={`/posts?sort=${validSortBy}`}
+                                                >
+                                                    <X className="mr-1 h-3 w-3" />
+                                                    필터 해제
+                                                </Link>
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
 
-                            {/* 정렬 선택기 */}
-                            <SortSelector
-                                currentSort={validSortBy}
-                                currentTagId={activeTagId?.toString()}
-                            />
-                        </div>
-                    </div>
-
-                    {/* 메인 레이아웃 */}
-                    <div className="relative">
-                        {/* 데스크톱: 왼쪽 여백에 고정 사이드바 */}
-                        <div className="absolute top-0 left-0 hidden w-64 xl:block">
-                            <div className="sticky top-8">
-                                <HashtagSidebar
-                                    hashtags={popularHashtags}
-                                    showCount={true}
+                                {/* 정렬 선택기 */}
+                                <SortSelector
+                                    currentSort={validSortBy}
+                                    currentTagId={activeTagId?.toString()}
                                 />
                             </div>
                         </div>
 
-                        {/* 메인 컨텐츠 영역 - 사이드바 공간 확보 */}
-                        <div className="mx-auto max-w-4xl xl:mr-auto xl:ml-72">
-                            {/* 태블릿 이하: 해시태그 사이드바를 헤더 아래에 배치 */}
-                            <div className="mb-8 xl:hidden">
-                                <HashtagSidebar
-                                    hashtags={popularHashtags}
-                                    showCount={true}
-                                />
+                        {/* 메인 레이아웃 */}
+                        <div className="relative">
+                            {/* 데스크톱: 왼쪽 여백에 고정 사이드바 */}
+                            <div className="absolute top-0 left-0 hidden w-64 xl:block">
+                                <div className="sticky top-8">
+                                    <HashtagSidebar
+                                        hashtags={popularHashtags}
+                                        showCount={true}
+                                    />
+                                </div>
                             </div>
 
-                            {/* 글 목록 */}
-                            <PostWrapper
-                                initialPosts={posts}
-                                sort={validSortBy}
-                                tagId={activeTagId?.toString() || undefined}
-                            />
+                            {/* 메인 컨텐츠 영역 - 사이드바 공간 확보 */}
+                            <div className="mx-auto max-w-4xl xl:mr-auto xl:ml-72">
+                                {/* 태블릿 이하: 해시태그 사이드바를 헤더 아래에 배치 */}
+                                <div className="mb-8 xl:hidden">
+                                    <HashtagSidebar
+                                        hashtags={popularHashtags}
+                                        showCount={true}
+                                    />
+                                </div>
+
+                                {/* 글 목록 (HydrationBoundary로 prefetch 캐시 전달) */}
+                                <PostWrapper
+                                    sort={validSortBy}
+                                    tagId={activeTagId?.toString() || undefined}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </HydrationBoundary>
         );
     } catch (error) {
         console.error('글 목록 로딩 실패:', error);
