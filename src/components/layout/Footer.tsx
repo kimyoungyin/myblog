@@ -9,7 +9,7 @@ export default function Footer() {
                 </div>
                 <div className="flex items-center gap-4">
                     <a
-                        href="https://github.com"
+                        href="https://github.com/kimyoungyin"
                         target="_blank"
                         rel="noreferrer"
                         className="text-muted-foreground hover:text-foreground transition-colors"
@@ -28,7 +28,7 @@ export default function Footer() {
                         </svg>
                     </a>
                     <a
-                        href="mailto:contact@myblog.com"
+                        href="mailto:yin199859@gmail.com"
                         className="text-muted-foreground hover:text-foreground transition-colors"
                     >
                         <svg
