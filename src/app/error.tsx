@@ -174,10 +174,10 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
                         </Link>
                         <span>•</span>
                         <Link
-                            href="/about"
+                            href="/resume"
                             className="hover:text-primary underline underline-offset-4 transition-colors"
                         >
-                            소개 페이지
+                            이력서 페이지
                         </Link>
                     </div>
                     <p className="text-muted-foreground text-xs">
