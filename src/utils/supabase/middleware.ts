@@ -7,7 +7,7 @@ const publicPaths = [
     '/auth/login', // 로그인 페이지
     '/auth/callback', // OAuth 콜백
     '/posts', // 글 목록 페이지
-    '/about', // 소개 페이지
+    '/resume', // 이력서 페이지
 ];
 
 // 인증이 필요한 경로들 (로그인 필수)

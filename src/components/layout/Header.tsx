@@ -41,10 +41,10 @@ const Header = memo(function Header() {
                             글 목록
                         </Link>
                         <Link
-                            href="/about"
+                            href="/resume"
                             className="hover:text-primary text-sm font-medium transition-colors"
                         >
-                            소개
+                            이력서
                         </Link>
                     </nav>
                 </div>
