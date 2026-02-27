@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useCallback, useMemo } from 'react';
+import { authQueryKeys } from '@/lib/queries';
 import { useAuthStore } from '@/stores/auth-store';
 import { createClient } from '@/utils/supabase/client';
 import { User } from '@/types';
@@ -19,7 +20,7 @@ export function useAuth() {
 
     // 현재 세션 가져오기
     const { data: session, isLoading: sessionLoading } = useQuery({
-        queryKey: ['auth', 'session'],
+        queryKey: authQueryKeys.session(),
         queryFn: async () => {
             const {
                 data: { session },
@@ -38,7 +39,7 @@ export function useAuth() {
         error: profileError,
         isLoading: profileLoading,
     } = useQuery({
-        queryKey: ['auth', 'profile', session?.user?.id],
+        queryKey: authQueryKeys.profile(session?.user?.id),
         queryFn: async (): Promise<User | null> => {
             if (!session?.user?.id) return null;
 
@@ -125,11 +126,11 @@ export function useAuth() {
 
             clearAuth();
             // 모든 인증 관련 캐시 무효화
-            queryClient.removeQueries({ queryKey: ['auth'] });
+            queryClient.removeQueries({ queryKey: authQueryKeys.all });
         } catch {
             // 에러가 발생해도 로컬 상태는 정리
             clearAuth();
-            queryClient.removeQueries({ queryKey: ['auth'] });
+            queryClient.removeQueries({ queryKey: authQueryKeys.all });
         }
     }, [clearAuth]);
 

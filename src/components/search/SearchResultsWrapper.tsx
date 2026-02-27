@@ -4,6 +4,7 @@ import { PostCard } from '@/components/post-card';
 import { Post } from '@/types';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { getPostsAction } from '@/lib/actions';
+import { searchResultsQueryKey } from '@/lib/queries';
 import { PAGE_SIZE } from '@/constants';
 import { Card, CardContent } from '@/components/ui/card';
 import { useInView } from 'react-intersection-observer';
@@ -87,7 +88,7 @@ export function SearchResultsWrapper({
 }: SearchResultsWrapperProps) {
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isError } =
         useInfiniteQuery({
-            queryKey: ['search', searchQuery, ...(hashtagIds || [])],
+            queryKey: searchResultsQueryKey(searchQuery, hashtagIds),
             queryFn: ({ pageParam }) =>
                 getPostsAction(pageParam, 'latest', hashtagIds, searchQuery),
             initialPageParam: 1,
