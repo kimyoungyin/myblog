@@ -10,6 +10,93 @@ import {
     oneLight,
 } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useTheme } from 'next-themes';
+
+interface MermaidBlockProps {
+    code: string;
+}
+
+const MermaidBlock: React.FC<MermaidBlockProps> = ({ code }) => {
+    const { theme } = useTheme();
+    const containerRef = React.useRef<HTMLDivElement | null>(null);
+    const [error, setError] = React.useState<string | null>(null);
+    // useId로 다이어그램 고유 ID 생성 (SSR/클라이언트 모두 안전)
+    const rawId = React.useId();
+    const id = `mermaid-${rawId.replace(/:/g, '')}`;
+
+    React.useEffect(() => {
+        let cancelled = false;
+
+        const renderDiagram = async () => {
+            try {
+                const { default: mermaid } = await import('mermaid');
+
+                mermaid.initialize({
+                    startOnLoad: false,
+                    theme: theme === 'light' ? 'default' : 'dark',
+                    securityLevel: 'strict',
+                    logLevel: 'warn',
+                    flowchart: {
+                        useMaxWidth: true,
+                        htmlLabels: true,
+                    },
+                });
+
+                if (cancelled || !containerRef.current) {
+                    return;
+                }
+
+                const { svg, bindFunctions } = await mermaid.render(
+                    id,
+                    code
+                );
+
+                if (cancelled || !containerRef.current) {
+                    return;
+                }
+
+                containerRef.current.innerHTML = svg;
+
+                if (bindFunctions) {
+                    bindFunctions(containerRef.current);
+                }
+
+                setError(null);
+            } catch (err) {
+                console.warn('Mermaid render failed:', err);
+                if (!cancelled) {
+                    setError('다이어그램을 렌더링할 수 없습니다.');
+                }
+            }
+        };
+
+        renderDiagram();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [code, id, theme]);
+
+    return (
+        <div className="my-4 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="bg-gray-100 px-3 py-2 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                mermaid
+            </div>
+            <div
+                ref={containerRef}
+                className="bg-background overflow-x-auto p-4 text-sm [&_svg]:mx-auto [&_svg]:max-w-full"
+            >
+                {error && (
+                    <pre className="whitespace-pre-wrap break-all text-xs text-red-500">
+                        {error}
+                        {'\n\n원본 코드:\n'}
+                        {code}
+                    </pre>
+                )}
+            </div>
+        </div>
+    );
+};
+
 interface MarkdownRendererProps {
     content: string;
     className?: string;
@@ -135,9 +222,15 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
                             );
                         }
 
-                        // 코드 블록인 경우 - 이제 외부 pre 태그 없이 직접 렌더링
                         const language = match[1];
+                        const codeString = String(children).replace(/\n$/, '');
 
+                        // mermaid 코드 블록은 전용 컴포넌트로 렌더링
+                        if (language === 'mermaid') {
+                            return <MermaidBlock code={codeString} />;
+                        }
+
+                        // 코드 블록인 경우 - 외부 pre 태그 없이 직접 렌더링
                         try {
                             return (
                                 <div className="my-4 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
@@ -161,7 +254,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
                                         wrapLines={true}
                                         wrapLongLines={true}
                                     >
-                                        {String(children).replace(/\n$/, '')}
+                                        {codeString}
                                     </SyntaxHighlighter>
                                 </div>
                             );
@@ -184,10 +277,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
                                                     'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
                                             }}
                                         >
-                                            {String(children).replace(
-                                                /\n$/,
-                                                ''
-                                            )}
+                                            {codeString}
                                         </code>
                                     </pre>
                                 </div>
