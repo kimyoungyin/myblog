@@ -45,10 +45,7 @@ const MermaidBlock: React.FC<MermaidBlockProps> = ({ code }) => {
                     return;
                 }
 
-                const { svg, bindFunctions } = await mermaid.render(
-                    id,
-                    code
-                );
+                const { svg, bindFunctions } = await mermaid.render(id, code);
 
                 if (cancelled || !containerRef.current) {
                     return;
@@ -86,7 +83,7 @@ const MermaidBlock: React.FC<MermaidBlockProps> = ({ code }) => {
                 className="bg-background overflow-x-auto p-4 text-sm [&_svg]:mx-auto [&_svg]:max-w-full"
             >
                 {error && (
-                    <pre className="whitespace-pre-wrap break-all text-xs text-red-500">
+                    <pre className="text-xs break-all whitespace-pre-wrap text-red-500">
                         {error}
                         {'\n\n원본 코드:\n'}
                         {code}
@@ -110,7 +107,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
     const codeStyle = theme === 'light' ? oneLight : oneDark;
     return (
         <div
-            className={`prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap ${className}`}
+            className={`prose prose-base md:prose-lg dark:prose-invert prose-headings:mt-8 prose-headings:mb-4 prose-p:my-3 prose-li:my-1 prose-blockquote:my-4 max-w-none ${className} `}
         >
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -284,6 +281,28 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
                             );
                         }
                     },
+                    // 리스트 스타일링
+                    ul: ({ children, ...props }) => (
+                        <ul
+                            className="my-2 list-outside list-disc pl-6"
+                            {...props}
+                        >
+                            {children}
+                        </ul>
+                    ),
+                    ol: ({ children, ...props }) => (
+                        <ol
+                            className="my-2 list-outside list-decimal pl-6"
+                            {...props}
+                        >
+                            {children}
+                        </ol>
+                    ),
+                    li: ({ children, ...props }) => (
+                        <li className="my-0.5" {...props}>
+                            {children}
+                        </li>
+                    ),
                     // 테이블 스타일링
                     table: ({ children }) => (
                         <div className="overflow-x-auto">
@@ -302,17 +321,18 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
                             {children}
                         </td>
                     ),
+                    // 구분선 스타일링
+                    hr: (props) => (
+                        <hr
+                            className="border-border/60 my-10 border-t"
+                            {...props}
+                        />
+                    ),
                     // 인용구 스타일링
                     blockquote: ({ children }) => (
-                        <blockquote className="border-primary text-muted-foreground border-l-4 pl-4 italic">
+                        <blockquote className="border-primary text-muted-foreground my-4 border-l-4 pl-4 italic">
                             {children}
                         </blockquote>
-                    ),
-                    // 텍스트 공백 보존
-                    span: ({ children, ...props }) => (
-                        <span style={{ whiteSpace: 'pre-wrap' }} {...props}>
-                            {children}
-                        </span>
                     ),
                 }}
             >
