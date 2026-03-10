@@ -15,13 +15,36 @@ interface MermaidBlockProps {
     code: string;
 }
 
+/**
+ * Mermaid가 파싱/렌더 실패 시 반환하는 에러 출력인지 확인.
+ * - v11: 에러 시 SVG 대신 에러용 SVG를 반환하거나, "Syntax error in text" 문구가 포함된
+ *   HTML/SVG를 반환할 수 있음. 또한 suppressErrorRendering 전까지는 DOM에
+ *   id="dmermaid-{id}" div를 직접 삽입함.
+ */
+function isMermaidErrorOutput(output: string): boolean {
+    return (
+        output.includes('aria-roledescription="error"') ||
+        output.includes('class="error-text"') ||
+        output.includes('Syntax error in text') ||
+        output.includes('id="dmermaid-') ||
+        /Syntax error.*mermaid version/i.test(output)
+    );
+}
+
 const MermaidBlock: React.FC<MermaidBlockProps> = ({ code }) => {
     const { theme } = useTheme();
     const containerRef = React.useRef<HTMLDivElement | null>(null);
     const [error, setError] = React.useState<string | null>(null);
-    // useId로 다이어그램 고유 ID 생성 (SSR/클라이언트 모두 안전)
+    // SVG id 규격에 맞게 영숫자만 사용, 인스턴스당 한 번만 생성
     const rawId = React.useId();
-    const id = `mermaid-${rawId.replace(/:/g, '')}`;
+    const safeIdRef = React.useRef<string | null>(null);
+    if (safeIdRef.current === null) {
+        const cleaned = rawId.replace(/[^a-zA-Z0-9]/g, '');
+        safeIdRef.current = cleaned
+            ? `mermaid-${cleaned}`
+            : `mermaid-${Math.random().toString(36).slice(2, 11)}`;
+    }
+    const safeId = safeIdRef.current;
 
     React.useEffect(() => {
         let cancelled = false;
@@ -35,6 +58,7 @@ const MermaidBlock: React.FC<MermaidBlockProps> = ({ code }) => {
                     theme: theme === 'light' ? 'default' : 'dark',
                     securityLevel: 'strict',
                     logLevel: 'warn',
+                    suppressErrorRendering: true,
                     flowchart: {
                         useMaxWidth: true,
                         htmlLabels: true,
@@ -45,9 +69,20 @@ const MermaidBlock: React.FC<MermaidBlockProps> = ({ code }) => {
                     return;
                 }
 
-                const { svg, bindFunctions } = await mermaid.render(id, code);
+                const { svg, bindFunctions } = await mermaid.render(
+                    safeId,
+                    code
+                );
 
                 if (cancelled || !containerRef.current) {
+                    return;
+                }
+
+                if (isMermaidErrorOutput(svg)) {
+                    setError('다이어그램 문법 오류입니다. 원본 코드를 확인해 주세요.');
+                    if (containerRef.current) {
+                        containerRef.current.innerHTML = '';
+                    }
                     return;
                 }
 
@@ -70,8 +105,9 @@ const MermaidBlock: React.FC<MermaidBlockProps> = ({ code }) => {
 
         return () => {
             cancelled = true;
+            document.getElementById(`dmermaid-${safeId}`)?.remove();
         };
-    }, [code, id, theme]);
+    }, [code, safeId, theme]);
 
     return (
         <div className="my-4 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
