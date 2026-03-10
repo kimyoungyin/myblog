@@ -103,7 +103,6 @@ export default async function EditPostPage({ params }: EditPostPageProps) {
         <div className="container mx-auto px-4 py-8">
             {/* 보호는 미들웨어에서 처리됨 */}
 
-            <h1 className="mb-8 text-3xl font-bold">글 수정</h1>
             <MarkdownEditor
                 action={handleUpdatePost}
                 submitButtonText="글 수정"
