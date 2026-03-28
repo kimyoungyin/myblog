@@ -1,10 +1,10 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata, ResolvingMetadata } from 'next';
+import { getCachedPost } from '@/lib/posts';
+import { getCachedComments } from '@/lib/comments';
 import {
-    getPostAction,
     incrementViewCountAction,
-    getCommentsAction,
     getLikeStatusAction,
 } from '@/lib/actions';
 import { MarkdownRenderer } from '@/components/editor/MarkdownRenderer';
@@ -41,7 +41,7 @@ export async function generateMetadata(
 
     try {
         // 글 데이터 조회 (generateMetadata에서 fetch는 자동으로 메모이제이션됨)
-        const post = await getPostAction(postId);
+        const post = await getCachedPost(postId);
 
         if (!post) {
             return {
@@ -177,8 +177,8 @@ export default async function PostPage({ params }: PostPageProps) {
     try {
         // 글, 댓글, 좋아요 상태를 병렬로 조회
         const [post, initialComments, likeStatus] = await Promise.all([
-            getPostAction(postId),
-            getCommentsAction(postId).catch(() => []), // 댓글 조회 실패해도 글은 표시
+            getCachedPost(postId),
+            getCachedComments(postId).catch(() => []), // 댓글 조회 실패해도 글은 표시
             getLikeStatusAction(postId).catch(() => ({
                 post_id: postId,
                 is_liked: false,

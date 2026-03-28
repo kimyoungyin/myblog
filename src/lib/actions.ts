@@ -1,8 +1,17 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createPost, updatePost, deletePost, getPosts, getPost } from './posts';
+import {
+    createPost,
+    updatePost,
+    deletePost,
+    getPosts,
+    getPost,
+    getCachedPost,
+    getCachedRecentPosts,
+} from './posts';
+import { CACHE_TAGS } from './cache-tags';
 import {
     createClient,
     createServiceRoleClient,
@@ -63,6 +72,8 @@ export async function createPostAction(formData: FormData) {
         // 캐시 무효화 및 리다이렉트
         revalidatePath('/posts');
         revalidatePath('/'); // 홈페이지 캐시 무효화
+        revalidateTag(CACHE_TAGS.posts);
+        revalidateTag(CACHE_TAGS.hashtags);
         redirect(`/posts/${post.id}`);
     } catch (error) {
         throw error;
@@ -149,6 +160,9 @@ export async function updatePostAction(postId: number, formData: FormData) {
         revalidatePath(`/posts/${postId}`);
         revalidatePath('/posts');
         revalidatePath('/'); // 홈페이지 캐시 무효화
+        revalidateTag(CACHE_TAGS.posts);
+        revalidateTag(CACHE_TAGS.post(postId));
+        revalidateTag(CACHE_TAGS.hashtags);
 
         // 수정된 글의 상세 페이지로 리다이렉트
         redirect(`/posts/${postId}`);
@@ -292,6 +306,8 @@ export async function deletePostAction(postId: number) {
         // 캐시 무효화
         revalidatePath('/posts');
         revalidatePath('/'); // 홈페이지 캐시 무효화
+        revalidateTag(CACHE_TAGS.posts);
+        revalidateTag(CACHE_TAGS.post(postId));
 
         return { success: true };
     } catch (error) {
@@ -302,7 +318,7 @@ export async function deletePostAction(postId: number) {
 // 홈페이지 최신 글 조회 Server Action
 export async function getRecentPostsAction() {
     try {
-        return await getPosts(1, 6);
+        return await getCachedRecentPosts();
     } catch (error) {
         throw error;
     }
@@ -327,7 +343,7 @@ export async function getPostsAction(
 export async function getPostAction(postId: number) {
     try {
         // 읽기 전용이므로 인증 불필요
-        return await getPost(postId);
+        return await getCachedPost(postId);
     } catch (error) {
         throw error;
     }
@@ -456,8 +472,8 @@ export async function incrementViewCountAction(postId: number) {
  */
 export async function getCommentsAction(postId: number) {
     try {
-        const { getComments } = await import('./comments');
-        return await getComments(postId);
+        const { getCachedComments } = await import('./comments');
+        return await getCachedComments(postId);
     } catch (error) {
         console.error('댓글 목록 조회 실패:', error);
         throw error;
@@ -508,6 +524,9 @@ export async function createCommentAction(formData: FormData) {
         revalidatePath(`/posts/${rawData.post_id}`);
         revalidatePath('/posts'); // 글 목록 캐시 무효화
         revalidatePath('/'); // 홈페이지 캐시 무효화
+        revalidateTag(CACHE_TAGS.comments(rawData.post_id));
+        revalidateTag(CACHE_TAGS.post(rawData.post_id));
+        revalidateTag(CACHE_TAGS.posts);
 
         return comment;
     } catch (error) {
@@ -564,6 +583,9 @@ export async function updateCommentAction(formData: FormData) {
         revalidatePath(`/posts/${rawData.post_id}`);
         revalidatePath('/posts'); // 글 목록 캐시 무효화
         revalidatePath('/'); // 홈페이지 캐시 무효화
+        revalidateTag(CACHE_TAGS.comments(rawData.post_id));
+        revalidateTag(CACHE_TAGS.post(rawData.post_id));
+        revalidateTag(CACHE_TAGS.posts);
 
         return comment;
     } catch (error) {
@@ -602,6 +624,9 @@ export async function deleteCommentAction(formData: FormData) {
         revalidatePath(`/posts/${rawData.post_id}`);
         revalidatePath('/posts'); // 글 목록 캐시 무효화
         revalidatePath('/'); // 홈페이지 캐시 무효화
+        revalidateTag(CACHE_TAGS.comments(rawData.post_id));
+        revalidateTag(CACHE_TAGS.post(rawData.post_id));
+        revalidateTag(CACHE_TAGS.posts);
 
         return { success: true };
     } catch (error) {
@@ -656,6 +681,8 @@ export async function toggleLikeAction(formData: FormData) {
         revalidatePath(`/posts/${rawData.post_id}`);
         revalidatePath('/posts');
         revalidatePath('/');
+        revalidateTag(CACHE_TAGS.post(rawData.post_id));
+        revalidateTag(CACHE_TAGS.posts);
 
         return {
             success: true,
@@ -669,7 +696,9 @@ export async function toggleLikeAction(formData: FormData) {
 }
 
 /**
- * 좋아요 상태 조회 Server Action
+ * 좋아요 상태 조회 Server Action.
+ * Data Cache(`unstable_cache`)에 넣지 않음 — 세션(쿠키) 기반으로 요청마다 조회.
+ * (postId×userId별 캐시 키는 사용자 수가 늘면 캐시 항목이 폭증함.)
  */
 export async function getLikeStatusAction(postId: number) {
     try {
@@ -725,8 +754,8 @@ export async function getUserLikesAction(
 export async function getHashtagsWithCountAction(limit: number = 20) {
     try {
         // 읽기 전용이므로 인증 불필요
-        const { getHashtagsWithCount } = await import('./hashtags');
-        return await getHashtagsWithCount(limit);
+        const { getCachedHashtagsWithCount } = await import('./hashtags');
+        return await getCachedHashtagsWithCount(limit);
     } catch (error) {
         console.error('해시태그 목록 조회 실패:', error);
         return [];
@@ -737,8 +766,8 @@ export async function getHashtagsWithCountAction(limit: number = 20) {
 export async function getHashtagByIdAction(id: number) {
     try {
         // 읽기 전용이므로 인증 불필요
-        const { getHashtagById } = await import('./hashtags');
-        return await getHashtagById(id);
+        const { getCachedHashtagById } = await import('./hashtags');
+        return await getCachedHashtagById(id);
     } catch (error) {
         console.error('해시태그 조회 실패:', error);
         return null;

@@ -1,7 +1,11 @@
 import React, { Suspense } from 'react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { dehydrate, HydrationBoundary } from '@tanstack/react-query';
 import { getPostsAction } from '@/lib/actions';
+import getQueryClient from '@/lib/get-query-client';
+import { searchResultsQueryKey } from '@/lib/queries';
+import { PAGE_SIZE } from '@/constants';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -165,7 +169,16 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     );
 }
 
-// 검색 결과 섹션 컴포넌트
+function searchRetryHref(searchQuery: string, hashtagIds?: number[]) {
+    const params = new URLSearchParams();
+    const q = searchQuery.trim();
+    if (q) params.set('q', q);
+    if (hashtagIds?.length) params.set('tag', hashtagIds.join(','));
+    const qs = params.toString();
+    return qs ? `/search?${qs}` : '/search';
+}
+
+// 검색 결과 섹션: 첫 페이지 prefetch 후 HydrationBoundary로 전달
 async function SearchResultsSection({
     searchQuery,
     hashtagIds,
@@ -174,22 +187,42 @@ async function SearchResultsSection({
     hashtagIds?: number[];
 }) {
     try {
-        // 검색 결과 조회 (최신순으로만 정렬)
-        // 검색어가 없어도 해시태그가 있으면 해시태그로만 검색
-        const result = await getPostsAction(
-            1,
-            'latest',
-            hashtagIds,
-            searchQuery
-        );
+        const queryClient = getQueryClient();
+        const hasFilters =
+            Boolean(searchQuery.trim()) ||
+            Boolean(hashtagIds && hashtagIds.length > 0);
+
+        if (hasFilters) {
+            await queryClient.prefetchInfiniteQuery({
+                queryKey: searchResultsQueryKey(searchQuery, hashtagIds),
+                queryFn: ({ pageParam }) =>
+                    getPostsAction(
+                        pageParam,
+                        'latest',
+                        hashtagIds,
+                        searchQuery.trim() || undefined
+                    ),
+                initialPageParam: 1,
+                getNextPageParam: (
+                    lastPage: Awaited<ReturnType<typeof getPostsAction>>,
+                    pages: Awaited<ReturnType<typeof getPostsAction>>[]
+                ) => {
+                    const hasMorePosts =
+                        lastPage.posts.length === PAGE_SIZE;
+                    return hasMorePosts ? pages.length + 1 : undefined;
+                },
+            });
+        }
+
+        const dehydratedState = dehydrate(queryClient);
 
         return (
-            <SearchResultsWrapper
-                initialPosts={result.posts}
-                searchQuery={searchQuery}
-                hashtagIds={hashtagIds}
-                totalResults={result.total}
-            />
+            <HydrationBoundary state={dehydratedState}>
+                <SearchResultsWrapper
+                    searchQuery={searchQuery}
+                    hashtagIds={hashtagIds}
+                />
+            </HydrationBoundary>
         );
     } catch (error) {
         console.error('검색 결과 로딩 실패:', error);
@@ -199,8 +232,12 @@ async function SearchResultsSection({
                     <p className="text-destructive mb-4 text-lg">
                         검색 결과를 불러오는 중 오류가 발생했습니다.
                     </p>
-                    <Button onClick={() => window.location.reload()}>
-                        다시 시도
+                    <Button asChild variant="outline">
+                        <Link
+                            href={searchRetryHref(searchQuery, hashtagIds)}
+                        >
+                            다시 시도
+                        </Link>
                     </Button>
                 </CardContent>
             </Card>

@@ -1,4 +1,6 @@
+import { unstable_cache } from 'next/cache';
 import { createServiceRoleClient } from '@/utils/supabase/server';
+import { CACHE_TAGS } from '@/lib/cache-tags';
 import { createHashtags, type Hashtag } from './hashtags';
 import {
     extractImagePathsFromMarkdown,
@@ -403,3 +405,37 @@ export async function getPost(postId: number): Promise<Post | null> {
         throw error;
     }
 }
+
+/**
+ * 글 상세 — Next.js Data Cache (ISR + tag 무효화).
+ * 스냅샷의 view_count·likes_count는 TTL·`revalidateTag`로만 갱신됨.
+ * 조회수 RPC는 매 방문 실행되어도 이 캐시와 별개(표시 숫자는 점진적으로 일치).
+ */
+export async function getCachedPost(postId: number): Promise<Post | null> {
+    return unstable_cache(
+        async () => getPost(postId),
+        ['post', String(postId)],
+        {
+            revalidate: 3600,
+            tags: [CACHE_TAGS.post(postId), CACHE_TAGS.posts],
+        }
+    )();
+}
+
+/**
+ * 홈 최신 글 미리보기 — 목록 태그와 연동
+ */
+export async function getCachedRecentPosts(): Promise<{
+    posts: Post[];
+    total: number;
+}> {
+    return unstable_cache(
+        async () => getPosts(1, 6),
+        ['recent-posts'],
+        {
+            revalidate: 3600,
+            tags: [CACHE_TAGS.posts],
+        }
+    )();
+}
+

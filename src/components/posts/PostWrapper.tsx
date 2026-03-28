@@ -50,12 +50,10 @@ export default function PostWrapper({
             // 캐싱 전략
             staleTime: 5 * 60 * 1000, // 5분간 데이터를 "신선"하다고 간주
             gcTime: 10 * 60 * 1000, // 10분간 캐시 유지
-            // 자동 재조회 전략
-            refetchOnWindowFocus: true,
+            // 자동 재조회 전략 (정적 블로그: 주기적 폴링 없음)
+            refetchOnWindowFocus: false,
             refetchOnMount: true,
             refetchOnReconnect: true,
-            refetchInterval: 2 * 60 * 1000, // 2분마다 백그라운드에서 재조회
-            refetchIntervalInBackground: true, // 백그라운드에서도 재조회
             // 재시도 전략
             retry: 3,
             retryDelay: (attemptIndex) =>

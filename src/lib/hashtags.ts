@@ -1,4 +1,6 @@
+import { unstable_cache } from 'next/cache';
 import { createServiceRoleClient } from '@/utils/supabase/server';
+import { CACHE_TAGS } from '@/lib/cache-tags';
 
 export interface Hashtag {
     id: number;
@@ -172,4 +174,37 @@ export async function getHashtagById(id: number): Promise<Hashtag | null> {
         console.error('해시태그 조회 중 예외 발생:', error);
         return null;
     }
+}
+
+/**
+ * 해시태그 단건 — 메타·generateMetadata용 Data Cache
+ * `revalidateTag(CACHE_TAGS.hashtags)`로 무효화.
+ */
+export async function getCachedHashtagById(
+    id: number
+): Promise<Hashtag | null> {
+    return unstable_cache(
+        async () => getHashtagById(id),
+        ['hashtag-by-id', String(id)],
+        {
+            revalidate: 3600,
+            tags: [CACHE_TAGS.hashtags],
+        }
+    )();
+}
+
+/**
+ * 해시태그 사이드바용 — Next.js Data Cache
+ */
+export async function getCachedHashtagsWithCount(
+    limit: number = 20
+): Promise<HashtagWithCount[]> {
+    return unstable_cache(
+        async () => getHashtagsWithCount(limit),
+        ['hashtags-with-count', String(limit)],
+        {
+            revalidate: 3600,
+            tags: [CACHE_TAGS.hashtags],
+        }
+    )();
 }

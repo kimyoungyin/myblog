@@ -1,10 +1,8 @@
 import React from 'react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import {
-    getRecentPostsAction,
-    getHashtagsWithCountAction,
-} from '@/lib/actions';
+import { getCachedRecentPosts } from '@/lib/posts';
+import { getCachedHashtagsWithCount } from '@/lib/hashtags';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
@@ -56,8 +54,8 @@ export const metadata: Metadata = {
 export default async function HomePage() {
     // 최신 글 10개와 인기 해시태그 조회를 병렬로 실행
     const [result, popularHashtags] = await Promise.all([
-        getRecentPostsAction(),
-        getHashtagsWithCountAction(15), // 상위 15개 해시태그
+        getCachedRecentPosts(),
+        getCachedHashtagsWithCount(15),
     ]);
     const posts = result.posts;
 
