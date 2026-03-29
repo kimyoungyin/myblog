@@ -16,6 +16,7 @@ Next.js App Router, Supabase, TanStack Query, Zustand를 활용해 구현한 **�
 - **UI**: Tailwind CSS, shadcn/ui, lucide-react
 - **State & Data**
     - 서버 상태: TanStack Query (React Query)
+    - 서버 읽기 스냅샷: Next.js `unstable_cache` + `revalidateTag` (Data Cache)
     - 클라이언트 전역 상태: Zustand
     - 폼/유효성 검사: Zod
 - **Backend / Infra**
@@ -54,10 +55,17 @@ Next.js App Router, Supabase, TanStack Query, Zustand를 활용해 구현한 **�
 - **Server Actions + Zod + Supabase**
     - 글/댓글/좋아요/이미지 업로드 등 핵심 도메인을 Next.js Server Actions에 모으고,
       Zod 스키마로 입력을 검증한 뒤 Supabase(PostgreSQL, RPC, Storage)를 호출하는 구조입니다.
+    - 변경 직후에는 `revalidatePath`와 함께 **`revalidateTag`** 로 Data Cache를 태그 단위로 무효화합니다(`lib/cache-tags.ts`).
+
+- **서버 읽기 캐시 (Next.js Data Cache)**
+    - 홈·글 상세·해시태그·댓글 목록 등 **읽기 전용** 경로는 `unstable_cache`로 Supabase 조회 결과를 Data Cache에 올리고,
+      TTL(`revalidate`)과 태그 기반 무효화로 갱신 타이밍을 맞춥니다.
+    - 사용자별 데이터(예: 좋아요 여부)는 Data Cache에 넣지 않고 세션 기반으로 조회합니다.
 
 - **TanStack Query 구조 (SSR + 쿼리 팩토리)**
     - **QueryClient 단일 경로**: `get-query-client.ts`에서 서버는 요청별 새 인스턴스(React `cache`), 클라이언트는 싱글톤을 반환하고, `QueryProvider`는 `getQueryClient()`만 사용해 suspend 시 재생성 방지.
-    - **글 목록 SSR**: 서버에서 `prefetchInfiniteQuery` → `dehydrate` → `HydrationBoundary`로 전달하고, 클라이언트 `useInfiniteQuery`는 동일 queryKey로 hydrated 캐시만 사용(initialData 없음).
+    - **글 목록·검색 SSR**: `/posts`와 `/search` 모두 서버에서 조건이 있을 때 `prefetchInfiniteQuery` → `dehydrate` → `HydrationBoundary`로 전달하고, 클라이언트 `useInfiniteQuery`는 **동일 queryKey**로 hydrated 캐시만 사용합니다(**`initialData` 없음**).
+    - **목록 refetch 정책**: 정적 읽기 위주 블로그에 맞게 글 목록에서 **주기적 폴링(`refetchInterval`)을 제거**하고, 일부 옵션은 `refetchOnWindowFocus: false`로 두었습니다.
     - **쿼리 키 통일**: `lib/queries.ts`에 `postsListQueryKey`, `authQueryKeys`, `searchResultsQueryKey`를 두어 prefetch·useQuery·invalidate/remove 시 동일 키를 쓰도록 팩토리 패턴으로 관리합니다.
 
 - **인증 / 권한 제어**
@@ -75,7 +83,8 @@ Next.js App Router, Supabase, TanStack Query, Zustand를 활용해 구현한 **�
 ```mermaid
 flowchart LR
   user[User] --> appRouter[NextAppRouter]
-  appRouter --> serverActions[ServerActions]
+  appRouter --> dataCache[NextDataCache]
+  dataCache --> serverActions[ServerActions]
   serverActions --> supabaseDB[SupabaseDB]
 
   appRouter --> reactQuery[ReactQueryClient]
@@ -87,7 +96,9 @@ flowchart LR
   markdown --> storage[SupabaseStorage]
 ```
 
-글 목록 페이지에서 TanStack Query가 서버 데이터를 클라이언트로 넘기는 흐름은 아래와 같습니다.
+위 다이어그램에서 **Data Cache**는 주로 RSC·읽기용 Server Action이 Supabase에 닿기 전의 스냅샷 계층이고, **변경(Mutation)** 은 Server Actions가 DB를 갱신한 뒤 `revalidateTag` / `revalidatePath`로 캐시를 무효화합니다.
+
+글 목록·검색 페이지에서 TanStack Query가 서버 데이터를 클라이언트로 넘기는 흐름은 아래와 같습니다.
 
 ```mermaid
 flowchart LR
@@ -104,7 +115,7 @@ flowchart LR
   end
 
   dehydrate -->|직렬화된 캐시| boundary
-  useQuery -->|동일 queryKey로 캐시 사용| list[글 목록 + 무한스크롤]
+  useQuery -->|동일 queryKey로 캐시 사용| list[글목록·검색 + 무한스크롤]
 ```
 
 ---
@@ -113,10 +124,13 @@ flowchart LR
 
 이 프로젝트는 설계부터 개발·배포까지 개인 프로젝트로 직접 구현했습니다.
 
-- **성능 최적화**
-    - Skeleton UI와 TanStack Query 기반 무한 스크롤 캐싱 전략을 도입해
-      게시글 목록·검색 결과의 초기 로딩 체감 속도와 스크롤 시 렌더링 지연을 줄였고,
-      Lighthouse Performance 99점, LCP 약 0.5초 수준의 로딩 성능을 달성했습니다.
+- **성능·캐싱**
+    - **Next.js Data Cache**(`unstable_cache`, `revalidateTag`)로 홈·상세·해시태그·댓글 읽기 스냅샷을 두고,
+      **TanStack Query SSR**(`prefetchInfiniteQuery` → `dehydrate` → `HydrationBoundary`)로 `/posts`·`/search` 계약을 맞춰
+      서버·클라이언트 중복 요청을 줄였습니다.
+    - 글 목록의 **불필요한 폴링을 제거**하고 Skeleton UI·무한 스크롤로 로딩 체감을 정리했습니다.
+    - 상세 설계·검증 절차는 [`docs/portfolio-nextjs15-tanstack-caching.md`](docs/portfolio-nextjs15-tanstack-caching.md)를 참고합니다.
+    - 배포 환경에 따라 수치는 달라질 수 있으며, 참고로 Lighthouse Performance·LCP는 이전 측정 기준 **약 99점 / 0.5초대** 수준을 유지하는 방향으로 튜닝했습니다.
 
 - **SEO 품질 확보**
     - `generateMetadata`·시맨틱 태그·JSON-LD·`sitemap.xml`·`robots.txt`를 조합해
@@ -154,6 +168,7 @@ src/
 
   lib/
     actions.ts        # Server Actions (글/댓글/좋아요 등)
+    cache-tags.ts     # Next Data Cache `revalidateTag` / `unstable_cache` 태그
     posts.ts          # 게시글 관련 도메인 로직
     comments.ts       # 댓글 관련 도메인 로직
     likes.ts          # 좋아요 관련 도메인 로직
