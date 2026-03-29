@@ -1,7 +1,7 @@
 'use client';
 
 import { PostCard } from '@/components/post-card';
-import { Post } from '@/types';
+import Link from 'next/link';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { getPostsAction } from '@/lib/actions';
 import { searchResultsQueryKey } from '@/lib/queries';
@@ -13,11 +13,21 @@ import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import { SinglePostCardSkeleton } from '@/components/ui/search-results-skeleton';
 
+function searchResultsRetryHref(
+    searchQuery: string,
+    hashtagIds?: number[]
+): string {
+    const params = new URLSearchParams();
+    const q = searchQuery.trim();
+    if (q) params.set('q', q);
+    if (hashtagIds?.length) params.set('tag', hashtagIds.join(','));
+    const qs = params.toString();
+    return qs ? `/search?${qs}` : '/search';
+}
+
 interface SearchResultsWrapperProps {
-    initialPosts: Post[];
     searchQuery: string;
     hashtagIds?: number[];
-    totalResults: number;
 }
 
 function SearchEmptyHint({
@@ -81,21 +91,28 @@ function SearchInitialState() {
 }
 
 export function SearchResultsWrapper({
-    initialPosts,
     searchQuery,
     hashtagIds,
-    totalResults,
 }: SearchResultsWrapperProps) {
+    const hasFilters = useMemo(
+        () =>
+            Boolean(searchQuery?.trim()) ||
+            Boolean(hashtagIds && hashtagIds.length > 0),
+        [searchQuery, hashtagIds]
+    );
+
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isError } =
         useInfiniteQuery({
             queryKey: searchResultsQueryKey(searchQuery, hashtagIds),
             queryFn: ({ pageParam }) =>
-                getPostsAction(pageParam, 'latest', hashtagIds, searchQuery),
+                getPostsAction(
+                    pageParam,
+                    'latest',
+                    hashtagIds,
+                    searchQuery?.trim() || undefined
+                ),
             initialPageParam: 1,
-            initialData: {
-                pages: [{ posts: initialPosts, total: totalResults }],
-                pageParams: [1],
-            },
+            enabled: hasFilters,
             getNextPageParam: (lastPage, pages) => {
                 const hasMorePosts = lastPage.posts.length === PAGE_SIZE;
                 return hasMorePosts ? pages.length + 1 : undefined;
@@ -133,13 +150,15 @@ export function SearchResultsWrapper({
     });
 
     const hasSearchQuery = useMemo(
-        () => searchQuery && searchQuery.length > 0,
+        () => Boolean(searchQuery?.trim()),
         [searchQuery]
     );
     const hasHashtagIds = useMemo(
         () => hashtagIds && hashtagIds.length > 0,
         [hashtagIds]
     );
+
+    const totalResults = data?.pages?.[0]?.total ?? 0;
 
     // 에러 상태 처리
     if (isError) {
@@ -149,8 +168,15 @@ export function SearchResultsWrapper({
                     <p className="text-destructive mb-4">
                         검색 결과를 불러오는 중 오류가 발생했습니다.
                     </p>
-                    <Button onClick={() => window.location.reload()}>
-                        다시 시도
+                    <Button asChild variant="outline">
+                        <Link
+                            href={searchResultsRetryHref(
+                                searchQuery,
+                                hashtagIds
+                            )}
+                        >
+                            다시 시도
+                        </Link>
                     </Button>
                 </CardContent>
             </Card>

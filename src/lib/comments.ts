@@ -1,4 +1,6 @@
+import { unstable_cache } from 'next/cache';
 import { createServiceRoleClient } from '@/utils/supabase/server';
+import { CACHE_TAGS } from '@/lib/cache-tags';
 import { Comment, User } from '@/types';
 import { CreateCommentData, UpdateCommentData } from './schemas';
 
@@ -115,6 +117,20 @@ export async function getComments(postId: number): Promise<Comment[]> {
         console.error('댓글 조회 중 오류:', error);
         throw error;
     }
+}
+
+/**
+ * 글 상세 댓글 목록 — Next.js Data Cache
+ */
+export async function getCachedComments(postId: number): Promise<Comment[]> {
+    return unstable_cache(
+        async () => getComments(postId),
+        ['comments', String(postId)],
+        {
+            revalidate: 60,
+            tags: [CACHE_TAGS.comments(postId)],
+        }
+    )();
 }
 
 /**

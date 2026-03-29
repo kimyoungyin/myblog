@@ -13,7 +13,7 @@ export function postsListQueryKey(
     sort: PostSort,
     tagId?: string
 ): QueryKey {
-    return ['posts', sort, ...(tagId ? [tagId] : [])];
+    return ['posts', { sort, tag: tagId }];
 }
 
 // ---------------------------------------------------------------------------
@@ -40,5 +40,23 @@ export function searchResultsQueryKey(
     searchQuery: string,
     hashtagIds?: number[]
 ): QueryKey {
-    return ['search', searchQuery, ...(hashtagIds ?? [])];
+    const tag =
+        hashtagIds && hashtagIds.length > 0
+            ? [...hashtagIds].sort((a, b) => a - b).join(',')
+            : undefined;
+    return ['search', { q: searchQuery, tag }];
+}
+
+// ---------------------------------------------------------------------------
+// Likes — LikeButton (세션 기반, Data Cache 미사용)
+// ---------------------------------------------------------------------------
+
+/**
+ * 글 상세 좋아요 상태. userId로 탭·계정 전환 시 캐시 분리.
+ */
+export function likeStatusQueryKey(
+    postId: number,
+    userId: string | undefined
+): QueryKey {
+    return ['likes', 'status', postId, userId ?? ''];
 }

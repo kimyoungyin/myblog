@@ -1,11 +1,14 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useTransition } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { toggleLikeAction } from '@/lib/actions';
+import { getLikeStatusAction, toggleLikeAction } from '@/lib/actions';
 import { useAuth } from '@/hooks/useAuth';
+import { likeStatusQueryKey } from '@/lib/queries';
+import type { LikeStatus } from '@/types';
 import Link from 'next/link';
 
 interface LikeButtonProps {
@@ -26,23 +29,37 @@ export function LikeButton({
     size = 'default',
 }: LikeButtonProps) {
     const { user, isLoading } = useAuth();
-    const [isLiked, setIsLiked] = useState(initialIsLiked);
-    const [likesCount, setLikesCount] = useState(initialLikesCount);
+    const queryClient = useQueryClient();
     const [isPending, startTransition] = useTransition();
 
-    const handleToggleLike = async () => {
+    const { data: likeStatus } = useQuery({
+        queryKey: likeStatusQueryKey(postId, user?.id),
+        queryFn: () => getLikeStatusAction(postId),
+        enabled: !!user,
+        staleTime: 0,
+        refetchOnWindowFocus: true,
+    });
+
+    const isLiked = likeStatus?.is_liked ?? initialIsLiked;
+    const likesCount = likeStatus?.likes_count ?? initialLikesCount;
+
+    const handleToggleLike = () => {
         if (!user) {
             return;
         }
 
-        // 낙관적 업데이트: 즉시 UI에 반영
-        const newIsLiked = !isLiked;
-        const newLikesCount = newIsLiked
+        const key = likeStatusQueryKey(postId, user.id);
+        const previous = queryClient.getQueryData<LikeStatus>(key);
+        const nextIsLiked = !isLiked;
+        const nextCount = nextIsLiked
             ? likesCount + 1
             : Math.max(0, likesCount - 1);
 
-        setIsLiked(newIsLiked);
-        setLikesCount(newLikesCount);
+        queryClient.setQueryData<LikeStatus>(key, {
+            post_id: postId,
+            is_liked: nextIsLiked,
+            likes_count: nextCount,
+        });
 
         startTransition(async () => {
             try {
@@ -51,13 +68,21 @@ export function LikeButton({
 
                 const result = await toggleLikeAction(formData);
 
-                // 서버 결과로 최종 상태 업데이트
-                setIsLiked(result.is_liked);
-                setLikesCount(result.likes_count);
+                queryClient.setQueryData<LikeStatus>(key, {
+                    post_id: postId,
+                    is_liked: result.is_liked,
+                    likes_count: result.likes_count,
+                });
             } catch {
-                // 실패 시 원래 상태로 복원
-                setIsLiked(!newIsLiked);
-                setLikesCount(initialLikesCount);
+                if (previous) {
+                    queryClient.setQueryData(key, previous);
+                } else {
+                    queryClient.setQueryData<LikeStatus>(key, {
+                        post_id: postId,
+                        is_liked: initialIsLiked,
+                        likes_count: initialLikesCount,
+                    });
+                }
             }
         });
     };
@@ -84,12 +109,12 @@ export function LikeButton({
                                 size === 'lg' && 'h-5 w-5'
                             )}
                         />
-                        {showCount && <span>{likesCount}</span>}
+                        {showCount && <span>{initialLikesCount}</span>}
                     </Button>
                 </Link>
                 {!showCount && (
                     <span className="text-muted-foreground text-sm">
-                        {likesCount}
+                        {initialLikesCount}
                     </span>
                 )}
             </div>
