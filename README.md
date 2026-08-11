@@ -77,6 +77,10 @@ Next.js App Router, Supabase, TanStack Query, Zustand를 활용해 구현한 **�
     - App Router의 `metadata` / `generateMetadata`를 활용해 페이지별
       title/description/OG/JSON-LD를 구성하고, `sitemap.xml`, `robots.txt`를 포함해
       검색 엔진이 크롤링·색인하기 좋은 구조로 설계했습니다.
+    - `NEXT_PUBLIC_SITE_URL`을 필수로 사용하며, 구현·검증 방법은
+      [`SEO 개념 가이드`](docs/seo-content-optimization-guide.md)와
+      [`myblog 구현 가이드`](docs/seo-content-optimization-implementation.md)를
+      참고할 수 있습니다.
 
 간단한 데이터 흐름은 다음과 같습니다.
 

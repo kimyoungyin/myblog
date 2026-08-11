@@ -3,6 +3,7 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeSlug from 'rehype-slug';
 import Image from 'next/image';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import {
@@ -110,7 +111,10 @@ const MermaidBlock: React.FC<MermaidBlockProps> = ({ code }) => {
     }, [code, safeId, theme]);
 
     return (
-        <div className="my-4 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+        <figure
+            className="my-4 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700"
+            aria-label="다이어그램"
+        >
             <div className="bg-gray-100 px-3 py-2 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
                 mermaid
             </div>
@@ -126,18 +130,31 @@ const MermaidBlock: React.FC<MermaidBlockProps> = ({ code }) => {
                     </pre>
                 )}
             </div>
-        </div>
+            {/*
+             * 크롤러/스크린리더용 다이어그램 원본.
+             * SVG는 useEffect + innerHTML로만 그려져 SSR HTML에 텍스트가 남지 않으므로,
+             * 원본 mermaid 코드를 항상 DOM에 남겨 검색엔진이 내용을 인덱싱할 수 있게 한다.
+             * 시각적으로는 숨기되(sr-only) DOM/접근성 트리에는 존재.
+             */}
+            <figcaption className="sr-only">
+                다이어그램 정의(mermaid):
+                <pre>{code}</pre>
+            </figcaption>
+        </figure>
     );
 };
 
 interface MarkdownRendererProps {
     content: string;
     className?: string;
+    /** 글 제목 — 이미지 alt 미지정 시 폴백 텍스트 생성에 사용 */
+    title?: string;
 }
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
     content,
     className = '',
+    title,
 }) => {
     const { theme } = useTheme();
     const codeStyle = theme === 'light' ? oneLight : oneDark;
@@ -147,7 +164,23 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         >
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeSlug]}
                 components={{
+                    // 본문 헤딩을 한 단계씩 강등해 페이지 <h1>(글 제목)과의
+                    // 중복을 막고 시맨틱 계층을 확립한다. rehype-slug가 부여한
+                    // id는 강등된 실제 태그로 전달되어 딥링크/목차가 유지된다.
+                    h1: ({ children, ...props }) => (
+                        <h2 {...props}>{children}</h2>
+                    ),
+                    h2: ({ children, ...props }) => (
+                        <h3 {...props}>{children}</h3>
+                    ),
+                    h3: ({ children, ...props }) => (
+                        <h4 {...props}>{children}</h4>
+                    ),
+                    h4: ({ children, ...props }) => (
+                        <h5 {...props}>{children}</h5>
+                    ),
                     // 이미지 커스텀 렌더링 - p 태그와의 충돌 방지
                     img: ({ src, alt, ...props }) => {
                         // src가 string인지 확인
@@ -168,7 +201,12 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
                                 <Image
                                     {...imageProps}
                                     src={src}
-                                    alt={alt || '이미지'}
+                                    alt={
+                                        alt ??
+                                        (title
+                                            ? `${title} 관련 이미지`
+                                            : '본문 이미지')
+                                    }
                                     className="mx-auto h-auto max-w-full rounded-lg border border-gray-200 shadow-md dark:border-gray-700"
                                     width={800}
                                     height={600}

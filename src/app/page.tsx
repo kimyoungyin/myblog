@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { PostCard } from '@/components/post-card';
 import { HashtagSidebar } from '@/components/hashtags/HashtagSidebar';
+import { getSiteUrl } from '@/lib/site-config';
+import { getPostSeoFields } from '@/lib/seo-metadata';
 
 // 홈페이지 메타데이터
 export const metadata: Metadata = {
@@ -58,6 +60,7 @@ export default async function HomePage() {
         getCachedHashtagsWithCount(15),
     ]);
     const posts = result.posts;
+    const siteUrl = getSiteUrl();
 
     return (
         <div className="bg-background">
@@ -146,31 +149,25 @@ export default async function HomePage() {
                             '@type': 'WebSite',
                             name: 'MyBlog - 김영인의 기술 블로그',
                             alternateName: '김영인의 기술 블로그',
-                            url:
-                                process.env.NEXT_PUBLIC_SITE_URL ||
-                                'https://myblog.vercel.app',
+                            url: siteUrl,
                             description:
                                 '개발 과정에서 배운 것들과 경험을 나만의 방식으로 정리하여 공유하는 기술 블로그입니다.',
                             inLanguage: 'ko-KR',
                             author: {
                                 '@type': 'Person',
                                 name: '김영인',
-                                url:
-                                    process.env.NEXT_PUBLIC_SITE_URL ||
-                                    'https://myblog.vercel.app',
+                                url: siteUrl,
                             },
                             publisher: {
                                 '@type': 'Organization',
                                 name: 'MyBlog',
-                                url:
-                                    process.env.NEXT_PUBLIC_SITE_URL ||
-                                    'https://myblog.vercel.app',
+                                url: siteUrl,
                             },
                             potentialAction: {
                                 '@type': 'SearchAction',
                                 target: {
                                     '@type': 'EntryPoint',
-                                    urlTemplate: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://myblog.vercel.app'}/search?q={search_term_string}`,
+                                    urlTemplate: `${siteUrl}/search?q={search_term_string}`,
                                 },
                                 'query-input':
                                     'required name=search_term_string',
@@ -184,22 +181,28 @@ export default async function HomePage() {
                                     '@type': 'Person',
                                     name: '김영인',
                                 },
-                                blogPost: posts.map((post) => ({
-                                    '@type': 'BlogPosting',
-                                    headline: post.title,
-                                    url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://myblog.vercel.app'}/posts/${post.id}`,
-                                    datePublished: post.created_at,
-                                    dateModified: post.updated_at,
-                                    author: {
-                                        '@type': 'Person',
-                                        name: '김영인',
-                                    },
-                                    image: post.thumbnail_url || undefined,
-                                    keywords:
-                                        post.hashtags
-                                            ?.map((tag) => tag.name)
-                                            .join(', ') || '',
-                                })),
+                                blogPost: posts.map((post) => {
+                                    const { description, imageUrl, postUrl } =
+                                        getPostSeoFields(post, siteUrl);
+
+                                    return {
+                                        '@type': 'BlogPosting',
+                                        headline: post.title,
+                                        description,
+                                        url: postUrl,
+                                        datePublished: post.created_at,
+                                        dateModified: post.updated_at,
+                                        author: {
+                                            '@type': 'Person',
+                                            name: '김영인',
+                                        },
+                                        image: imageUrl,
+                                        keywords:
+                                            post.hashtags
+                                                ?.map((tag) => tag.name)
+                                                .join(', ') || '',
+                                    };
+                                }),
                             },
                         }).replace(/</g, '\\u003c'),
                     }}

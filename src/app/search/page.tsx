@@ -13,6 +13,7 @@ import { SearchResultsWrapper } from '@/components/search/SearchResultsWrapper';
 import { SearchBar } from '@/components/ui/search-bar';
 import { HashtagSearch } from '@/components/search/HashtagSearch';
 import { SearchResultsSkeleton } from '@/components/ui/search-results-skeleton';
+import { toSiteUrl } from '@/lib/site-config';
 
 interface SearchPageProps {
     searchParams: Promise<{
@@ -72,16 +73,25 @@ export async function generateMetadata({
     if (searchQuery) keywords.push(searchQuery);
     if (hashtagNames.length > 0) keywords.push(...hashtagNames);
 
+    const searchPath = `/search${searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ''}${tag ? `${searchQuery ? '&' : '?'}tag=${encodeURIComponent(tag)}` : ''}`;
+
     return {
         title,
         description,
         keywords,
 
+        // 검색 결과는 얇은/중복 콘텐츠로 판정될 수 있어 색인에서 제외.
+        // 단, 링크는 따라가도록 하여 개별 글은 크롤링되게 함.
+        robots: {
+            index: false,
+            follow: true,
+        },
+
         // Open Graph 최적화
         openGraph: {
             title: `${title} | MyBlog`,
             description,
-            url: `/search${searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ''}${tag ? `${searchQuery ? '&' : '?'}tag=${tag}` : ''}`,
+            url: toSiteUrl(searchPath),
             type: 'website',
         },
 
@@ -93,7 +103,7 @@ export async function generateMetadata({
 
         // canonical URL
         alternates: {
-            canonical: '/search',
+            canonical: toSiteUrl('/search'),
         },
 
         // 검색 페이지 전용 메타데이터
