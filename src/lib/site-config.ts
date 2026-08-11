@@ -67,5 +67,6 @@ export function getSiteUrl(): string {
 
 /** Build an absolute URL from the validated public site origin. */
 export function toSiteUrl(path = '/'): string {
-    return new URL(path, `${getSiteUrl()}/`).toString();
+    const relativePath = path.replace(/^\/+/, '');
+    return new URL(relativePath, `${getSiteUrl()}/`).toString();
 }

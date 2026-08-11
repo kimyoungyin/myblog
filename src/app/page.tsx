@@ -3,17 +3,13 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getCachedRecentPosts } from '@/lib/posts';
 import { getCachedHashtagsWithCount } from '@/lib/hashtags';
-import { extractDescription } from '@/lib/markdown';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { PostCard } from '@/components/post-card';
 import { HashtagSidebar } from '@/components/hashtags/HashtagSidebar';
 import { getSiteUrl } from '@/lib/site-config';
-import { resolveSocialImageSource } from '@/lib/seo-metadata';
-
-const DEFAULT_POST_DESCRIPTION =
-    '김영인의 기술 블로그에서 공유하는 개발 경험과 지식입니다.';
+import { getPostSeoFields } from '@/lib/seo-metadata';
 
 // 홈페이지 메타데이터
 export const metadata: Metadata = {
@@ -186,29 +182,21 @@ export default async function HomePage() {
                                     name: '김영인',
                                 },
                                 blogPost: posts.map((post) => {
-                                    const imageSource =
-                                        resolveSocialImageSource(
-                                            post.thumbnail_url
-                                        );
+                                    const { description, imageUrl, postUrl } =
+                                        getPostSeoFields(post, siteUrl);
 
                                     return {
                                         '@type': 'BlogPosting',
                                         headline: post.title,
-                                        description:
-                                            extractDescription(
-                                                post.content_markdown
-                                            ) || DEFAULT_POST_DESCRIPTION,
-                                        url: `${siteUrl}/posts/${post.id}`,
+                                        description,
+                                        url: postUrl,
                                         datePublished: post.created_at,
                                         dateModified: post.updated_at,
                                         author: {
                                             '@type': 'Person',
                                             name: '김영인',
                                         },
-                                        image:
-                                            imageSource.kind === 'thumbnail'
-                                                ? imageSource.url
-                                                : `${siteUrl}/posts/${post.id}/opengraph-image`,
+                                        image: imageUrl,
                                         keywords:
                                             post.hashtags
                                                 ?.map((tag) => tag.name)

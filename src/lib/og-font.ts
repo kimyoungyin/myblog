@@ -9,6 +9,12 @@ import { readFile } from 'node:fs/promises';
  */
 const fontCache = new Map<400 | 700, Promise<ArrayBuffer>>();
 
+export interface OgFont {
+    name: string;
+    data: ArrayBuffer;
+    weight: 400 | 700;
+}
+
 export function loadKoreanFont(weight: 400 | 700): Promise<ArrayBuffer> {
     const cached = fontCache.get(weight);
     if (cached) return cached;
@@ -17,12 +23,30 @@ export function loadKoreanFont(weight: 400 | 700): Promise<ArrayBuffer> {
         weight === 700 ? 'NotoSansKR-Bold.ttf' : 'NotoSansKR-Regular.ttf';
     const fontPromise = readFile(
         new URL(`../assets/fonts/${filename}`, import.meta.url)
-    ).then((buffer) => {
-        const arrayBuffer = new ArrayBuffer(buffer.byteLength);
-        new Uint8Array(arrayBuffer).set(buffer);
-        return arrayBuffer;
-    });
+    )
+        .then((buffer) => {
+            const arrayBuffer = new ArrayBuffer(buffer.byteLength);
+            new Uint8Array(arrayBuffer).set(buffer);
+            return arrayBuffer;
+        })
+        .catch((error: unknown) => {
+            // 실패한 Promise를 캐시에 남기지 않아 다음 요청이 재시도할 수 있게 한다.
+            fontCache.delete(weight);
+            throw error;
+        });
 
     fontCache.set(weight, fontPromise);
     return fontPromise;
+}
+
+export async function loadKoreanFonts(): Promise<OgFont[]> {
+    const [bold, regular] = await Promise.all([
+        loadKoreanFont(700),
+        loadKoreanFont(400),
+    ]);
+
+    return [
+        { name: 'Noto Sans KR', data: bold, weight: 700 },
+        { name: 'Noto Sans KR', data: regular, weight: 400 },
+    ];
 }

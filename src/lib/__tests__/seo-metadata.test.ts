@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+    getPostSeoFields,
     getSocialImageMetadata,
     resolveSocialImageSource,
 } from '../seo-metadata';
@@ -48,5 +49,25 @@ describe('getSocialImageMetadata', () => {
 
         expect(metadata.openGraph).not.toHaveProperty('images');
         expect(metadata.twitter).not.toHaveProperty('images');
+    });
+});
+
+describe('getPostSeoFields', () => {
+    it('uses the default description and generated image when content and thumbnail are empty', () => {
+        expect(
+            getPostSeoFields(
+                {
+                    id: 42,
+                    content_markdown: '',
+                    thumbnail_url: null,
+                },
+                'https://example.com'
+            )
+        ).toEqual({
+            description:
+                '김영인의 기술 블로그에서 공유하는 개발 경험과 지식입니다.',
+            imageUrl: 'https://example.com/posts/42/opengraph-image',
+            postUrl: 'https://example.com/posts/42',
+        });
     });
 });

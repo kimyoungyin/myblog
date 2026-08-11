@@ -30,7 +30,7 @@ function escapeXml(unsafe: string): string {
     });
 }
 
-export async function GET() {
+export async function GET(): Promise<Response> {
     const siteUrl = getSiteUrl();
 
     let items = '';

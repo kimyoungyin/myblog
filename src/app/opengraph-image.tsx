@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og';
-import { loadKoreanFont } from '@/lib/og-font';
+import { loadKoreanFonts, type OgFont } from '@/lib/og-font';
 
 // 규약 기반 사이트 기본 OG 이미지 (홈 및 별도 이미지 없는 페이지)
 export const alt = '김영인의 기술 블로그';
@@ -10,16 +10,19 @@ export const runtime = 'nodejs';
 const TITLE = '김영인의 기술 블로그';
 const SUBTITLE = 'React · Next.js · TypeScript 웹 개발 경험과 지식';
 
-export default async function Image() {
-    const [bold, regular] = await Promise.all([
-        loadKoreanFont(700),
-        loadKoreanFont(400),
-    ]);
+export default async function Image(): Promise<ImageResponse> {
+    let fonts: OgFont[] = [];
 
-    const fonts = [
-        { name: 'Noto Sans KR', data: bold, weight: 700 as const },
-        { name: 'Noto Sans KR', data: regular, weight: 400 as const },
-    ];
+    try {
+        fonts = await loadKoreanFonts();
+    } catch (error) {
+        console.error('기본 OG 이미지 폰트 로딩 실패:', error);
+    }
+
+    const hasKoreanFont = fonts.length > 0;
+    const title = hasKoreanFont ? TITLE : 'MYBLOG';
+    const subtitle = hasKoreanFont ? SUBTITLE : 'TECHNOLOGY BLOG';
+    const imageOptions = hasKoreanFont ? { ...size, fonts } : size;
 
     return new ImageResponse(
         (
@@ -35,7 +38,7 @@ export default async function Image() {
                     background:
                         'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
                     color: '#f8fafc',
-                    fontFamily: 'Noto Sans KR',
+                    fontFamily: hasKoreanFont ? 'Noto Sans KR' : 'Arial',
                 }}
             >
                 <div
@@ -46,7 +49,7 @@ export default async function Image() {
                         letterSpacing: '-0.02em',
                     }}
                 >
-                    {TITLE}
+                    {title}
                 </div>
                 <div
                     style={{
@@ -56,10 +59,10 @@ export default async function Image() {
                         color: '#94a3b8',
                     }}
                 >
-                    {SUBTITLE}
+                    {subtitle}
                 </div>
             </div>
         ),
-        { ...size, fonts }
+        imageOptions
     );
 }

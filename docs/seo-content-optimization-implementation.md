@@ -1,6 +1,6 @@
 # myblog SEO·색인·소셜 공유 구현 가이드
 
-이 문서는 `/Users/kim-young-yin/Documents/codes/myblog`에 적용된 SEO 개선을
+이 문서는 myblog 저장소에 적용된 SEO 개선을
 파일과 검증 명령 중심으로 설명한다. `blog publish` 자동화, 실제 배포,
 Search Console 등록과 색인 요청은 이 작업에 포함하지 않는다.
 

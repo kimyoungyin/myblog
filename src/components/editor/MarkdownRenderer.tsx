@@ -202,7 +202,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
                                     {...imageProps}
                                     src={src}
                                     alt={
-                                        alt ||
+                                        alt ??
                                         (title
                                             ? `${title} 관련 이미지`
                                             : '본문 이미지')

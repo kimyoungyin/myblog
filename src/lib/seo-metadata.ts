@@ -1,3 +1,9 @@
+import { extractDescription } from '@/lib/markdown';
+import type { Post } from '@/types';
+
+export const DEFAULT_POST_DESCRIPTION =
+    '김영인의 기술 블로그에서 공유하는 개발 경험과 지식입니다.';
+
 export type SocialImageSource =
     | { kind: 'thumbnail'; url: string }
     | { kind: 'generated' };
@@ -12,6 +18,12 @@ export interface SocialImageMetadata {
     twitter: {
         images?: string[];
     };
+}
+
+export interface PostSeoFields {
+    description: string;
+    imageUrl: string;
+    postUrl: string;
 }
 
 /**
@@ -66,5 +78,24 @@ export function getSocialImageMetadata(
         twitter: {
             images: [source.url],
         },
+    };
+}
+
+export function getPostSeoFields(
+    post: Pick<Post, 'id' | 'content_markdown' | 'thumbnail_url'>,
+    siteUrl: string
+): PostSeoFields {
+    const postUrl = `${siteUrl}/posts/${post.id}`;
+    const imageSource = resolveSocialImageSource(post.thumbnail_url);
+
+    return {
+        description:
+            extractDescription(post.content_markdown) ||
+            DEFAULT_POST_DESCRIPTION,
+        imageUrl:
+            imageSource.kind === 'thumbnail'
+                ? imageSource.url
+                : `${postUrl}/opengraph-image`,
+        postUrl,
     };
 }

@@ -1,9 +1,9 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
-import type { Metadata, ResolvingMetadata } from 'next';
+import type { Metadata } from 'next';
 import { getCachedPost } from '@/lib/posts';
 import { getCachedComments } from '@/lib/comments';
-import { extractDescription, countWords } from '@/lib/markdown';
+import { countWords } from '@/lib/markdown';
 import {
     incrementViewCountAction,
     getLikeStatusAction,
@@ -21,12 +21,9 @@ import { CommentSection } from '@/components/comments/CommentSection';
 import { LikeButton } from '@/components/likes/LikeButton';
 import { getSiteUrl } from '@/lib/site-config';
 import {
+    getPostSeoFields,
     getSocialImageMetadata,
-    resolveSocialImageSource,
 } from '@/lib/seo-metadata';
-
-const DEFAULT_POST_DESCRIPTION =
-    '김영인의 기술 블로그에서 공유하는 개발 경험과 지식입니다.';
 
 interface PostPageProps {
     params: Promise<{
@@ -36,8 +33,7 @@ interface PostPageProps {
 
 // 동적 메타데이터 생성 함수
 export async function generateMetadata(
-    { params }: PostPageProps,
-    parent: ResolvingMetadata
+    { params }: PostPageProps
 ): Promise<Metadata> {
     const postId = parseInt((await params).id);
 
@@ -59,20 +55,13 @@ export async function generateMetadata(
             };
         }
 
-        // og:image는 규약 파일(opengraph-image.tsx)이 자동 주입하므로
-        // 부모 이미지를 별도로 상속하지 않는다.
-        void parent;
-
-        // 글 내용에서 디스크립션 추출 (마크다운/URL 제거, 문장 경계 기준 ~160자)
-        const contentPreview = extractDescription(post.content_markdown);
-
         // 해시태그를 키워드로 변환
         const keywords = post.hashtags?.map((tag) => tag.name) || [];
 
-        const baseUrl = getSiteUrl();
-        const postUrl = `${baseUrl}/posts/${post.id}`;
-        const description =
-            contentPreview || DEFAULT_POST_DESCRIPTION;
+        const { description, postUrl } = getPostSeoFields(
+            post,
+            getSiteUrl()
+        );
         const socialImageMetadata = getSocialImageMetadata(post.thumbnail_url);
 
         return {
@@ -173,15 +162,10 @@ export default async function PostPage({ params }: PostPageProps) {
         }
 
         const siteUrl = getSiteUrl();
-        const postUrl = `${siteUrl}/posts/${post.id}`;
-        const description =
-            extractDescription(post.content_markdown) ||
-            DEFAULT_POST_DESCRIPTION;
-        const imageSource = resolveSocialImageSource(post.thumbnail_url);
-        const imageUrl =
-            imageSource.kind === 'thumbnail'
-                ? imageSource.url
-                : `${postUrl}/opengraph-image`;
+        const { description, imageUrl, postUrl } = getPostSeoFields(
+            post,
+            siteUrl
+        );
 
         // 조회수 증가 시도 (실패해도 글은 표시)
         let viewCountError = false;

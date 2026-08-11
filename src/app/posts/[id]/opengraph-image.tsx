@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 import { getCachedPost } from '@/lib/posts';
-import { loadKoreanFont } from '@/lib/og-font';
+import { loadKoreanFonts, type OgFont } from '@/lib/og-font';
 
 // 규약 기반 OG 이미지: /posts/[id]/opengraph-image
 export const alt = '김영인의 기술 블로그 글';
@@ -14,26 +14,37 @@ export default async function Image({
     params,
 }: {
     params: Promise<{ id: string }>;
-}) {
+}): Promise<ImageResponse> {
     const postId = parseInt((await params).id, 10);
-    const post = Number.isNaN(postId) ? null : await getCachedPost(postId);
+    let post: Awaited<ReturnType<typeof getCachedPost>> = null;
 
-    const title = post?.title || '글을 찾을 수 없습니다';
-    const tags =
-        post?.hashtags
-            ?.slice(0, 4)
-            .map((t) => `#${t.name}`)
-            .join('  ') || '';
+    if (!Number.isNaN(postId)) {
+        try {
+            post = await getCachedPost(postId);
+        } catch (error) {
+            console.error(`게시글 OG 이미지 데이터 조회 실패 (postId: ${postId}):`, error);
+        }
+    }
 
-    const [bold, regular] = await Promise.all([
-        loadKoreanFont(700),
-        loadKoreanFont(400),
-    ]);
+    let fonts: OgFont[] = [];
 
-    const fonts = [
-        { name: 'Noto Sans KR', data: bold, weight: 700 as const },
-        { name: 'Noto Sans KR', data: regular, weight: 400 as const },
-    ];
+    try {
+        fonts = await loadKoreanFonts();
+    } catch (error) {
+        console.error(`게시글 OG 이미지 폰트 로딩 실패 (postId: ${postId}):`, error);
+    }
+
+    const hasKoreanFont = fonts.length > 0;
+    const title = hasKoreanFont
+        ? post?.title || '글을 찾을 수 없습니다'
+        : 'MYBLOG POST';
+    const tags = hasKoreanFont
+        ? post?.hashtags
+              ?.slice(0, 4)
+              .map((t) => `#${t.name}`)
+              .join('  ') || ''
+        : '';
+    const imageOptions = hasKoreanFont ? { ...size, fonts } : size;
 
     return new ImageResponse(
         (
@@ -48,7 +59,7 @@ export default async function Image({
                     background:
                         'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
                     color: '#f8fafc',
-                    fontFamily: 'Noto Sans KR',
+                    fontFamily: hasKoreanFont ? 'Noto Sans KR' : 'Arial',
                 }}
             >
                 {/* 상단: 태그 */}
@@ -95,10 +106,10 @@ export default async function Image({
                             marginRight: 20,
                         }}
                     />
-                    {BRAND}
+                    {hasKoreanFont ? BRAND : 'MYBLOG'}
                 </div>
             </div>
         ),
-        { ...size, fonts }
+        imageOptions
     );
 }
