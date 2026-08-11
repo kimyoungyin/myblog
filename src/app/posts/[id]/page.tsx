@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata, ResolvingMetadata } from 'next';
 import { getCachedPost } from '@/lib/posts';
 import { getCachedComments } from '@/lib/comments';
+import { extractDescription, countWords } from '@/lib/markdown';
 import {
     incrementViewCountAction,
     getLikeStatusAction,
@@ -18,6 +19,14 @@ import { AlertTriangle } from 'lucide-react';
 import { HashtagLink } from '@/components/ui/hashtag-link';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { LikeButton } from '@/components/likes/LikeButton';
+import { getSiteUrl } from '@/lib/site-config';
+import {
+    getSocialImageMetadata,
+    resolveSocialImageSource,
+} from '@/lib/seo-metadata';
+
+const DEFAULT_POST_DESCRIPTION =
+    '김영인의 기술 블로그에서 공유하는 개발 경험과 지식입니다.';
 
 interface PostPageProps {
     params: Promise<{
@@ -50,29 +59,25 @@ export async function generateMetadata(
             };
         }
 
-        // 부모 메타데이터에서 기본 이미지 가져오기
-        const previousImages = (await parent).openGraph?.images || [];
+        // og:image는 규약 파일(opengraph-image.tsx)이 자동 주입하므로
+        // 부모 이미지를 별도로 상속하지 않는다.
+        void parent;
 
-        // 글 내용에서 첫 200자 추출 (마크다운 제거)
-        const contentPreview = post.content_markdown
-            .replace(/[#*`_~\[\]()]/g, '') // 마크다운 문법 제거
-            .replace(/\n+/g, ' ') // 개행 문자를 공백으로 변환
-            .trim()
-            .substring(0, 200);
+        // 글 내용에서 디스크립션 추출 (마크다운/URL 제거, 문장 경계 기준 ~160자)
+        const contentPreview = extractDescription(post.content_markdown);
 
         // 해시태그를 키워드로 변환
         const keywords = post.hashtags?.map((tag) => tag.name) || [];
 
-        // 기본 사이트 URL (환경변수에서 가져오거나 기본값 사용)
-        const baseUrl =
-            process.env.NEXT_PUBLIC_SITE_URL || 'https://myblog.vercel.app';
+        const baseUrl = getSiteUrl();
         const postUrl = `${baseUrl}/posts/${post.id}`;
+        const description =
+            contentPreview || DEFAULT_POST_DESCRIPTION;
+        const socialImageMetadata = getSocialImageMetadata(post.thumbnail_url);
 
         return {
             title: `${post.title} | MyBlog`,
-            description:
-                contentPreview ||
-                '김영인의 기술 블로그에서 공유하는 개발 경험과 지식입니다.',
+            description,
             keywords: ['개발', '블로그', '기술', '프로그래밍', ...keywords],
             authors: [{ name: '김영인' }],
             creator: '김영인',
@@ -81,9 +86,7 @@ export async function generateMetadata(
             // Open Graph 메타데이터
             openGraph: {
                 title: post.title,
-                description:
-                    contentPreview ||
-                    '김영인의 기술 블로그에서 공유하는 개발 경험과 지식입니다.',
+                description,
                 url: postUrl,
                 siteName: 'MyBlog - 김영인의 기술 블로그',
                 locale: 'ko_KR',
@@ -92,42 +95,21 @@ export async function generateMetadata(
                 modifiedTime: post.updated_at,
                 authors: ['김영인'],
                 tags: keywords,
-                images: post.thumbnail_url
-                    ? [
-                          {
-                              url: post.thumbnail_url,
-                              width: 1200,
-                              height: 630,
-                              alt: post.title,
-                          },
-                          // 카카오톡 최적화를 위한 정사각형 이미지 (권장: 800x800)
-                          {
-                              url: post.thumbnail_url,
-                              width: 800,
-                              height: 800,
-                              alt: post.title,
-                          },
-                          ...previousImages,
-                      ]
-                    : previousImages,
+                ...socialImageMetadata.openGraph,
             },
 
             // Twitter Card 메타데이터
             twitter: {
                 card: 'summary_large_image',
                 title: post.title,
-                description:
-                    contentPreview ||
-                    '김영인의 기술 블로그에서 공유하는 개발 경험과 지식입니다.',
+                description,
                 creator: '@kimyoungin', // 실제 트위터 핸들로 변경 필요
-                images: post.thumbnail_url ? [post.thumbnail_url] : undefined,
+                ...socialImageMetadata.twitter,
             },
 
             // 카카오톡 및 한국 플랫폼 최적화를 위한 추가 메타데이터
+            // (og:image 관련 태그는 규약 파일이 자동 주입)
             other: {
-                // 카카오톡에서 사용하는 추가 메타태그들
-                'og:image:width': '1200',
-                'og:image:height': '630',
                 'og:rich_attachment': 'true',
                 // 네이버 블로그 등에서 활용하는 메타태그
                 'article:section': keywords.length > 0 ? keywords[0] : '기술',
@@ -189,6 +171,17 @@ export default async function PostPage({ params }: PostPageProps) {
         if (!post) {
             notFound();
         }
+
+        const siteUrl = getSiteUrl();
+        const postUrl = `${siteUrl}/posts/${post.id}`;
+        const description =
+            extractDescription(post.content_markdown) ||
+            DEFAULT_POST_DESCRIPTION;
+        const imageSource = resolveSocialImageSource(post.thumbnail_url);
+        const imageUrl =
+            imageSource.kind === 'thumbnail'
+                ? imageSource.url
+                : `${postUrl}/opengraph-image`;
 
         // 조회수 증가 시도 (실패해도 글은 표시)
         let viewCountError = false;
@@ -294,6 +287,7 @@ export default async function PostPage({ params }: PostPageProps) {
                             <CardContent className="pt-6">
                                 <MarkdownRenderer
                                     content={post.content_markdown}
+                                    title={post.title}
                                     className="prose-lg max-w-none"
                                 />
                             </CardContent>
@@ -315,39 +309,30 @@ export default async function PostPage({ params }: PostPageProps) {
                                 '@context': 'https://schema.org',
                                 '@type': 'BlogPosting',
                                 headline: post.title,
-                                description: post.content_markdown
-                                    .replace(/[#*`_~\[\]()]/g, '')
-                                    .replace(/\n+/g, ' ')
-                                    .trim()
-                                    .substring(0, 200),
+                                description,
                                 author: {
                                     '@type': 'Person',
                                     name: '김영인',
-                                    url:
-                                        process.env.NEXT_PUBLIC_SITE_URL ||
-                                        'https://myblog.vercel.app',
+                                    url: siteUrl,
                                 },
                                 publisher: {
                                     '@type': 'Organization',
                                     name: 'MyBlog',
-                                    url:
-                                        process.env.NEXT_PUBLIC_SITE_URL ||
-                                        'https://myblog.vercel.app',
+                                    url: siteUrl,
                                 },
                                 datePublished: post.created_at,
                                 dateModified: post.updated_at,
-                                image: post.thumbnail_url || undefined,
-                                url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://myblog.vercel.app'}/posts/${post.id}`,
+                                image: imageUrl,
+                                url: postUrl,
                                 keywords:
                                     post.hashtags
                                         ?.map((tag) => tag.name)
                                         .join(', ') || '',
-                                wordCount:
-                                    post.content_markdown.split(/\s+/).length,
+                                wordCount: countWords(post.content_markdown),
                                 inLanguage: 'ko-KR',
                                 mainEntityOfPage: {
                                     '@type': 'WebPage',
-                                    '@id': `${process.env.NEXT_PUBLIC_SITE_URL || 'https://myblog.vercel.app'}/posts/${post.id}`,
+                                    '@id': postUrl,
                                 },
                                 interactionStatistic: [
                                     {
@@ -370,7 +355,38 @@ export default async function PostPage({ params }: PostPageProps) {
                                             post.comments_count,
                                     },
                                 ],
-                            }),
+                            }).replace(/</g, '\\u003c'),
+                        }}
+                    />
+
+                    {/* JSON-LD 구조화 데이터 — 이동 경로(Breadcrumb) */}
+                    <script
+                        type="application/ld+json"
+                        dangerouslySetInnerHTML={{
+                            __html: JSON.stringify({
+                                '@context': 'https://schema.org',
+                                '@type': 'BreadcrumbList',
+                                itemListElement: [
+                                    {
+                                        '@type': 'ListItem',
+                                        position: 1,
+                                        name: '홈',
+                                        item: siteUrl,
+                                    },
+                                    {
+                                        '@type': 'ListItem',
+                                        position: 2,
+                                        name: '글 목록',
+                                        item: `${siteUrl}/posts`,
+                                    },
+                                    {
+                                        '@type': 'ListItem',
+                                        position: 3,
+                                        name: post.title,
+                                        item: postUrl,
+                                    },
+                                ],
+                            }).replace(/</g, '\\u003c'),
                         }}
                     />
                 </div>

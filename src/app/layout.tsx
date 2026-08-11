@@ -7,6 +7,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Toaster } from '@/components/ui/sonner';
 import { Analytics } from '@vercel/analytics/next';
+import { getSiteUrl } from '@/lib/site-config';
 
 const geistSans = Geist({
     variable: '--font-geist-sans',
@@ -19,9 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    metadataBase: new URL(
-        process.env.NEXT_PUBLIC_SITE_URL || 'https://myblog.vercel.app'
-    ),
+    metadataBase: new URL(getSiteUrl()),
     title: {
         template: '%s | MyBlog',
         default: 'MyBlog - 김영인의 기술 블로그',
@@ -36,11 +35,21 @@ export const metadata: Metadata = {
         'Next.js',
         'TypeScript',
     ],
+
+    // RSS 피드 등 대체 표현 등록 (구독·신디케이션)
+    alternates: {
+        types: {
+            'application/rss+xml': [
+                { url: '/feed.xml', title: '김영인의 기술 블로그 RSS' },
+            ],
+        },
+    },
     authors: [{ name: '김영인' }],
     creator: '김영인',
     publisher: 'MyBlog',
 
     // Open Graph 기본 설정
+    // og:image는 규약 파일 src/app/opengraph-image.tsx가 자동 주입한다.
     openGraph: {
         type: 'website',
         locale: 'ko_KR',
@@ -48,21 +57,6 @@ export const metadata: Metadata = {
         siteName: 'MyBlog - 김영인의 기술 블로그',
         title: 'MyBlog - 김영인의 기술 블로그',
         description: '개발자로서 정리한 경험과 지식을 공유하는 블로그입니다.',
-        images: [
-            {
-                url: '/og-image.png', // 기본 OG 이미지 (추후 생성 필요)
-                width: 1200,
-                height: 630,
-                alt: 'MyBlog - 김영인의 기술 블로그',
-            },
-            // 카카오톡 최적화를 위한 정사각형 이미지
-            {
-                url: '/og-image-square.png', // 정사각형 OG 이미지 (추후 생성 필요)
-                width: 800,
-                height: 800,
-                alt: 'MyBlog - 김영인의 기술 블로그',
-            },
-        ],
     },
 
     // Twitter Card 기본 설정
@@ -100,17 +94,24 @@ export const metadata: Metadata = {
     },
 
     // 카카오톡 및 한국 플랫폼 최적화를 위한 추가 메타데이터
+    // (og:image 관련 태그는 규약 파일이 자동 주입하므로 여기서 중복 지정하지 않음)
     other: {
-        // 카카오톡에서 사용하는 추가 메타태그들
-        'og:image:width': '1200',
-        'og:image:height': '630',
         'og:rich_attachment': 'true',
         // 한국어 콘텐츠임을 명시
         'content-language': 'ko',
         language: 'Korean',
-        // 네이버, 다음 등 한국 검색엔진 최적화
-        'naver-site-verification': '', // 추후 네이버 웹마스터 도구 연동 시 추가
-        'google-site-verification': '', // 추후 Google Search Console 연동 시 추가
+    },
+    // 검색엔진 소유 확인용 코드는 환경변수로 주입 (없으면 필드 자체를 생략)
+    verification: {
+        ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION && {
+            google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+        }),
+        ...(process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION && {
+            other: {
+                'naver-site-verification':
+                    process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION,
+            },
+        }),
     },
 };
 

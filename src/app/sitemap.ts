@@ -1,10 +1,11 @@
 import type { MetadataRoute } from 'next';
 import { getPosts } from '@/lib/posts';
 import { PAGE_SIZE } from '@/constants';
+import { getSiteUrl } from '@/lib/site-config';
 
 // Next.js App Router sitemap route
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const siteUrl = getSiteUrl();
 
     const entries: MetadataRoute.Sitemap = [
         {
@@ -18,12 +19,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             lastModified: new Date(),
             changeFrequency: 'daily',
             priority: 0.7,
-        },
-        {
-            url: `${siteUrl}/search`,
-            lastModified: new Date(),
-            changeFrequency: 'weekly',
-            priority: 0.6,
         },
     ];
 
