@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Comment } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
-import { updateCommentAction, deleteCommentAction } from '@/lib/actions';
+import { useCommentMutations } from '@/hooks/useComments';
 import { CommentForm } from './CommentForm';
 import { toast } from 'sonner';
 import {
@@ -24,10 +24,6 @@ interface CommentItemProps {
     comment: Comment;
     postAuthorId?: string;
     isReply?: boolean;
-    onReplySuccess?: () => void;
-    onOptimisticAdd?: (comment: Comment) => void;
-    onOptimisticUpdate?: (id: number, content: string) => void;
-    onOptimisticDelete?: (id: number) => void;
     className?: string;
 }
 
@@ -35,13 +31,15 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     comment,
     postAuthorId,
     isReply = false,
-    onReplySuccess,
-    onOptimisticAdd,
-    onOptimisticUpdate,
-    onOptimisticDelete,
     className,
 }) => {
     const { user } = useAuth();
+    const {
+        updateComment,
+        deleteComment,
+        isUpdating,
+        isDeleting,
+    } = useCommentMutations(comment.post_id, user);
     const [isEditing, setIsEditing] = useState(false);
     const [isReplying, setIsReplying] = useState(false);
     const [editContent, setEditContent] = useState(comment.content);
@@ -50,23 +48,21 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     const isPostAuthor = comment.author_id === postAuthorId;
 
     const handleEdit = async (e: React.FormEvent) => {
-        e.preventDefault(); // 기본 form 제출 방지
+        e.preventDefault();
 
-        const formData = new FormData(e.target as HTMLFormElement);
-        const newContent = formData.get('content') as string;
+        const newContent = editContent.trim();
+        if (!newContent) {
+            return;
+        }
 
-        // 1. 낙관적 업데이트: 즉시 UI에 반영
-        onOptimisticUpdate?.(comment.id, newContent);
-        setIsEditing(false); // 편집 모드 종료
+        setIsEditing(false);
 
         try {
-            // 2. 서버 액션 호출
-            formData.append('comment_id', comment.id.toString());
-            formData.append('post_id', comment.post_id.toString());
-
-            await updateCommentAction(formData);
+            await updateComment({
+                commentId: comment.id,
+                content: newContent,
+            });
             toast.success('댓글이 수정되었습니다.');
-            // 성공 시: 낙관적 업데이트를 신뢰 (추가 작업 없음)
         } catch (error) {
             console.error('댓글 수정 실패:', error);
             toast.error(
@@ -74,9 +70,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                     ? error.message
                     : '댓글 수정 중 오류가 발생했습니다.'
             );
-            // 실패 시: 편집 모드로 되돌리고 데이터 새로고침
             setIsEditing(true);
-            onReplySuccess?.(); // 실패 시에만 새로고침
         }
     };
 
@@ -85,17 +79,9 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             return;
         }
 
-        // 낙관적 업데이트: 즉시 UI에서 제거
-        onOptimisticDelete?.(comment.id);
-
         try {
-            const formData = new FormData();
-            formData.append('comment_id', comment.id.toString());
-            formData.append('post_id', comment.post_id.toString());
-
-            await deleteCommentAction(formData);
+            await deleteComment({ commentId: comment.id });
             toast.success('댓글이 삭제되었습니다.');
-            // 성공 시에는 낙관적 업데이트를 신뢰 (새로고침 안 함)
         } catch (error) {
             console.error('댓글 삭제 실패:', error);
             toast.error(
@@ -103,20 +89,15 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                     ? error.message
                     : '댓글 삭제 중 오류가 발생했습니다.'
             );
-            // 실패 시에만 데이터 새로고침으로 원래 상태로 복원
-            onReplySuccess?.(); // 실패 시에만 새로고침
         }
     };
 
     const handleReplySuccess = () => {
         setIsReplying(false);
-        // 대댓글 작성 성공 시에는 폼만 닫고 데이터 새로고침은 하지 않음
     };
 
     const handleReplyFailure = () => {
-        // 대댓글 작성 실패 시: 폼 다시 열기 및 데이터 새로고침
         setIsReplying(true);
-        onReplySuccess?.(); // 데이터 새로고침으로 UI 원복
     };
 
     return (
@@ -124,7 +105,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             <Card
                 className={`p-4 ${isReply ? 'border-l-2 border-l-blue-200' : ''}`}
             >
-                {/* 댓글 헤더 */}
                 <div className="mb-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <div className="flex items-center gap-2">
@@ -153,7 +133,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                     </div>
 
                     <div className="flex items-center gap-1">
-                        {/* 대댓글 버튼 */}
                         {!isReply && user && !isReplying && (
                             <Button
                                 variant="ghost"
@@ -166,7 +145,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                             </Button>
                         )}
 
-                        {/* 작성자 메뉴 */}
                         {isAuthor && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -174,6 +152,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                                         variant="ghost"
                                         size="sm"
                                         className="h-8 w-8 p-0"
+                                        disabled={isUpdating || isDeleting}
                                     >
                                         <MoreHorizontal className="h-3 w-3" />
                                     </Button>
@@ -190,6 +169,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         onClick={handleDelete}
+                                        disabled={isDeleting}
                                         className="text-destructive"
                                     >
                                         <Trash2 className="mr-2 h-3 w-3" />
@@ -201,7 +181,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                     </div>
                 </div>
 
-                {/* 댓글 내용 */}
                 {isEditing ? (
                     <form onSubmit={handleEdit} className="space-y-3">
                         <Textarea
@@ -226,15 +205,19 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                                         setIsEditing(false);
                                         setEditContent(comment.content);
                                     }}
+                                    disabled={isUpdating}
                                 >
                                     취소
                                 </Button>
                                 <Button
                                     type="submit"
                                     size="sm"
-                                    disabled={editContent.trim().length === 0}
+                                    disabled={
+                                        editContent.trim().length === 0 ||
+                                        isUpdating
+                                    }
                                 >
-                                    수정
+                                    {isUpdating ? '수정 중...' : '수정'}
                                 </Button>
                             </div>
                         </div>
@@ -246,7 +229,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 )}
             </Card>
 
-            {/* 대댓글 폼 */}
             {isReplying && (
                 <div className="mt-3">
                     <CommentForm
@@ -261,7 +243,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                         onSuccess={handleReplySuccess}
                         onCancel={() => setIsReplying(false)}
                         onFailure={handleReplyFailure}
-                        onOptimisticAdd={onOptimisticAdd}
                         className="border-dashed"
                     />
                 </div>

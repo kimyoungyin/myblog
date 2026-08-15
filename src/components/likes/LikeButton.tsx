@@ -1,13 +1,13 @@
 'use client';
 
-import { useTransition } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getLikeStatusAction, toggleLikeAction } from '@/lib/actions';
 import { useAuth } from '@/hooks/useAuth';
 import { likeStatusQueryKey } from '@/lib/queries';
+import { invalidateClientQueriesForEvent } from '@/lib/query-invalidation';
 import type { LikeStatus } from '@/types';
 import Link from 'next/link';
 
@@ -30,7 +30,6 @@ export function LikeButton({
 }: LikeButtonProps) {
     const { user, isLoading } = useAuth();
     const queryClient = useQueryClient();
-    const [isPending, startTransition] = useTransition();
 
     const { data: likeStatus } = useQuery({
         queryKey: likeStatusQueryKey(postId, user?.id),
@@ -43,48 +42,75 @@ export function LikeButton({
     const isLiked = likeStatus?.is_liked ?? initialIsLiked;
     const likesCount = likeStatus?.likes_count ?? initialLikesCount;
 
+    const likeMutation = useMutation({
+        mutationFn: async () => {
+            if (!user) {
+                throw new Error(
+                    '좋아요를 추가/제거하려면 로그인이 필요합니다.'
+                );
+            }
+
+            const formData = new FormData();
+            formData.append('post_id', postId.toString());
+            return toggleLikeAction(formData);
+        },
+        onMutate: async () => {
+            const key = likeStatusQueryKey(postId, user?.id);
+            await queryClient.cancelQueries({ queryKey: key });
+
+            const previous = queryClient.getQueryData<LikeStatus>(key);
+            const nextIsLiked = !isLiked;
+            const nextCount = nextIsLiked
+                ? likesCount + 1
+                : Math.max(0, likesCount - 1);
+
+            queryClient.setQueryData<LikeStatus>(key, {
+                post_id: postId,
+                is_liked: nextIsLiked,
+                likes_count: nextCount,
+            });
+
+            return { key, previous };
+        },
+        onError: (_error, _variables, context) => {
+            if (!context) {
+                return;
+            }
+
+            if (context.previous) {
+                queryClient.setQueryData(context.key, context.previous);
+                return;
+            }
+
+            queryClient.setQueryData<LikeStatus>(context.key, {
+                post_id: postId,
+                is_liked: initialIsLiked,
+                likes_count: initialLikesCount,
+            });
+        },
+        onSuccess: async (result) => {
+            const key = likeStatusQueryKey(postId, user?.id);
+            queryClient.setQueryData<LikeStatus>(key, {
+                post_id: postId,
+                is_liked: result.is_liked,
+                likes_count: result.likes_count,
+            });
+
+            await invalidateClientQueriesForEvent(queryClient, {
+                type: 'like-toggled',
+                postId,
+            });
+        },
+    });
+
+    const isPending = likeMutation.isPending;
+
     const handleToggleLike = () => {
-        if (!user) {
+        if (!user || isPending) {
             return;
         }
 
-        const key = likeStatusQueryKey(postId, user.id);
-        const previous = queryClient.getQueryData<LikeStatus>(key);
-        const nextIsLiked = !isLiked;
-        const nextCount = nextIsLiked
-            ? likesCount + 1
-            : Math.max(0, likesCount - 1);
-
-        queryClient.setQueryData<LikeStatus>(key, {
-            post_id: postId,
-            is_liked: nextIsLiked,
-            likes_count: nextCount,
-        });
-
-        startTransition(async () => {
-            try {
-                const formData = new FormData();
-                formData.append('post_id', postId.toString());
-
-                const result = await toggleLikeAction(formData);
-
-                queryClient.setQueryData<LikeStatus>(key, {
-                    post_id: postId,
-                    is_liked: result.is_liked,
-                    likes_count: result.likes_count,
-                });
-            } catch {
-                if (previous) {
-                    queryClient.setQueryData(key, previous);
-                } else {
-                    queryClient.setQueryData<LikeStatus>(key, {
-                        post_id: postId,
-                        is_liked: initialIsLiked,
-                        likes_count: initialLikesCount,
-                    });
-                }
-            }
-        });
+        likeMutation.mutate();
     };
 
     // 로그인하지 않은 사용자를 위한 UI
