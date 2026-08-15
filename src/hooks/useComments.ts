@@ -97,7 +97,6 @@ export function useCommentMutations(postId: number, user?: User | null) {
         mutationFn: async ({ commentId, content }: UpdateCommentInput) => {
             const formData = new FormData();
             formData.append('comment_id', commentId.toString());
-            formData.append('post_id', postId.toString());
             formData.append('content', content);
 
             return updateCommentAction(formData);
@@ -130,7 +129,6 @@ export function useCommentMutations(postId: number, user?: User | null) {
         mutationFn: async ({ commentId }: DeleteCommentInput) => {
             const formData = new FormData();
             formData.append('comment_id', commentId.toString());
-            formData.append('post_id', postId.toString());
 
             return deleteCommentAction(formData);
         },

@@ -25,17 +25,11 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
 }) => {
     const {
         data: comments = [],
-        error,
         isError,
         isFetching,
         isLoading,
         refetch,
     } = useComments(postId, initialComments);
-
-    const errorMessage =
-        error instanceof Error
-            ? error.message
-            : '댓글을 불러오는 중 오류가 발생했습니다.';
 
     return (
         <div className={`space-y-6 ${className || ''}`}>
@@ -65,8 +59,8 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                     <CommentForm postId={postId} />
 
                     {isError && (
-                        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-200">
-                            <p>{errorMessage}</p>
+                        <div className="bg-destructive/10 text-destructive rounded-lg p-4 text-sm">
+                            <p>댓글을 불러오는 중 오류가 발생했습니다.</p>
                             <Button
                                 variant="outline"
                                 size="sm"

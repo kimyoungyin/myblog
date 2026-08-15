@@ -546,7 +546,6 @@ export async function updateCommentAction(formData: FormData) {
         const rawData = {
             content: formData.get('content') as string,
             comment_id: parseInt(formData.get('comment_id') as string, 10),
-            post_id: parseInt(formData.get('post_id') as string, 10),
         };
 
         // Zod 스키마로 검증
@@ -573,7 +572,7 @@ export async function updateCommentAction(formData: FormData) {
         // 캐시 무효화
         applyServerInvalidation({
             type: 'comment-updated',
-            postId: rawData.post_id,
+            postId: comment.post_id,
         });
 
         return comment;
@@ -602,17 +601,16 @@ export async function deleteCommentAction(formData: FormData) {
         // 폼 데이터 추출
         const rawData = {
             comment_id: parseInt(formData.get('comment_id') as string, 10),
-            post_id: parseInt(formData.get('post_id') as string, 10),
         };
 
         // 댓글 삭제
         const { deleteComment } = await import('./comments');
-        await deleteComment(rawData.comment_id, user.id);
+        const postId = await deleteComment(rawData.comment_id, user.id);
 
         // 캐시 무효화
         applyServerInvalidation({
             type: 'comment-deleted',
-            postId: rawData.post_id,
+            postId,
         });
 
         return { success: true };

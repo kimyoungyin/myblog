@@ -60,13 +60,8 @@ export const CommentForm: React.FC<CommentFormProps> = ({
                 parentId ? '대댓글이 작성되었습니다.' : '댓글이 작성되었습니다.'
             );
             onSuccess?.();
-        } catch (error) {
-            console.error('댓글 작성 실패:', error);
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : '댓글 작성 중 오류가 발생했습니다.'
-            );
+        } catch {
+            toast.error('댓글 작성 중 오류가 발생했습니다.');
             setContent(commentContent);
             onFailure?.();
         }

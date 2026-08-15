@@ -49,9 +49,14 @@ describe('comment cache updates', () => {
     });
 
     it('댓글과 모든 하위 답글을 제거한다', () => {
-        const existing = [makeComment(1), makeComment(2, 1), makeComment(3)];
+        const existing = [
+            makeComment(1),
+            makeComment(2, 1),
+            makeComment(3, 2),
+            makeComment(4),
+        ];
 
-        expect(removeCommentTree(existing, 1)).toEqual([existing[2]]);
+        expect(removeCommentTree(existing, 1)).toEqual([existing[3]]);
     });
 });
 

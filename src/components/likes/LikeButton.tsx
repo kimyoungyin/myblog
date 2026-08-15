@@ -10,6 +10,7 @@ import { likeStatusQueryKey } from '@/lib/queries';
 import { invalidateClientQueriesForEvent } from '@/lib/query-invalidation';
 import type { LikeStatus } from '@/types';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 interface LikeButtonProps {
     postId: number;
@@ -73,6 +74,8 @@ export function LikeButton({
             return { key, previous };
         },
         onError: (_error, _variables, context) => {
+            toast.error('좋아요 처리 중 오류가 발생했습니다.');
+
             if (!context) {
                 return;
             }

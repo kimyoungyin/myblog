@@ -63,13 +63,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 content: newContent,
             });
             toast.success('댓글이 수정되었습니다.');
-        } catch (error) {
-            console.error('댓글 수정 실패:', error);
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : '댓글 수정 중 오류가 발생했습니다.'
-            );
+        } catch {
+            toast.error('댓글 수정 중 오류가 발생했습니다.');
             setIsEditing(true);
         }
     };
@@ -82,13 +77,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         try {
             await deleteComment({ commentId: comment.id });
             toast.success('댓글이 삭제되었습니다.');
-        } catch (error) {
-            console.error('댓글 삭제 실패:', error);
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : '댓글 삭제 중 오류가 발생했습니다.'
-            );
+        } catch {
+            toast.error('댓글 삭제 중 오류가 발생했습니다.');
         }
     };
 

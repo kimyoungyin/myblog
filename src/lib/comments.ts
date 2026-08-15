@@ -284,7 +284,7 @@ export async function updateComment(
 export async function deleteComment(
     commentId: number,
     authorId: string
-): Promise<void> {
+): Promise<number> {
     try {
         const supabase = createServiceRoleClient();
 
@@ -323,6 +323,8 @@ export async function deleteComment(
             console.error('댓글 수 감소 실패:', countError);
             // 댓글은 삭제되었으므로 에러를 던지지 않고 로그만 남김
         }
+
+        return comment.post_id;
     } catch (error) {
         console.error('댓글 삭제 중 오류:', error);
         throw error;
