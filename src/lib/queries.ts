@@ -5,6 +5,8 @@ import type { PostSort } from '@/types';
 // Posts list (infinite) - /posts 페이지, prefetch + PostWrapper
 // ---------------------------------------------------------------------------
 
+export const postsQueryKey = ['posts'] as const;
+
 /**
  * 글 목록 infinite query의 queryKey.
  * prefetch(서버)와 useInfiniteQuery(클라이언트)에서 동일 키 보장.
@@ -13,7 +15,7 @@ export function postsListQueryKey(
     sort: PostSort,
     tagId?: string
 ): QueryKey {
-    return ['posts', { sort, tag: tagId }];
+    return [...postsQueryKey, { sort, tag: tagId }];
 }
 
 // ---------------------------------------------------------------------------
@@ -32,6 +34,8 @@ export const authQueryKeys = {
 // Search results (infinite) - SearchResultsWrapper
 // ---------------------------------------------------------------------------
 
+export const searchQueryKey = ['search'] as const;
+
 /**
  * 검색 결과 infinite query의 queryKey.
  * searchQuery + hashtagIds 조합으로 캐시 분리.
@@ -44,7 +48,19 @@ export function searchResultsQueryKey(
         hashtagIds && hashtagIds.length > 0
             ? [...hashtagIds].sort((a, b) => a - b).join(',')
             : undefined;
-    return ['search', { q: searchQuery, tag }];
+    return [...searchQueryKey, { q: searchQuery, tag }];
+}
+
+// ---------------------------------------------------------------------------
+// Comments - post detail comment query
+// ---------------------------------------------------------------------------
+
+/**
+ * 게시글별 댓글 목록 Query key.
+ * 게시글이 다르면 캐시와 mutation invalidation도 분리합니다.
+ */
+export function commentsQueryKey(postId: number): QueryKey {
+    return ['comments', postId];
 }
 
 // ---------------------------------------------------------------------------
