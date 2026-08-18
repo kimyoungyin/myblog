@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath, revalidateTag } from 'next/cache';
 import { redirect } from 'next/navigation';
 import {
     createPost,
@@ -11,7 +10,7 @@ import {
     getCachedPost,
     getCachedRecentPosts,
 } from './posts';
-import { CACHE_TAGS } from './cache-tags';
+import { applyServerInvalidation } from './server-cache-invalidation';
 import {
     createClient,
     createServiceRoleClient,
@@ -70,10 +69,7 @@ export async function createPostAction(formData: FormData) {
         }
 
         // 캐시 무효화 및 리다이렉트
-        revalidatePath('/posts');
-        revalidatePath('/'); // 홈페이지 캐시 무효화
-        revalidateTag(CACHE_TAGS.posts);
-        revalidateTag(CACHE_TAGS.hashtags);
+        applyServerInvalidation({ type: 'post-created' });
         redirect(`/posts/${post.id}`);
     } catch (error) {
         throw error;
@@ -156,13 +152,10 @@ export async function updatePostAction(postId: number, formData: FormData) {
         }
 
         // 캐시 무효화 및 리다이렉트
-        revalidatePath(`/admin/posts/${postId}/edit`);
-        revalidatePath(`/posts/${postId}`);
-        revalidatePath('/posts');
-        revalidatePath('/'); // 홈페이지 캐시 무효화
-        revalidateTag(CACHE_TAGS.posts);
-        revalidateTag(CACHE_TAGS.post(postId));
-        revalidateTag(CACHE_TAGS.hashtags);
+        applyServerInvalidation({
+            type: 'post-updated',
+            postId,
+        });
 
         // 수정된 글의 상세 페이지로 리다이렉트
         redirect(`/posts/${postId}`);
@@ -304,10 +297,10 @@ export async function deletePostAction(postId: number) {
         }
 
         // 캐시 무효화
-        revalidatePath('/posts');
-        revalidatePath('/'); // 홈페이지 캐시 무효화
-        revalidateTag(CACHE_TAGS.posts);
-        revalidateTag(CACHE_TAGS.post(postId));
+        applyServerInvalidation({
+            type: 'post-deleted',
+            postId,
+        });
 
         return { success: true };
     } catch (error) {
@@ -521,12 +514,10 @@ export async function createCommentAction(formData: FormData) {
         const comment = await createComment(validationResult.data, user.id);
 
         // 캐시 무효화
-        revalidatePath(`/posts/${rawData.post_id}`);
-        revalidatePath('/posts'); // 글 목록 캐시 무효화
-        revalidatePath('/'); // 홈페이지 캐시 무효화
-        revalidateTag(CACHE_TAGS.comments(rawData.post_id));
-        revalidateTag(CACHE_TAGS.post(rawData.post_id));
-        revalidateTag(CACHE_TAGS.posts);
+        applyServerInvalidation({
+            type: 'comment-created',
+            postId: rawData.post_id,
+        });
 
         return comment;
     } catch (error) {
@@ -555,7 +546,6 @@ export async function updateCommentAction(formData: FormData) {
         const rawData = {
             content: formData.get('content') as string,
             comment_id: parseInt(formData.get('comment_id') as string, 10),
-            post_id: parseInt(formData.get('post_id') as string, 10),
         };
 
         // Zod 스키마로 검증
@@ -580,12 +570,10 @@ export async function updateCommentAction(formData: FormData) {
         );
 
         // 캐시 무효화
-        revalidatePath(`/posts/${rawData.post_id}`);
-        revalidatePath('/posts'); // 글 목록 캐시 무효화
-        revalidatePath('/'); // 홈페이지 캐시 무효화
-        revalidateTag(CACHE_TAGS.comments(rawData.post_id));
-        revalidateTag(CACHE_TAGS.post(rawData.post_id));
-        revalidateTag(CACHE_TAGS.posts);
+        applyServerInvalidation({
+            type: 'comment-updated',
+            postId: comment.post_id,
+        });
 
         return comment;
     } catch (error) {
@@ -613,20 +601,17 @@ export async function deleteCommentAction(formData: FormData) {
         // 폼 데이터 추출
         const rawData = {
             comment_id: parseInt(formData.get('comment_id') as string, 10),
-            post_id: parseInt(formData.get('post_id') as string, 10),
         };
 
         // 댓글 삭제
         const { deleteComment } = await import('./comments');
-        await deleteComment(rawData.comment_id, user.id);
+        const postId = await deleteComment(rawData.comment_id, user.id);
 
         // 캐시 무효화
-        revalidatePath(`/posts/${rawData.post_id}`);
-        revalidatePath('/posts'); // 글 목록 캐시 무효화
-        revalidatePath('/'); // 홈페이지 캐시 무효화
-        revalidateTag(CACHE_TAGS.comments(rawData.post_id));
-        revalidateTag(CACHE_TAGS.post(rawData.post_id));
-        revalidateTag(CACHE_TAGS.posts);
+        applyServerInvalidation({
+            type: 'comment-deleted',
+            postId,
+        });
 
         return { success: true };
     } catch (error) {
@@ -678,11 +663,10 @@ export async function toggleLikeAction(formData: FormData) {
         }
 
         // 관련 페이지 캐시 무효화
-        revalidatePath(`/posts/${rawData.post_id}`);
-        revalidatePath('/posts');
-        revalidatePath('/');
-        revalidateTag(CACHE_TAGS.post(rawData.post_id));
-        revalidateTag(CACHE_TAGS.posts);
+        applyServerInvalidation({
+            type: 'like-toggled',
+            postId: rawData.post_id,
+        });
 
         return {
             success: true,

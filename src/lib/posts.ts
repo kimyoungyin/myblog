@@ -407,7 +407,7 @@ export async function getPost(postId: number): Promise<Post | null> {
 }
 
 /**
- * 글 상세 — Next.js Data Cache (ISR + tag 무효화).
+ * 글 상세 — Next.js Data Cache (TTL + tag 무효화).
  * 스냅샷의 view_count·likes_count는 TTL·`revalidateTag`로만 갱신됨.
  * 조회수 RPC는 매 방문 실행되어도 이 캐시와 별개(표시 숫자는 점진적으로 일치).
  */
@@ -417,7 +417,7 @@ export async function getCachedPost(postId: number): Promise<Post | null> {
         ['post', String(postId)],
         {
             revalidate: 3600,
-            tags: [CACHE_TAGS.post(postId), CACHE_TAGS.posts],
+            tags: [CACHE_TAGS.post(postId)],
         }
     )();
 }
@@ -438,4 +438,3 @@ export async function getCachedRecentPosts(): Promise<{
         }
     )();
 }
-
